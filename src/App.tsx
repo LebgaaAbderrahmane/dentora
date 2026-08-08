@@ -3,6 +3,9 @@ import { Hero } from '@/components/Hero'
 import { ProgressSteps } from '@/components/ProgressSteps'
 import { About } from '@/components/About'
 import { Services } from '@/components/Services'
+import { WhyChooseUs } from '@/components/WhyChooseUs'
+import { Process } from '@/components/Process'
+import { Testimonials } from '@/components/Testimonials'
 
 function App() {
   return (
@@ -12,6 +15,9 @@ function App() {
       <ProgressSteps />
       <About />
       <Services />
+      <WhyChooseUs />
+      <Process />
+      <Testimonials />
     </main>
   )
 }
