@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Check, Phone } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { PHONE, PHONE_TEL } from '@/data/content'
+import { useBooking } from '@/providers/booking'
 import { fadeUp } from '@/lib/motion'
 
 export function FinalCta() {
   const { t } = useTranslation()
+  const { openBooking } = useBooking()
   const trust = t('cta.trust', { returnObjects: true }) as string[]
 
   return (
@@ -39,12 +41,13 @@ export function FinalCta() {
           viewport={{ once: true }}
           className="mt-10 flex flex-wrap justify-center gap-4"
         >
-          <a
-            href="#contact"
+          <button
+            type="button"
+            onClick={() => openBooking()}
             className="inline-flex h-12 items-center justify-center rounded-full bg-white px-10 font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-white/90"
           >
             {t('cta.cta')}
-          </a>
+          </button>
           <a
             href={PHONE_TEL}
             className="inline-flex h-12 items-center gap-2 rounded-full border border-white/35 px-8 font-normal text-white transition-colors hover:bg-white/10"

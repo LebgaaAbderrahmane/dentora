@@ -18,7 +18,7 @@ export function Faq() {
   const faqs = t('faq.list', { returnObjects: true }) as { q: string; a: string }[]
 
   return (
-    <section className="bg-[hsl(var(--soft))]">
+    <section id="faq" className="bg-[hsl(var(--soft))]">
       <Container className="max-w-3xl py-24">
         <motion.div
           variants={fadeUp}

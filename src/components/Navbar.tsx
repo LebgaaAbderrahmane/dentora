@@ -6,6 +6,8 @@ import { ToothIcon } from '@/components/shared/ToothIcon'
 import { Button } from '@/components/shared/Button'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { useBooking } from '@/providers/booking'
+import { PHONE, PHONE_TEL } from '@/data/content'
 
 const links = [
   { label: 'nav.services', href: '#services' },
@@ -17,6 +19,7 @@ const links = [
 export function Navbar() {
   const [open, setOpen] = useState(false)
   const { t } = useTranslation()
+  const { openBooking } = useBooking()
 
   return (
     <header className="absolute inset-x-0 top-0 z-30">
@@ -47,12 +50,12 @@ export function Navbar() {
           <ThemeToggle />
           <div className="hidden items-center gap-6 lg:flex">
             <a
-              href="tel:+21321558800"
+              href={PHONE_TEL}
               className="text-[0.72rem] font-medium text-white/60 transition-colors hover:text-white"
             >
-              +213 21 55 88 00
+              {PHONE}
             </a>
-            <Button href="#book" className="h-9 px-5 text-[0.72rem]">
+            <Button onClick={() => openBooking()} className="h-9 px-5 text-[0.72rem]">
               {t('nav.book')}
             </Button>
           </div>
@@ -117,13 +120,19 @@ export function Navbar() {
 
             <div className="mt-auto flex flex-col gap-4 px-6 pb-10">
               <a
-                href="tel:+21321558800"
+                href={PHONE_TEL}
                 className="flex items-center gap-2 text-[0.82rem] text-white/70"
               >
                 <Phone className="h-4 w-4 text-[hsl(var(--primary))]" />
-                +213 21 55 88 00
+                {PHONE}
               </a>
-              <Button href="#book" onClick={() => setOpen(false)} className="h-11 w-full">
+              <Button
+                onClick={() => {
+                  setOpen(false)
+                  openBooking()
+                }}
+                className="h-11 w-full"
+              >
                 {t('nav.book')}
               </Button>
             </div>

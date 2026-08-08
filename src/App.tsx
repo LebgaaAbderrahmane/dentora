@@ -10,6 +10,7 @@ import { PhotoCTA } from '@/components/PhotoCTA'
 import { Faq } from '@/components/Faq'
 import { FinalCta } from '@/components/FinalCta'
 import { Footer } from '@/components/Footer'
+import { BookingModal } from '@/components/BookingModal'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
       <Faq />
       <FinalCta />
       <Footer />
+      <BookingModal />
     </main>
   )
 }

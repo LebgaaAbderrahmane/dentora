@@ -7,6 +7,7 @@ import { Button } from '@/components/shared/Button'
 import { TagPill } from '@/components/shared/TagPill'
 import { u } from '@/data/images'
 import { PHONE } from '@/data/content'
+import { useBooking } from '@/providers/booking'
 import { cn } from '@/lib/utils'
 
 const HERO_IMAGE = 'photo-1588776814546-1ffcf47267a5'
@@ -33,6 +34,7 @@ const wordStagger: Variants = {
 
 export function Hero() {
   const { t } = useTranslation()
+  const { openBooking } = useBooking()
   const lines = t('hero.lines', { returnObjects: true }) as string[]
   const tags = t('hero.tags', { returnObjects: true }) as string[]
 
@@ -111,7 +113,7 @@ export function Hero() {
           animate="visible"
           className="mb-12 flex flex-wrap items-center gap-4"
         >
-          <Button href="#book" className="h-12 px-8">
+          <Button onClick={() => openBooking()} className="h-12 px-8">
             {t('hero.cta')}
             <ArrowRight className="h-4 w-4" />
           </Button>

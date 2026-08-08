@@ -4,10 +4,12 @@ import { Phone } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { Button } from '@/components/shared/Button'
 import { ctaImage, PHONE, PHONE_TEL } from '@/data/content'
+import { useBooking } from '@/providers/booking'
 import { fadeUp } from '@/lib/motion'
 
 export function PhotoCTA() {
   const { t } = useTranslation()
+  const { openBooking } = useBooking()
 
   return (
     <section id="contact" className="relative flex h-[300px] items-center overflow-hidden">
@@ -40,7 +42,7 @@ export function PhotoCTA() {
           viewport={{ once: true }}
           className="flex flex-wrap gap-3"
         >
-          <Button href="#book" className="h-12 px-9">
+          <Button onClick={() => openBooking()} className="h-12 px-9">
             {t('photoCta.cta')}
           </Button>
           <Button href={PHONE_TEL} variant="ghost" className="h-12 px-8">

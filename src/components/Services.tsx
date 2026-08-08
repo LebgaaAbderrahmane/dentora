@@ -5,10 +5,12 @@ import { Container } from '@/components/shared/Container'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/shared/Button'
 import { serviceImages } from '@/data/content'
+import { useBooking } from '@/providers/booking'
 import { fadeUp } from '@/lib/motion'
 
 export function Services() {
   const { t } = useTranslation()
+  const { openBooking } = useBooking()
   const list = t('services.list', { returnObjects: true }) as {
     price: string
     title: string
@@ -41,7 +43,7 @@ export function Services() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <Button href="#book" variant="secondary" className="h-10 px-6">
+            <Button onClick={() => openBooking()} variant="secondary" className="h-10 px-6">
               {t('services.viewAll')}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -77,10 +79,14 @@ export function Services() {
                 <p className="text-[0.78rem] font-light leading-[1.65] text-[hsl(var(--muted-foreground))]">
                   {service.body}
                 </p>
-                <span className="mt-4 inline-flex items-center gap-1 text-[0.78rem] font-semibold text-[hsl(var(--primary))] transition-all group-hover:gap-2">
+                <button
+                  type="button"
+                  onClick={() => openBooking(service.title)}
+                  className="mt-4 inline-flex cursor-pointer items-center gap-1 text-[0.78rem] font-semibold text-[hsl(var(--primary))] transition-all group-hover:gap-2"
+                >
                   {t('ui.learnMore')}
                   <ArrowRight className="h-3.5 w-3.5" />
-                </span>
+                </button>
               </div>
             </motion.article>
           ))}

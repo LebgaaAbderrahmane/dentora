@@ -14,7 +14,7 @@ export function Process() {
   }[]
 
   return (
-    <section className="bg-[hsl(var(--surface-dark))]">
+    <section id="process" className="bg-[hsl(var(--surface-dark))]">
       <Container className="py-24">
         <motion.div
           variants={fadeUp}

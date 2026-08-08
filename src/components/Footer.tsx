@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/shared/Container'
 import { ToothIcon } from '@/components/shared/ToothIcon'
 import { EMAIL, EMERGENCY_PHONE, PHONE } from '@/data/content'
+import { useBooking } from '@/providers/booking'
 import {
   FacebookIcon,
   GoogleIcon,
@@ -17,10 +18,9 @@ const socials = [
   { label: 'WhatsApp', Icon: WhatsAppIcon, href: 'https://wa.me/21321558800' },
 ]
 
-const serviceHrefs = ['#book', '#book', '#book', '#book', '#book', '#book']
-
 export function Footer() {
   const { t } = useTranslation()
+  const { openBooking } = useBooking()
   const servicesLinks = t('footer.servicesLinks', { returnObjects: true }) as string[]
   const clinicLinks = t('footer.clinicLinks', { returnObjects: true }) as string[]
   const hours = t('footer.hours', { returnObjects: true }) as string[]
@@ -49,14 +49,15 @@ export function Footer() {
             <p className="mb-5 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/30">
               {t('footer.servicesLabel')}
             </p>
-            {servicesLinks.map((link, i) => (
-              <a
+            {servicesLinks.map((link) => (
+              <button
                 key={link}
-                href={serviceHrefs[i]}
-                className="mb-3 block text-sm font-normal text-white/55 transition-colors hover:text-white"
+                type="button"
+                onClick={() => openBooking(link)}
+                className="mb-3 block cursor-pointer text-left text-sm font-normal text-white/55 transition-colors hover:text-white"
               >
                 {link}
-              </a>
+              </button>
             ))}
           </div>
 
