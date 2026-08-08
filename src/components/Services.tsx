@@ -1,12 +1,22 @@
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { ArrowRight } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/shared/Button'
-import { services } from '@/data/content'
+import { serviceImages } from '@/data/content'
 import { fadeUp } from '@/lib/motion'
 
 export function Services() {
+  const { t } = useTranslation()
+  const list = t('services.list', { returnObjects: true }) as {
+    price: string
+    title: string
+    body: string
+    alt: string
+  }[]
+  const [titleA, titleB] = t('services.title').split('\n')
+
   return (
     <section id="services" className="bg-[hsl(var(--soft))]">
       <Container className="py-24">
@@ -17,11 +27,11 @@ export function Services() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <SectionLabel className="mb-3">Feature Treatment</SectionLabel>
+            <SectionLabel className="mb-3">{t('services.label')}</SectionLabel>
             <h2 className="text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold leading-[1.2] tracking-[-0.025em] text-[hsl(var(--heading))]">
-              Advanced Dental Care
+              {titleA}
               <br />
-              for a Healthier Smile
+              {titleB}
             </h2>
           </motion.div>
           <motion.div
@@ -31,15 +41,15 @@ export function Services() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <Button href="#services" variant="secondary" className="h-10 px-6">
-              View All Services
+            <Button href="#book" variant="secondary" className="h-10 px-6">
+              {t('services.viewAll')}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </motion.div>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {services.map((service, i) => (
+          {list.map((service, i) => (
             <motion.article
               key={service.title}
               variants={fadeUp}
@@ -51,7 +61,7 @@ export function Services() {
             >
               <div className="h-[148px] overflow-hidden">
                 <img
-                  src={service.image}
+                  src={serviceImages[i]}
                   alt={service.alt}
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-[220ms] ease-out group-hover:scale-[1.05]"
@@ -68,7 +78,7 @@ export function Services() {
                   {service.body}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1 text-[0.78rem] font-semibold text-[hsl(var(--primary))] transition-all group-hover:gap-2">
-                  Learn more
+                  {t('ui.learnMore')}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               </div>

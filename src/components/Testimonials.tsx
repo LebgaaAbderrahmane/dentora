@@ -1,7 +1,8 @@
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/shared/Container'
 import { SectionLabel } from '@/components/shared/SectionLabel'
-import { testimonials } from '@/data/content'
+import { testimonialImages } from '@/data/content'
 import { fadeUp } from '@/lib/motion'
 
 const Stars = () => (
@@ -9,6 +10,13 @@ const Stars = () => (
 )
 
 export function Testimonials() {
+  const { t } = useTranslation()
+  const list = t('testimonials.list', { returnObjects: true }) as {
+    quote: string
+    name: string
+    source: string
+  }[]
+
   return (
     <section id="testimonials" className="bg-[hsl(var(--content))]">
       <Container className="py-24">
@@ -19,20 +27,19 @@ export function Testimonials() {
           viewport={{ once: true }}
           className="mb-14 text-center"
         >
-          <SectionLabel>Patient Reviews</SectionLabel>
+          <SectionLabel>{t('testimonials.label')}</SectionLabel>
           <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--heading))]">
-            Don't take our word for it.
+            {t('testimonials.title')}
           </h2>
           <p className="mt-2 text-[0.85rem] font-normal text-[hsl(var(--muted-foreground))]">
-            <span className="text-[hsl(var(--warning))]">★★★★★</span> 4.9 average from 1,200+
-            verified reviews
+            {t('testimonials.subline')}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {testimonials.map((t, i) => (
+          {list.map((item, i) => (
             <motion.article
-              key={t.name}
+              key={item.name}
               variants={fadeUp}
               custom={i * 0.1}
               initial="hidden"
@@ -42,21 +49,21 @@ export function Testimonials() {
             >
               <Stars />
               <p className="text-[0.92rem] font-normal leading-[1.75] text-[hsl(var(--heading))]">
-                &ldquo;{t.quote}&rdquo;
+                &ldquo;{item.quote}&rdquo;
               </p>
               <div className="mt-6 flex items-center gap-3">
                 <img
-                  src={t.image}
-                  alt={t.name}
+                  src={testimonialImages[i]}
+                  alt={item.name}
                   loading="lazy"
                   className="h-11 w-11 rounded-full object-cover"
                 />
                 <div>
                   <p className="text-[0.82rem] font-semibold text-[hsl(var(--heading))]">
-                    {t.name}
+                    {item.name}
                   </p>
                   <p className="text-[0.68rem] font-light text-[hsl(var(--muted-foreground))]">
-                    {t.source}
+                    {item.source}
                   </p>
                 </div>
               </div>

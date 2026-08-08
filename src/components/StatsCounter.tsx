@@ -1,8 +1,10 @@
 import { Star } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { stats, type StatDef } from '@/data/content'
 import { useCountUp, useInViewOnce } from '@/lib/hooks'
 
-export function Stat({ stat, start }: { stat: StatDef; start: boolean }) {
+function Stat({ stat, start }: { stat: StatDef; start: boolean }) {
+  const { t } = useTranslation()
   const value = useCountUp(stat.value, start)
 
   const display = stat.short
@@ -20,13 +22,14 @@ export function Stat({ stat, start }: { stat: StatDef; start: boolean }) {
         )}
       </p>
       <p className="mt-1 text-[0.7rem] font-normal text-[hsl(var(--muted-foreground))]">
-        {stat.label}
+        {t(stat.label)}
       </p>
     </div>
   )
 }
 
 export function StatsRow() {
+  const { t } = useTranslation()
   const { ref, inView } = useInViewOnce<HTMLDivElement>(0.3)
 
   return (
@@ -35,7 +38,7 @@ export function StatsRow() {
       className="flex items-center gap-10 py-8 max-md:flex-col max-md:items-start"
     >
       <p className="max-w-[130px] shrink-0 text-[0.68rem] font-light leading-[1.6] text-[hsl(var(--muted-foreground))]">
-        Thousands trust us for smiles!
+        {t('about.statsHint')}
       </p>
       <div className="grid flex-1 grid-cols-2 gap-8 md:flex md:gap-12">
         {stats.map((stat) => (

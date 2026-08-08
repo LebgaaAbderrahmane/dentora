@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { SectionLabel } from '@/components/shared/SectionLabel'
@@ -8,12 +9,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { faqs } from '@/data/content'
 import { fadeUp } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 export function Faq() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState<number | null>(null)
+  const faqs = t('faq.list', { returnObjects: true }) as { q: string; a: string }[]
 
   return (
     <section className="bg-[hsl(var(--soft))]">
@@ -25,9 +27,9 @@ export function Faq() {
           viewport={{ once: true }}
           className="mb-12 text-center"
         >
-          <SectionLabel>Faq</SectionLabel>
+          <SectionLabel>{t('faq.label')}</SectionLabel>
           <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--heading))]">
-            Common questions, clear answers.
+            {t('faq.title')}
           </h2>
         </motion.div>
 

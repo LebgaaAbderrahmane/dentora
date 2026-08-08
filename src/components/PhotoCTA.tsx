@@ -1,16 +1,19 @@
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { Phone } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { Button } from '@/components/shared/Button'
-import { ctaImage, PHONE } from '@/data/content'
+import { ctaImage, PHONE, PHONE_TEL } from '@/data/content'
 import { fadeUp } from '@/lib/motion'
 
 export function PhotoCTA() {
+  const { t } = useTranslation()
+
   return (
     <section id="contact" className="relative flex h-[300px] items-center overflow-hidden">
       <img
         src={ctaImage}
-        alt="Happy patient with a bright smile"
+        alt={t('photoCta.imageAlt')}
         loading="lazy"
         className="absolute inset-0 z-0 h-full w-full object-cover object-center"
       />
@@ -24,11 +27,9 @@ export function PhotoCTA() {
           viewport={{ once: true }}
         >
           <h2 className="text-[clamp(1.8rem,3.5vw,3rem)] font-extrabold tracking-[-0.025em] text-white">
-            Ready for your best smile?
+            {t('photoCta.title')}
           </h2>
-          <p className="mt-2 text-[0.88rem] font-light text-white/60">
-            Same-day appointments available. No waiting lists.
-          </p>
+          <p className="mt-2 text-[0.88rem] font-light text-white/60">{t('photoCta.body')}</p>
         </motion.div>
 
         <motion.div
@@ -40,9 +41,9 @@ export function PhotoCTA() {
           className="flex flex-wrap gap-3"
         >
           <Button href="#book" className="h-12 px-9">
-            Book Appointment
+            {t('photoCta.cta')}
           </Button>
-          <Button href={`tel:${PHONE.replace(/\D/g, '')}`} variant="ghost" className="h-12 px-8">
+          <Button href={PHONE_TEL} variant="ghost" className="h-12 px-8">
             <Phone className="h-4 w-4" />
             {PHONE}
           </Button>

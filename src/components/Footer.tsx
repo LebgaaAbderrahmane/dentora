@@ -1,35 +1,30 @@
 import { Phone } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/shared/Container'
 import { ToothIcon } from '@/components/shared/ToothIcon'
+import { EMAIL, EMERGENCY_PHONE, PHONE } from '@/data/content'
 import {
   FacebookIcon,
   GoogleIcon,
   InstagramIcon,
-  YelpIcon,
+  WhatsAppIcon,
 } from '@/components/shared/BrandIcons'
-import { EMAIL, PHONE } from '@/data/content'
-
-const servicesLinks = [
-  'Dental Check-Up',
-  'Teeth Cleaning',
-  'Whitening',
-  'Implants',
-  'Veneers',
-  'Emergency Care',
-]
-
-const clinicLinks = ['About Us', 'Meet the Team', 'Patient Reviews', 'Blog', 'Careers']
-
-const hours = ['Mon – Fri: 8:00am – 7:00pm', 'Saturday: 9:00am – 5:00pm', 'Sunday: Emergency only']
 
 const socials = [
-  { label: 'Facebook', Icon: FacebookIcon },
-  { label: 'Instagram', Icon: InstagramIcon },
-  { label: 'Google', Icon: GoogleIcon },
-  { label: 'Yelp', Icon: YelpIcon },
+  { label: 'Facebook', Icon: FacebookIcon, href: 'https://www.facebook.com' },
+  { label: 'Instagram', Icon: InstagramIcon, href: 'https://www.instagram.com' },
+  { label: 'Google', Icon: GoogleIcon, href: 'https://www.google.com/search?q=dentora' },
+  { label: 'WhatsApp', Icon: WhatsAppIcon, href: 'https://wa.me/21321558800' },
 ]
 
+const serviceHrefs = ['#book', '#book', '#book', '#book', '#book', '#book']
+
 export function Footer() {
+  const { t } = useTranslation()
+  const servicesLinks = t('footer.servicesLinks', { returnObjects: true }) as string[]
+  const clinicLinks = t('footer.clinicLinks', { returnObjects: true }) as string[]
+  const hours = t('footer.hours', { returnObjects: true }) as string[]
+
   return (
     <footer className="bg-[hsl(var(--surface-dark))]">
       <Container className="py-16">
@@ -40,11 +35,11 @@ export function Footer() {
                 <ToothIcon className="h-4 w-4 text-white" />
               </span>
               <span className="text-[1.1rem] font-extrabold tracking-[-0.01em] text-white">
-                DENTORA
+                {t('brand')}
               </span>
             </div>
             <p className="mt-1 text-[0.7rem] font-light tracking-[0.1em] text-white/40">
-              Your Family&apos;s Dental Clinic
+              {t('footer.tagline')}
             </p>
             <p className="mt-5 text-sm font-semibold text-white">{PHONE}</p>
             <p className="text-sm font-light text-white/50">{EMAIL}</p>
@@ -52,12 +47,12 @@ export function Footer() {
 
           <div>
             <p className="mb-5 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/30">
-              Services
+              {t('footer.servicesLabel')}
             </p>
-            {servicesLinks.map((link) => (
+            {servicesLinks.map((link, i) => (
               <a
                 key={link}
-                href="#services"
+                href={serviceHrefs[i]}
                 className="mb-3 block text-sm font-normal text-white/55 transition-colors hover:text-white"
               >
                 {link}
@@ -67,12 +62,12 @@ export function Footer() {
 
           <div>
             <p className="mb-5 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/30">
-              Clinic
+              {t('footer.clinicLabel')}
             </p>
-            {clinicLinks.map((link) => (
+            {clinicLinks.map((link, i) => (
               <a
                 key={link}
-                href="#about"
+                href={i === 0 || i === 1 ? '#about' : i === 2 ? '#testimonials' : '#contact'}
                 className="mb-3 block text-sm font-normal text-white/55 transition-colors hover:text-white"
               >
                 {link}
@@ -82,7 +77,7 @@ export function Footer() {
 
           <div>
             <p className="mb-5 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-white/30">
-              Opening Hours
+              {t('footer.hoursLabel')}
             </p>
             {hours.map((h) => (
               <p key={h} className="mb-3 text-sm font-light text-white/55">
@@ -91,17 +86,19 @@ export function Footer() {
             ))}
             <p className="mt-2 flex items-center gap-2 text-sm font-light text-white/70">
               <Phone className="h-4 w-4 text-[hsl(var(--primary))]" />
-              24/7 Emergency: {PHONE}
+              {t('footer.emergency')} {EMERGENCY_PHONE}
             </p>
             <div className="mt-5 flex gap-5">
-              {socials.map(({ label, Icon }) => (
+              {socials.map((s) => (
                 <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={s.label}
                   className="text-white/30 transition-colors hover:text-white"
                 >
-                  <Icon className="h-4.5 w-4.5" />
+                  <s.Icon className="h-4.5 w-4.5" />
                 </a>
               ))}
             </div>
@@ -110,14 +107,14 @@ export function Footer() {
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8">
           <p className="text-xs font-light text-white/30">
-            © 2026 Dentora Dental Clinic. All rights reserved.
+            {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
           <p className="flex gap-6 text-xs font-light text-white/30">
-            <a href="#" className="transition-colors hover:text-white/60">
-              Privacy Policy
+            <a href="#about" className="transition-colors hover:text-white/60">
+              {t('footer.privacy')}
             </a>
-            <a href="#" className="transition-colors hover:text-white/60">
-              Terms of Service
+            <a href="#contact" className="transition-colors hover:text-white/60">
+              {t('footer.terms')}
             </a>
           </p>
         </div>

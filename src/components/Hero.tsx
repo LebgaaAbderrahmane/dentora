@@ -1,28 +1,15 @@
 import { motion } from 'motion/react'
 import type { Variants } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { ArrowRight, Phone } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { Button } from '@/components/shared/Button'
 import { TagPill } from '@/components/shared/TagPill'
 import { u } from '@/data/images'
+import { PHONE } from '@/data/content'
 import { cn } from '@/lib/utils'
 
 const HERO_IMAGE = 'photo-1588776814546-1ffcf47267a5'
-
-const heroLines: { words: string[]; teal: boolean }[] = [
-  { words: ['Experience'], teal: false },
-  { words: ['Comfortable'], teal: false },
-  { words: ['Dental', 'Care.'], teal: true },
-]
-
-const serviceTags = [
-  'Dental Checkup',
-  'Teeth Cleaning',
-  'Tooth Whitening',
-  'Gum Treatment',
-  'Implants',
-  'Root Canal',
-]
 
 const block = (delay: number): Variants => ({
   hidden: { opacity: 0, y: 22, filter: 'blur(6px)' },
@@ -45,13 +32,17 @@ const wordStagger: Variants = {
 }
 
 export function Hero() {
+  const { t } = useTranslation()
+  const lines = t('hero.lines', { returnObjects: true }) as string[]
+  const tags = t('hero.tags', { returnObjects: true }) as string[]
+
   let wordIndex = 0
 
   return (
     <section className="relative flex min-h-[90vh] items-end overflow-hidden max-md:min-h-[80vh]">
       <img
         src={u(HERO_IMAGE, 1920)}
-        alt="Patient smiling in a bright dental chair"
+        alt={t('hero.imageAlt')}
         className="absolute inset-0 z-0 h-full w-full object-cover object-center"
         loading="eager"
       />
@@ -73,7 +64,7 @@ export function Hero() {
         >
           <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
           <span className="text-[0.62rem] font-semibold tracking-[0.12em] text-[hsl(var(--primary))]">
-            BEST DENTAL CARE · PORTLAND, OR
+            {t('hero.badge')}
           </span>
         </motion.div>
 
@@ -82,18 +73,18 @@ export function Hero() {
           animate="visible"
           className="mb-6 max-w-[580px] text-[clamp(2.8rem,5.5vw,5.5rem)] font-extrabold leading-[1.0] tracking-[-0.03em] text-white"
         >
-          {heroLines.map((line, li) => (
+          {lines.map((line, li) => (
             <span key={li} className="block">
-              {line.words.map((word) => {
+              {line.split(' ').map((word) => {
                 const i = wordIndex++
                 return (
                   <motion.span
-                    key={word}
+                    key={`${li}-${word}`}
                     custom={i}
                     variants={wordStagger}
                     className={cn(
                       'inline-block',
-                      line.teal && 'text-[hsl(var(--primary))]',
+                      li === lines.length - 1 && 'text-[hsl(var(--primary))]',
                     )}
                   >
                     {word}
@@ -111,8 +102,7 @@ export function Hero() {
           animate="visible"
           className="mb-10 max-w-[380px] text-[0.92rem] font-light leading-[1.75] text-white/55"
         >
-          Your family's dental health, handled with care. Modern technology, gentle hands, and
-          transparent pricing — always.
+          {t('hero.subline')}
         </motion.p>
 
         <motion.div
@@ -122,15 +112,15 @@ export function Hero() {
           className="mb-12 flex flex-wrap items-center gap-4"
         >
           <Button href="#book" className="h-12 px-8">
-            Book Appointment
+            {t('hero.cta')}
             <ArrowRight className="h-4 w-4" />
           </Button>
           <a
-            href="tel:+18005592648"
+            href="tel:+21321558800"
             className="flex items-center gap-2 text-[0.82rem] font-normal text-white/50 transition-colors hover:text-white"
           >
             <Phone className="h-4 w-4" />
-            Or Call: (800) 559-2648
+            {t('hero.callPrefix')} {PHONE}
           </a>
         </motion.div>
 
@@ -140,13 +130,13 @@ export function Hero() {
           animate="visible"
           className="flex flex-wrap gap-2.5"
         >
-          {serviceTags.map((tag, i) => (
+          {tags.map((tag, i) => (
             <TagPill key={tag} className={cn(i > 2 && 'hidden lg:inline-flex')}>
               {tag}
             </TagPill>
           ))}
           <span className="inline-flex items-center rounded-full border border-white/15 bg-white/8 px-4 py-2 text-[0.72rem] font-[500] text-white/65 lg:hidden">
-            +{serviceTags.length - 3} More
+            {t('hero.more', { count: tags.length - 3 })}
           </span>
         </motion.div>
       </Container>

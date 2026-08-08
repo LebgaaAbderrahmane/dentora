@@ -1,12 +1,14 @@
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { Check, Phone } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
-import { PHONE } from '@/data/content'
+import { PHONE, PHONE_TEL } from '@/data/content'
 import { fadeUp } from '@/lib/motion'
 
-const trust = ['No waiting list', 'Transparent pricing', 'All ages welcome']
-
 export function FinalCta() {
+  const { t } = useTranslation()
+  const trust = t('cta.trust', { returnObjects: true }) as string[]
+
   return (
     <section id="book" className="bg-[hsl(var(--primary))]">
       <Container className="max-w-2xl py-20 text-center">
@@ -17,7 +19,7 @@ export function FinalCta() {
           viewport={{ once: true }}
           className="text-[clamp(2rem,4vw,3.5rem)] font-extrabold leading-tight tracking-[-0.03em] text-white"
         >
-          Your healthiest smile starts today.
+          {t('cta.title')}
         </motion.h2>
         <motion.p
           variants={fadeUp}
@@ -27,8 +29,7 @@ export function FinalCta() {
           viewport={{ once: true }}
           className="mt-5 text-[0.92rem] font-light leading-relaxed text-white/70"
         >
-          Request a free consultation in under 2 minutes. Same-day appointments available.
-          Transparent pricing, no surprises.
+          {t('cta.body')}
         </motion.p>
         <motion.div
           variants={fadeUp}
@@ -42,10 +43,10 @@ export function FinalCta() {
             href="#contact"
             className="inline-flex h-12 items-center justify-center rounded-full bg-white px-10 font-semibold text-[hsl(var(--primary))] transition-colors hover:bg-white/90"
           >
-            Book Free Consultation
+            {t('cta.cta')}
           </a>
           <a
-            href={`tel:${PHONE.replace(/\D/g, '')}`}
+            href={PHONE_TEL}
             className="inline-flex h-12 items-center gap-2 rounded-full border border-white/35 px-8 font-normal text-white transition-colors hover:bg-white/10"
           >
             <Phone className="h-4 w-4" />
