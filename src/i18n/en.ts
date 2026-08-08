@@ -57,7 +57,6 @@ export const en = {
   services: {
     label: 'Feature Treatment',
     title: 'Advanced Dental Care\nfor a Healthier Smile',
-    viewAll: 'View All Services',
     list: [
       {
         price: 'FROM 3,500 DA',
@@ -109,7 +108,6 @@ export const en = {
       'Dental implant restoration',
       'Professional tooth whitening',
     ],
-    cta: 'Meet Our Team',
     imageAlt: 'The Dentona dental team standing together in matching scrubs',
   },
   process: {

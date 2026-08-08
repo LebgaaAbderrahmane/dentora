@@ -59,7 +59,6 @@ export const ar: EnDictionary = {
   services: {
     label: 'علاجات مميزة',
     title: 'رعاية أسنان متقدمة\nلابتسامة أكثر صحة',
-    viewAll: 'عرض جميع الخدمات',
     list: [
       {
         price: 'ابتداءً من 3 500 دج',
@@ -111,7 +110,6 @@ export const ar: EnDictionary = {
       'ترميم زراعة الأسنان',
       'تبييض الأسنان الاحترافي',
     ],
-    cta: 'تعرّف على فريقنا',
     imageAlt: 'فريق دينتورا يقف معًا بأزياء موحدة',
   },
   process: {

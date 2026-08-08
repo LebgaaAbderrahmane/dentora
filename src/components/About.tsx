@@ -20,7 +20,7 @@ export function About() {
           viewport={{ once: true }}
         >
           <SectionLabel className="mb-6">{t('about.label')}</SectionLabel>
-          <p className="mb-14 max-w-[760px] text-[clamp(1.6rem,3vw,2.8rem)] font-bold leading-[1.3] tracking-[-0.02em] text-[hsl(var(--heading))]">
+          <p className="mb-14 max-w-[760px] text-[clamp(1.6rem,3vw,2.8rem)] font-bold leading-[1.3] tracking-[-0.02em] text-[hsl(var(--heading))] max-md:mx-auto max-md:text-center">
             {t('about.statementA')}
             <span className="text-[hsl(var(--primary))]">{t('about.statementTeal')}</span>
             {t('about.statementB')}
@@ -56,7 +56,7 @@ export function About() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="flex items-center gap-4"
+          className="flex items-center gap-4 max-md:flex-col max-md:text-center"
         >
           <img
             src={doctorImage}

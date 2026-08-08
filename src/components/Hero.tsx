@@ -51,12 +51,12 @@ export function Hero() {
 
       <div className="hero-overlay absolute inset-0 z-0" />
 
-      <Container className="relative z-10 w-full pb-14 pt-28">
+      <Container className="relative z-10 w-full pb-14 pt-28 max-md:text-center">
         <motion.div
           variants={block(0)}
           initial="hidden"
           animate="visible"
-          className="mb-7 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--primary))]/30 bg-[hsl(var(--primary))]/15 px-4 py-1.5"
+          className="mb-7 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--primary))]/30 bg-[hsl(var(--primary))]/15 px-4 py-1.5 max-md:mx-auto"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--primary))]" />
           <span className="text-[0.62rem] font-semibold tracking-[0.12em] text-[hsl(var(--primary))]">
@@ -67,7 +67,7 @@ export function Hero() {
         <motion.h1
           initial="hidden"
           animate="visible"
-          className="mb-6 max-w-[580px] text-[clamp(2.8rem,5.5vw,5.5rem)] font-extrabold leading-[1.0] tracking-[-0.03em] text-white"
+          className="mb-6 max-w-[580px] text-[clamp(2.8rem,5.5vw,5.5rem)] font-extrabold leading-[1.0] tracking-[-0.03em] text-white max-md:mx-auto"
         >
           {lines.map((line, li) => (
             <span key={li} className="block">
@@ -96,7 +96,7 @@ export function Hero() {
           variants={block(0.5)}
           initial="hidden"
           animate="visible"
-          className="mb-10 max-w-[380px] text-[0.92rem] font-normal leading-[1.75] text-white/70"
+          className="mb-10 max-w-[380px] text-[0.92rem] font-normal leading-[1.75] text-white/70 max-md:mx-auto"
         >
           {t('hero.subline')}
         </motion.p>
@@ -105,7 +105,7 @@ export function Hero() {
           variants={block(0.65)}
           initial="hidden"
           animate="visible"
-          className="mb-12 flex flex-wrap items-center gap-4"
+          className="mb-12 flex flex-wrap items-center gap-4 max-md:justify-center"
         >
           <Button onClick={() => openBooking()} className="h-12 px-8">
             {t('hero.cta')}
@@ -124,7 +124,7 @@ export function Hero() {
           variants={block(0.8)}
           initial="hidden"
           animate="visible"
-          className="flex flex-wrap gap-2.5"
+          className="flex flex-wrap gap-2.5 max-md:justify-center"
         >
           {tags.map((tag, i) => (
             <TagPill key={tag} className={cn(i > 2 && 'hidden lg:inline-flex')}>

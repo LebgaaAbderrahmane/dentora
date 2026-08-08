@@ -21,7 +21,7 @@ export function PhotoCTA() {
       />
       <div className="photo-cta-overlay absolute inset-0 z-[1]" />
 
-      <Container className="relative z-10 flex w-full flex-wrap items-center justify-between gap-8">
+      <Container className="relative z-10 flex w-full flex-wrap items-center justify-between gap-8 max-md:flex-col max-md:text-center">
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -40,7 +40,7 @@ export function PhotoCTA() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="flex flex-wrap gap-3"
+          className="flex flex-wrap gap-3 max-md:justify-center"
         >
           <Button onClick={() => openBooking()} className="h-12 px-9">
             {t('photoCta.cta')}

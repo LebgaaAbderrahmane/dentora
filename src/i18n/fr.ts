@@ -59,7 +59,6 @@ export const fr: EnDictionary = {
   services: {
     label: 'Traitements phares',
     title: 'Des soins dentaires avancés\npour un sourire plus sain',
-    viewAll: 'Voir tous les services',
     list: [
       {
         price: 'DÈS 3 500 DA',
@@ -111,7 +110,6 @@ export const fr: EnDictionary = {
       'Implants dentaires',
       'Blanchiment professionnel',
     ],
-    cta: 'Rencontrer notre équipe',
     imageAlt: "L\u2019\u00e9quipe de Dentora r\u00e9unie dans ses tenues de travail",
   },
   process: {
