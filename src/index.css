@@ -47,7 +47,7 @@
   --foreground: 0 0% 98%;
   --surface-dark: 210 38% 8%;
   --surface-light: 213 44% 10%;
-  --primary: 180 92% 62%;
+  --primary: 180 91% 45%;
   --primary-light: 180 40% 13%;
   --primary-foreground: 0 0% 100%;
   --muted-foreground: 213 25% 72%;
@@ -103,6 +103,11 @@ body {
 
 [dir='rtl'] .photo-cta-overlay {
   background: linear-gradient(to left, rgba(6,12,20,0.90) 0%, rgba(6,12,20,0.65) 55%, rgba(6,12,20,0.15) 100%);
+}
+
+.ltr-isolate {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 @layer base {

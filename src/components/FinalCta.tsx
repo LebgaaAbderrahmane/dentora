@@ -50,7 +50,7 @@ export function FinalCta() {
           </button>
           <a
             href={PHONE_TEL}
-            className="inline-flex h-12 items-center gap-2 rounded-full border border-white/35 px-8 font-normal text-white transition-colors hover:bg-white/10"
+            className="ltr-isolate inline-flex h-12 items-center gap-2 rounded-full border border-white/35 px-8 font-normal text-white transition-colors hover:bg-white/10"
           >
             <Phone className="h-4 w-4" />
             {PHONE}

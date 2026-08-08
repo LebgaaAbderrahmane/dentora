@@ -31,7 +31,7 @@ export function Testimonials() {
           <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--heading))]">
             {t('testimonials.title')}
           </h2>
-          <p className="mt-2 text-[0.85rem] font-normal text-[hsl(var(--muted-foreground))]">
+          <p className="ltr-isolate mt-2 text-[0.85rem] font-normal text-[hsl(var(--muted-foreground))]">
             {t('testimonials.subline')}
           </p>
         </motion.div>

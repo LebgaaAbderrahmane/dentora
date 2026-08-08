@@ -9,6 +9,7 @@ export const en = {
   },
   ui: {
     theme: {
+      label: 'Theme',
       light: 'Light mode',
       dark: 'Dark mode',
       system: 'System preference',
@@ -33,9 +34,6 @@ export const en = {
       'Root Canal',
     ],
     more: '+{{count}} More',
-  },
-  progress: {
-    steps: ['Smile Assessment', 'Care Planning', 'Treatment Process', 'Dental Maintenance'],
   },
   about: {
     label: 'About Us',

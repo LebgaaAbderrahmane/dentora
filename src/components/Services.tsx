@@ -52,13 +52,14 @@ export function Services() {
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {list.map((service, i) => (
-            <motion.article
+<motion.article
               key={service.title}
               variants={fadeUp}
               custom={i * 0.08}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
+              onClick={() => openBooking(service.title)}
               className="group cursor-pointer overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--content))] transition-all duration-[220ms] ease-out hover:-translate-y-[5px] hover:shadow-[0_20px_56px_rgba(0,0,0,0.09)]"
             >
               <div className="h-[148px] overflow-hidden">
@@ -70,7 +71,7 @@ export function Services() {
                 />
               </div>
               <div className="p-5">
-                <span className="mb-3 inline-flex rounded-full bg-[hsl(var(--primary-soft))] px-3 py-1 text-[0.65rem] font-semibold tracking-[0.08em] text-[hsl(var(--primary))]">
+                <span className="ltr-isolate mb-3 inline-flex rounded-full bg-[hsl(var(--primary-soft))] px-3 py-1 text-[0.65rem] font-semibold tracking-[0.08em] text-[hsl(var(--primary))]">
                   {service.price}
                 </span>
                 <h3 className="mb-2 text-[0.95rem] font-bold text-[hsl(var(--heading))]">

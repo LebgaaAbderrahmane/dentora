@@ -41,7 +41,7 @@ export function Hero() {
   let wordIndex = 0
 
   return (
-    <section className="relative flex min-h-[90vh] items-end overflow-hidden max-md:min-h-[80vh]">
+    <section className="relative flex h-svh items-end overflow-hidden">
       <img
         src={u(HERO_IMAGE, 1920)}
         alt={t('hero.imageAlt')}
@@ -113,7 +113,7 @@ export function Hero() {
           </Button>
           <a
             href="tel:+21321558800"
-            className="flex items-center gap-2 text-[0.82rem] font-normal text-white/65 transition-colors hover:text-white"
+            className="ltr-isolate flex items-center gap-2 text-[0.82rem] font-normal text-white/65 transition-colors hover:text-white"
           >
             <Phone className="h-4 w-4" />
             {t('hero.callPrefix')} {PHONE}

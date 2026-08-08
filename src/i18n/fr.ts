@@ -11,9 +11,10 @@ export const fr: EnDictionary = {
   },
   ui: {
     theme: {
+      label: 'Th\u00e8me',
       light: 'Mode clair',
       dark: 'Mode sombre',
-      system: 'Préférence système',
+      system: 'Pr\u00e9f\u00e9rence syst\u00e8me',
     },
     learnMore: 'En savoir plus',
     bookAppointment: 'Prendre rendez-vous',
@@ -35,9 +36,6 @@ export const fr: EnDictionary = {
       'Dévitalisation',
     ],
     more: '+{{count}} autres',
-  },
-  progress: {
-    steps: ['Évaluation du sourire', 'Plan de soins', 'Traitement', 'Suivi dentaire'],
   },
   about: {
     label: 'À propos',

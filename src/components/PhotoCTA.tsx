@@ -45,7 +45,7 @@ export function PhotoCTA() {
           <Button onClick={() => openBooking()} className="h-12 px-9">
             {t('photoCta.cta')}
           </Button>
-          <Button href={PHONE_TEL} variant="ghost" className="h-12 px-8">
+          <Button href={PHONE_TEL} variant="ghost" className="ltr-isolate h-12 px-8">
             <Phone className="h-4 w-4" />
             {PHONE}
           </Button>

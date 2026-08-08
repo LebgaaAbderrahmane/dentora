@@ -11,6 +11,7 @@ export const ar: EnDictionary = {
   },
   ui: {
     theme: {
+      label: 'المظهر',
       light: 'الوضع الفاتح',
       dark: 'الوضع الداكن',
       system: 'تفضيلات النظام',
@@ -35,9 +36,6 @@ export const ar: EnDictionary = {
       'علاج العصب',
     ],
     more: '+{{count}} أكثر',
-  },
-  progress: {
-    steps: ['تقييم الابتسامة', 'خطة العلاج', 'إجراء العلاج', 'متابعة الأسنان'],
   },
   about: {
     label: 'من نحن',

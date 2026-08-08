@@ -68,7 +68,7 @@ export function About() {
             <p className="text-[0.9rem] font-bold text-[hsl(var(--heading))]">
               {t('about.doctor.name')}
             </p>
-            <p className="mt-1 text-[0.72rem] font-normal text-[hsl(var(--muted-foreground))]">
+            <p className="ltr-isolate mt-1 text-[0.72rem] font-normal text-[hsl(var(--muted-foreground))]">
               {t('about.doctor.role')} ·{' '}
               <span className="text-[hsl(var(--warning))]">{t('about.doctor.rating')}</span>{' '}
               {t('about.doctor.reviews')}

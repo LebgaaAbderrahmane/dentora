@@ -41,8 +41,8 @@ export function Footer() {
             <p className="mt-1 text-[0.72rem] font-normal tracking-[0.1em] text-white/55">
               {t('footer.tagline')}
             </p>
-            <p className="mt-5 text-sm font-semibold text-white">{PHONE}</p>
-            <p className="text-sm font-normal text-white/65">{EMAIL}</p>
+            <p className="ltr-isolate mt-5 text-sm font-semibold text-white">{PHONE}</p>
+            <p className="ltr-isolate text-sm font-normal text-white/65">{EMAIL}</p>
           </div>
 
           <div>
@@ -81,11 +81,11 @@ export function Footer() {
               {t('footer.hoursLabel')}
             </p>
             {hours.map((h) => (
-              <p key={h} className="mb-3 text-sm font-normal text-white/65">
+              <p key={h} className="ltr-isolate mb-3 text-sm font-normal text-white/65">
                 {h}
               </p>
             ))}
-            <p className="mt-2 flex items-center gap-2 text-sm font-normal text-white/80">
+            <p className="ltr-isolate mt-2 flex items-center gap-2 text-sm font-normal text-white/80">
               <Phone className="h-4 w-4 text-[hsl(var(--primary))]" />
               {t('footer.emergency')} {EMERGENCY_PHONE}
             </p>
@@ -107,7 +107,7 @@ export function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8">
-          <p className="text-xs font-normal text-white/45">
+          <p className="ltr-isolate text-xs font-normal text-white/45">
             {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
           <p className="flex gap-6 text-xs font-normal text-white/45">
