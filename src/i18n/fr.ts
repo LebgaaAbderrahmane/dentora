@@ -3,6 +3,7 @@ import type { EnDictionary } from './en'
 export const fr: EnDictionary = {
   brand: 'DENTORA',
   nav: {
+    home: 'Accueil',
     services: 'Services',
     about: 'À propos',
     testimonials: 'Avis',

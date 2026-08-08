@@ -13,6 +13,7 @@ import { PHONE, PHONE_TEL } from '@/data/content'
 import { cn } from '@/lib/utils'
 
 const links = [
+  { label: 'nav.home', href: '#top', id: 'top' },
   { label: 'nav.services', href: '#services', id: 'services' },
   { label: 'nav.about', href: '#about', id: 'about' },
   { label: 'nav.testimonials', href: '#testimonials', id: 'testimonials' },

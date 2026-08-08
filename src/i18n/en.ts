@@ -1,6 +1,7 @@
 export const en = {
   brand: 'DENTORA',
   nav: {
+    home: 'Home',
     services: 'Services',
     about: 'About Us',
     testimonials: 'Testimonials',

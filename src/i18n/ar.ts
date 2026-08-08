@@ -3,6 +3,7 @@ import type { EnDictionary } from './en'
 export const ar: EnDictionary = {
   brand: 'دينتورا',
   nav: {
+    home: 'الرئيسية',
     services: 'الخدمات',
     about: 'من نحن',
     testimonials: 'آراء المرضى',

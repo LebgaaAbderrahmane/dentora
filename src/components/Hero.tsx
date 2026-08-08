@@ -41,7 +41,7 @@ export function Hero() {
   let wordIndex = 0
 
   return (
-    <section className="relative flex h-svh items-end overflow-hidden">
+    <section id="top" className="relative flex h-svh items-end overflow-hidden">
       <img
         src={u(HERO_IMAGE, 1920)}
         alt={t('hero.imageAlt')}
