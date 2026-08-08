@@ -8,7 +8,7 @@ import { fadeUp } from '@/lib/motion'
 
 export function WhyChooseUs() {
   return (
-    <section className="bg-white">
+    <section className="bg-[hsl(var(--content))]">
       <Container className="grid grid-cols-2 gap-20 py-24 max-md:grid-cols-1 max-md:gap-12">
         <motion.div
           variants={fadeUp}
@@ -17,7 +17,7 @@ export function WhyChooseUs() {
           viewport={{ once: true }}
         >
           <SectionLabel className="mb-4">Why Choose Us</SectionLabel>
-          <h2 className="mb-4 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold leading-[1.2] tracking-[-0.02em] text-[hsl(var(--surface-dark))]">
+          <h2 className="mb-4 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold leading-[1.2] tracking-[-0.02em] text-[hsl(var(--heading))]">
             Are you looking for a dentist to give you that special smile?
           </h2>
           <p className="mb-10 max-w-md text-[0.85rem] font-light leading-[1.8] text-[hsl(var(--muted-foreground))]">
@@ -29,7 +29,7 @@ export function WhyChooseUs() {
             {whyChecklist.map((item) => (
               <li key={item} className="flex items-center gap-2">
                 <CircleCheck className="h-4 w-4 shrink-0 text-[hsl(var(--primary))]" />
-                <span className="text-[0.82rem] font-normal text-[hsl(var(--surface-dark))]">
+                <span className="text-[0.82rem] font-normal text-[hsl(var(--heading))]">
                   {item}
                 </span>
               </li>

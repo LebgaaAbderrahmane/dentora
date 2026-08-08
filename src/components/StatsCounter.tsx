@@ -13,7 +13,7 @@ export function Stat({ stat, start }: { stat: StatDef; start: boolean }) {
 
   return (
     <div>
-      <p className="flex items-end gap-1 text-[2.8rem] font-extrabold leading-[1] tracking-[-0.03em] text-[hsl(var(--surface-dark))]">
+      <p className="flex items-end gap-1 text-[2.8rem] font-extrabold leading-[1] tracking-[-0.03em] text-[hsl(var(--heading))]">
         <span>{display}</span>
         {stat.star && (
           <Star className="mb-1.5 h-6 w-6 fill-[hsl(var(--primary))] text-[hsl(var(--primary))]" />

@@ -6,15 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="DENTORA — Your Family's Dental Clinic. Modern technology, gentle hands, and transparent pricing. Book a same-day appointment in Portland, OR."
+      content="DENTORA — Clinique Dentaire à Alger. Soins dentaires modernes, mains douces, prix transparents. Rendez-vous le jour même. / Dentaire clinic in Algiers."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <title>DENTORA — Your Family's Dental Clinic</title>
+    <title>DENTORA — Clinique Dentaire | Alger</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('dentora-theme') || 'system'
+          var d =
+            t === 'dark' ||
+            (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (d) document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = d ? 'dark' : 'light'
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

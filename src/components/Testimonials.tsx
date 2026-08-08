@@ -10,7 +10,7 @@ const Stars = () => (
 
 export function Testimonials() {
   return (
-    <section id="testimonials" className="bg-white">
+    <section id="testimonials" className="bg-[hsl(var(--content))]">
       <Container className="py-24">
         <motion.div
           variants={fadeUp}
@@ -20,7 +20,7 @@ export function Testimonials() {
           className="mb-14 text-center"
         >
           <SectionLabel>Patient Reviews</SectionLabel>
-          <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--surface-dark))]">
+          <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--heading))]">
             Don't take our word for it.
           </h2>
           <p className="mt-2 text-[0.85rem] font-normal text-[hsl(var(--muted-foreground))]">
@@ -38,10 +38,10 @@ export function Testimonials() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="flex flex-col rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-light))] p-7"
+              className="flex flex-col rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--soft))] p-7"
             >
               <Stars />
-              <p className="text-[0.92rem] font-normal leading-[1.75] text-[hsl(var(--surface-dark))]">
+              <p className="text-[0.92rem] font-normal leading-[1.75] text-[hsl(var(--heading))]">
                 &ldquo;{t.quote}&rdquo;
               </p>
               <div className="mt-6 flex items-center gap-3">
@@ -52,7 +52,7 @@ export function Testimonials() {
                   className="h-11 w-11 rounded-full object-cover"
                 />
                 <div>
-                  <p className="text-[0.82rem] font-semibold text-[hsl(var(--surface-dark))]">
+                  <p className="text-[0.82rem] font-semibold text-[hsl(var(--heading))]">
                     {t.name}
                   </p>
                   <p className="text-[0.68rem] font-light text-[hsl(var(--muted-foreground))]">

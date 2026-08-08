@@ -16,6 +16,11 @@
   --color-border: hsl(213 20% 90%);
   --color-success: hsl(142 71% 38%);
   --color-warning: hsl(38 92% 50%);
+
+  --color-heading: hsl(210 38% 8%);
+  --color-content: hsl(0 0% 100%);
+  --color-soft: hsl(213 25% 96%);
+  --color-primary-soft: hsl(180 70% 95%);
 }
 
 :root {
@@ -30,10 +35,40 @@
   --border: 213 20% 90%;
   --success: 142 71% 38%;
   --warning: 38 92% 50%;
+
+  --heading: 210 38% 8%;
+  --content: 0 0% 100%;
+  --soft: 213 25% 96%;
+  --primary-soft: 180 70% 95%;
+}
+
+.dark {
+  --background: 210 42% 5%;
+  --foreground: 0 0% 98%;
+  --surface-dark: 210 38% 8%;
+  --surface-light: 213 44% 10%;
+  --primary: 180 92% 62%;
+  --primary-light: 180 40% 13%;
+  --primary-foreground: 0 0% 100%;
+  --muted-foreground: 213 25% 72%;
+  --border: 213 28% 16%;
+  --success: 142 62% 50%;
+  --warning: 44 90% 60%;
+
+  --heading: 0 0% 96%;
+  --content: 210 44% 8%;
+  --soft: 210 46% 11%;
+  --primary-soft: 180 45% 16%;
 }
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+html:lang(ar) {
+  --font-sans: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: 0;
 }
 
 body {

@@ -8,7 +8,7 @@ export function ProgressSteps() {
   const [active, setActive] = useState(0)
 
   return (
-    <section className="overflow-x-auto border-b border-[hsl(var(--border))] bg-white px-[60px] max-md:px-4">
+    <section className="overflow-x-auto border-b border-[hsl(var(--border))] bg-[hsl(var(--content))] px-[60px] max-md:px-4">
       <div className="mx-auto grid max-w-[1200px] min-w-[720px] grid-cols-4">
         {steps.map((step, i) => (
           <button

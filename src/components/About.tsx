@@ -7,7 +7,7 @@ import { fadeUp } from '@/lib/motion'
 
 export function About() {
   return (
-    <section id="about" className="bg-white">
+    <section id="about" className="bg-[hsl(var(--content))]">
       <Container className="py-20">
         <motion.div
           variants={fadeUp}
@@ -17,7 +17,7 @@ export function About() {
           viewport={{ once: true }}
         >
           <SectionLabel className="mb-6">About Us</SectionLabel>
-          <p className="mb-14 max-w-[760px] text-[clamp(1.6rem,3vw,2.8rem)] font-bold leading-[1.3] tracking-[-0.02em] text-[hsl(var(--surface-dark))]">
+          <p className="mb-14 max-w-[760px] text-[clamp(1.6rem,3vw,2.8rem)] font-bold leading-[1.3] tracking-[-0.02em] text-[hsl(var(--heading))]">
             We deliver{' '}
             <span className="text-[hsl(var(--primary))]">personalized dental treatments</span> with
             modern technology and gentle care ensuring healthy confident smiles for every patient.
@@ -62,7 +62,7 @@ export function About() {
             className="h-12 w-12 rounded-full object-cover"
           />
           <div>
-            <p className="text-[0.9rem] font-bold text-[hsl(var(--surface-dark))]">
+            <p className="text-[0.9rem] font-bold text-[hsl(var(--heading))]">
               {doctor.name}
             </p>
             <p className="mt-1 text-[0.72rem] font-normal text-[hsl(var(--muted-foreground))]">

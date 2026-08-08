@@ -16,7 +16,7 @@ export function Faq() {
   const [open, setOpen] = useState<number | null>(null)
 
   return (
-    <section className="bg-[hsl(var(--surface-light))]">
+    <section className="bg-[hsl(var(--soft))]">
       <Container className="max-w-3xl py-24">
         <motion.div
           variants={fadeUp}
@@ -26,7 +26,7 @@ export function Faq() {
           className="mb-12 text-center"
         >
           <SectionLabel>Faq</SectionLabel>
-          <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--surface-dark))]">
+          <h2 className="mt-3 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold tracking-[-0.025em] text-[hsl(var(--heading))]">
             Common questions, clear answers.
           </h2>
         </motion.div>
@@ -49,7 +49,7 @@ export function Faq() {
                     type="button"
                     className="flex w-full cursor-pointer items-center justify-between gap-4 text-left"
                   >
-                    <span className="text-[0.92rem] font-semibold text-[hsl(var(--surface-dark))]">
+                    <span className="text-[0.92rem] font-semibold text-[hsl(var(--heading))]">
                       {item.q}
                     </span>
                     <ChevronDown

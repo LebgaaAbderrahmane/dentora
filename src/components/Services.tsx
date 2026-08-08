@@ -8,7 +8,7 @@ import { fadeUp } from '@/lib/motion'
 
 export function Services() {
   return (
-    <section id="services" className="bg-[hsl(var(--surface-light))]">
+    <section id="services" className="bg-[hsl(var(--soft))]">
       <Container className="py-24">
         <div className="mb-14 flex items-end justify-between gap-6 max-md:flex-col max-md:items-start">
           <motion.div
@@ -18,7 +18,7 @@ export function Services() {
             viewport={{ once: true }}
           >
             <SectionLabel className="mb-3">Feature Treatment</SectionLabel>
-            <h2 className="text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold leading-[1.2] tracking-[-0.025em] text-[hsl(var(--surface-dark))]">
+            <h2 className="text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold leading-[1.2] tracking-[-0.025em] text-[hsl(var(--heading))]">
               Advanced Dental Care
               <br />
               for a Healthier Smile
@@ -47,7 +47,7 @@ export function Services() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="group cursor-pointer overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-white transition-all duration-[220ms] ease-out hover:-translate-y-[5px] hover:shadow-[0_20px_56px_rgba(0,0,0,0.09)]"
+              className="group cursor-pointer overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--content))] transition-all duration-[220ms] ease-out hover:-translate-y-[5px] hover:shadow-[0_20px_56px_rgba(0,0,0,0.09)]"
             >
               <div className="h-[148px] overflow-hidden">
                 <img
@@ -58,10 +58,10 @@ export function Services() {
                 />
               </div>
               <div className="p-5">
-                <span className="mb-3 inline-flex rounded-full bg-[hsl(var(--primary-light))] px-3 py-1 text-[0.65rem] font-semibold tracking-[0.08em] text-[hsl(var(--primary))]">
+                <span className="mb-3 inline-flex rounded-full bg-[hsl(var(--primary-soft))] px-3 py-1 text-[0.65rem] font-semibold tracking-[0.08em] text-[hsl(var(--primary))]">
                   {service.price}
                 </span>
-                <h3 className="mb-2 text-[0.95rem] font-bold text-[hsl(var(--surface-dark))]">
+                <h3 className="mb-2 text-[0.95rem] font-bold text-[hsl(var(--heading))]">
                   {service.title}
                 </h3>
                 <p className="text-[0.78rem] font-light leading-[1.65] text-[hsl(var(--muted-foreground))]">
