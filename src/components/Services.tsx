@@ -66,14 +66,16 @@ export function Services() {
                 <p className="text-[0.88rem] font-normal leading-[1.65] text-[hsl(var(--muted-foreground))]">
                   {service.body}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => openBooking(service.title)}
-                  className="mt-auto inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[hsl(var(--primary))]/25 bg-[hsl(var(--primary-soft))] px-6 py-2.5 text-[0.8rem] font-semibold text-[hsl(var(--primary))] transition-all duration-200 hover:bg-[hsl(var(--primary))] hover:text-white group-hover:gap-2.5"
-                >
-                  {t('ui.bookAppointment')}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-                </button>
+                <div className="mt-auto pt-5">
+                  <button
+                    type="button"
+                    onClick={() => openBooking(service.title)}
+                    className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[hsl(var(--primary))]/25 bg-[hsl(var(--primary-soft))] px-6 py-2.5 text-[0.8rem] font-semibold text-[hsl(var(--primary))] transition-all duration-200 hover:bg-[hsl(var(--primary))] hover:text-white"
+                  >
+                    {t('ui.bookAppointment')}
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </button>
+                </div>
               </div>
             </motion.article>
           ))}

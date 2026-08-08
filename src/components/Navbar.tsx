@@ -28,14 +28,15 @@ export function Navbar() {
   const active = useScrollSpy(links.map((l) => l.id))
 
   return (
-    <header
-      className={cn(
-        'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
-        scrolled
-          ? 'border-[hsl(var(--border))] bg-[hsl(var(--background))]/90 backdrop-blur-xl'
-          : 'border-transparent bg-[hsl(var(--background))]/55 backdrop-blur-md',
-      )}
-    >
+    <>
+      <header
+        className={cn(
+          'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
+          scrolled
+            ? 'border-[hsl(var(--border))] bg-[hsl(var(--background))]/90 backdrop-blur-xl'
+            : 'border-transparent bg-[hsl(var(--background))]/55 backdrop-blur-md',
+        )}
+      >
       <nav>
         <Container className="flex items-center justify-between gap-6 py-[18px]">
           <div className="flex items-center gap-2.5">
@@ -93,6 +94,7 @@ export function Navbar() {
           </div>
         </Container>
       </nav>
+      </header>
 
       <AnimatePresence>
         {open && (
@@ -166,6 +168,6 @@ export function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </header>
+    </>
   )
 }
