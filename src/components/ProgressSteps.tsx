@@ -8,15 +8,15 @@ export function ProgressSteps() {
   const [active, setActive] = useState(0)
 
   return (
-    <section className="border-b border-[hsl(var(--border))] bg-white px-[60px] max-md:px-4">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-2 md:grid-cols-4">
+    <section className="overflow-x-auto border-b border-[hsl(var(--border))] bg-white px-[60px] max-md:px-4">
+      <div className="mx-auto grid max-w-[1200px] min-w-[720px] grid-cols-4">
         {steps.map((step, i) => (
           <button
             key={step}
             type="button"
             onClick={() => setActive(i)}
             className={cn(
-              'relative cursor-pointer border-r border-[hsl(var(--border))] px-6 py-5 text-left transition-colors last:border-r-0',
+              'relative min-w-[180px] cursor-pointer border-r border-[hsl(var(--border))] px-6 py-5 text-left transition-colors last:border-r-0',
               active === i
                 ? 'text-[hsl(var(--foreground))]'
                 : 'text-[hsl(var(--muted-foreground))]',

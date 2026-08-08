@@ -21,7 +21,7 @@ export function Process() {
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-4 gap-5 max-md:grid-cols-1 md:max-lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
           {processSteps.map((step, i) => (
             <motion.article
               key={step.title}

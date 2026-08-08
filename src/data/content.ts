@@ -65,7 +65,7 @@ export const services = [
     price: 'FROM $650',
     title: 'Veneers & Crowns',
     body: 'Custom-crafted porcelain shells and crowns to restore shape, color, and strength to damaged teeth.',
-    image: u('photo-1615464556841-6116e61058f4', 800),
+    image: u('photo-1615461066841-6116e61058f4', 800),
     alt: 'Ceramic dental restoration on a front tooth',
   },
   {

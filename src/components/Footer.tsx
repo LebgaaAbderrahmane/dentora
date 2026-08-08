@@ -33,7 +33,7 @@ export function Footer() {
   return (
     <footer className="bg-[hsl(var(--surface-dark))]">
       <Container className="py-16">
-        <div className="mb-14 grid grid-cols-4 gap-12 max-md:grid-cols-1 md:max-lg:grid-cols-2">
+        <div className="mb-14 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-2.5">
               <span className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/25 bg-white/15">
