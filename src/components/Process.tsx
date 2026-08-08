@@ -57,7 +57,7 @@ export function Process() {
                 </span>
                 <h3 className="text-[0.88rem] font-bold text-white">{step.title}</h3>
               </div>
-              <p className="text-[0.78rem] font-light leading-relaxed text-white/50">
+              <p className="text-[0.85rem] font-normal leading-relaxed text-white/65">
                 {step.body}
               </p>
             </motion.article>

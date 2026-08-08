@@ -24,7 +24,7 @@ export function WhyChooseUs() {
           <h2 className="mb-4 text-[clamp(1.8rem,3vw,2.8rem)] font-extrabold leading-[1.2] tracking-[-0.02em] text-[hsl(var(--heading))]">
             {t('why.title')}
           </h2>
-          <p className="mb-10 max-w-md text-[0.85rem] font-light leading-[1.8] text-[hsl(var(--muted-foreground))]">
+          <p className="mb-10 max-w-md text-[0.9rem] font-normal leading-[1.8] text-[hsl(var(--muted-foreground))]">
             {t('why.body')}
           </p>
 

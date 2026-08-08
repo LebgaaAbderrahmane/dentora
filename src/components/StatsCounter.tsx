@@ -21,7 +21,7 @@ function Stat({ stat, start }: { stat: StatDef; start: boolean }) {
           <Star className="mb-1.5 h-6 w-6 fill-[hsl(var(--primary))] text-[hsl(var(--primary))]" />
         )}
       </p>
-      <p className="mt-1 text-[0.7rem] font-normal text-[hsl(var(--muted-foreground))]">
+      <p className="mt-1 text-[0.78rem] font-normal text-[hsl(var(--muted-foreground))]">
         {t(stat.label)}
       </p>
     </div>
@@ -37,7 +37,7 @@ export function StatsRow() {
       ref={ref}
       className="flex items-center gap-10 py-8 max-md:flex-col max-md:items-start"
     >
-      <p className="max-w-[130px] shrink-0 text-[0.68rem] font-light leading-[1.6] text-[hsl(var(--muted-foreground))]">
+      <p className="max-w-[130px] shrink-0 text-[0.75rem] font-normal leading-[1.6] text-[hsl(var(--muted-foreground))]">
         {t('about.statsHint')}
       </p>
       <div className="grid flex-1 grid-cols-2 gap-8 md:flex md:gap-12">

@@ -45,7 +45,7 @@ export function ProgressSteps() {
             type="button"
             onClick={() => scrollTo(sectionIds[i])}
             className={cn(
-              'relative min-w-[180px] cursor-pointer border-r border-[hsl(var(--border))] px-6 py-5 text-left transition-colors last:border-r-0',
+              'relative min-w-[180px] cursor-pointer border-e border-[hsl(var(--border))] px-6 py-5 text-start transition-colors last:border-e-0',
               active === i
                 ? 'text-[hsl(var(--foreground))]'
                 : 'text-[hsl(var(--muted-foreground))]',
@@ -64,7 +64,7 @@ export function ProgressSteps() {
                 initial={false}
                 animate={{ scaleX: 1 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
-                className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-[hsl(var(--primary))]"
+className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-[hsl(var(--primary))]"
               />
             )}
           </button>

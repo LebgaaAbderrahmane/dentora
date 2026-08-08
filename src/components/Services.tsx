@@ -76,7 +76,7 @@ export function Services() {
                 <h3 className="mb-2 text-[0.95rem] font-bold text-[hsl(var(--heading))]">
                   {service.title}
                 </h3>
-                <p className="text-[0.78rem] font-light leading-[1.65] text-[hsl(var(--muted-foreground))]">
+                <p className="text-[0.88rem] font-normal leading-[1.65] text-[hsl(var(--muted-foreground))]">
                   {service.body}
                 </p>
                 <button

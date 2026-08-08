@@ -19,7 +19,7 @@ export function PhotoCTA() {
         loading="lazy"
         className="absolute inset-0 z-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 z-[1] bg-gradient-to-r from-[rgba(6,12,20,0.90)] via-[rgba(6,12,20,0.65)] to-[rgba(6,12,20,0.15)]" />
+      <div className="photo-cta-overlay absolute inset-0 z-[1]" />
 
       <Container className="relative z-10 flex w-full flex-wrap items-center justify-between gap-8">
         <motion.div
@@ -31,7 +31,7 @@ export function PhotoCTA() {
           <h2 className="text-[clamp(1.8rem,3.5vw,3rem)] font-extrabold tracking-[-0.025em] text-white">
             {t('photoCta.title')}
           </h2>
-          <p className="mt-2 text-[0.88rem] font-light text-white/60">{t('photoCta.body')}</p>
+          <p className="mt-2 text-[0.88rem] font-normal text-white/75">{t('photoCta.body')}</p>
         </motion.div>
 
         <motion.div

@@ -38,7 +38,7 @@ export function Navbar() {
             <a
               key={link.label}
               href={link.href}
-              className="text-[0.72rem] font-normal text-white/70 transition-colors hover:text-white"
+              className="text-[0.72rem] font-normal text-white/80 transition-colors hover:text-white"
             >
               {t(link.label)}
             </a>
@@ -51,7 +51,7 @@ export function Navbar() {
           <div className="hidden items-center gap-6 lg:flex">
             <a
               href={PHONE_TEL}
-              className="text-[0.72rem] font-medium text-white/60 transition-colors hover:text-white"
+              className="text-[0.72rem] font-medium text-white/75 transition-colors hover:text-white"
             >
               {PHONE}
             </a>

@@ -85,6 +85,26 @@ body {
   background: hsl(var(--primary) / 0.3);
 }
 
+.hero-overlay {
+  background:
+    linear-gradient(to right, rgba(6,12,20,0.95) 0%, rgba(6,12,20,0.80) 38%, rgba(6,12,20,0.45) 65%, rgba(6,12,20,0.15) 100%),
+    linear-gradient(to top, hsl(var(--background)) 0%, transparent 20%);
+}
+
+[dir='rtl'] .hero-overlay {
+  background:
+    linear-gradient(to left, rgba(6,12,20,0.95) 0%, rgba(6,12,20,0.80) 38%, rgba(6,12,20,0.45) 65%, rgba(6,12,20,0.15) 100%),
+    linear-gradient(to top, hsl(var(--background)) 0%, transparent 20%);
+}
+
+.photo-cta-overlay {
+  background: linear-gradient(to right, rgba(6,12,20,0.90) 0%, rgba(6,12,20,0.65) 55%, rgba(6,12,20,0.15) 100%);
+}
+
+[dir='rtl'] .photo-cta-overlay {
+  background: linear-gradient(to left, rgba(6,12,20,0.90) 0%, rgba(6,12,20,0.65) 55%, rgba(6,12,20,0.15) 100%);
+}
+
 @layer base {
   * {
     border-color: hsl(var(--border));

@@ -29,7 +29,7 @@ export function FinalCta() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="mt-5 text-[0.92rem] font-light leading-relaxed text-white/70"
+          className="mt-5 text-[0.92rem] font-normal leading-relaxed text-white/80"
         >
           {t('cta.body')}
         </motion.p>
@@ -58,7 +58,7 @@ export function FinalCta() {
         </motion.div>
         <div className="mt-8 flex flex-wrap justify-center gap-8">
           {trust.map((item) => (
-            <p key={item} className="flex items-center gap-2 text-[0.8rem] font-light text-white/55">
+            <p key={item} className="flex items-center gap-2 text-[0.82rem] font-normal text-white/75">
               <Check className="h-3.5 w-3.5 text-white" />
               {item}
             </p>

@@ -49,13 +49,7 @@ export function Hero() {
         loading="eager"
       />
 
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          background:
-            'linear-gradient(to right, rgba(6,12,20,0.95) 0%, rgba(6,12,20,0.80) 38%, rgba(6,12,20,0.45) 65%, rgba(6,12,20,0.15) 100%), linear-gradient(to top, hsl(var(--background)) 0%, transparent 20%)',
-        }}
-      />
+      <div className="hero-overlay absolute inset-0 z-0" />
 
       <Container className="relative z-10 w-full pb-14 pt-28">
         <motion.div
@@ -102,7 +96,7 @@ export function Hero() {
           variants={block(0.5)}
           initial="hidden"
           animate="visible"
-          className="mb-10 max-w-[380px] text-[0.92rem] font-light leading-[1.75] text-white/55"
+          className="mb-10 max-w-[380px] text-[0.92rem] font-normal leading-[1.75] text-white/70"
         >
           {t('hero.subline')}
         </motion.p>
@@ -119,7 +113,7 @@ export function Hero() {
           </Button>
           <a
             href="tel:+21321558800"
-            className="flex items-center gap-2 text-[0.82rem] font-normal text-white/50 transition-colors hover:text-white"
+            className="flex items-center gap-2 text-[0.82rem] font-normal text-white/65 transition-colors hover:text-white"
           >
             <Phone className="h-4 w-4" />
             {t('hero.callPrefix')} {PHONE}

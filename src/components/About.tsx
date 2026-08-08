@@ -36,7 +36,7 @@ export function About() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="ml-auto w-[210px] max-md:ml-0 max-md:mb-8"
+              className="ms-auto w-[210px] max-md:ms-0 max-md:mb-8"
             >
               <div className="h-[160px] w-[210px] overflow-hidden rounded-2xl">
                 <img

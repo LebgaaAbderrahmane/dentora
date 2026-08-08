@@ -50,8 +50,7 @@ export function Testimonials() {
               <Stars />
               <p className="text-[0.92rem] font-normal leading-[1.75] text-[hsl(var(--heading))]">
                 &ldquo;{item.quote}&rdquo;
-              </p>
-              <div className="mt-6 flex items-center gap-3">
+              </p>              <div className="mt-6 flex items-center gap-3">
                 <img
                   src={testimonialImages[i]}
                   alt={item.name}
@@ -62,7 +61,7 @@ export function Testimonials() {
                   <p className="text-[0.82rem] font-semibold text-[hsl(var(--heading))]">
                     {item.name}
                   </p>
-                  <p className="text-[0.68rem] font-light text-[hsl(var(--muted-foreground))]">
+                  <p className="text-[0.75rem] font-normal text-[hsl(var(--muted-foreground))]">
                     {item.source}
                   </p>
                 </div>

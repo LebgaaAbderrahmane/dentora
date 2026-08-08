@@ -49,7 +49,7 @@ export function Faq() {
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="flex w-full cursor-pointer items-center justify-between gap-4 text-left"
+                    className="flex w-full cursor-pointer items-center justify-between gap-4 text-start"
                   >
                     <span className="text-[0.92rem] font-semibold text-[hsl(var(--heading))]">
                       {item.q}
@@ -69,7 +69,7 @@ export function Faq() {
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                     className="overflow-hidden"
                   >
-                    <p className="pb-2 pt-3 text-[0.82rem] font-light leading-relaxed text-[hsl(var(--muted-foreground))]">
+                    <p className="pb-2 pt-3 text-[0.88rem] font-normal leading-relaxed text-[hsl(var(--muted-foreground))]">
                       {item.a}
                     </p>
                   </motion.div>
