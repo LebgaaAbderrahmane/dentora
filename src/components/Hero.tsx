@@ -67,7 +67,7 @@ export function Hero() {
         <motion.h1
           initial="hidden"
           animate="visible"
-          className="mb-6 max-w-[580px] text-[clamp(2.8rem,5.5vw,5.5rem)] font-extrabold leading-[1.0] tracking-[-0.03em] text-white max-md:mx-auto"
+          className="mb-6 max-w-[650px] text-[clamp(2.8rem,5.5vw,5.5rem)] font-extrabold leading-[1.0] tracking-[-0.03em] text-white max-md:mx-auto"
         >
           {lines.map((line, li) => (
             <span key={li} className="block">
