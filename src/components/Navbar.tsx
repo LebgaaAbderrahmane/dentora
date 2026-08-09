@@ -71,7 +71,7 @@ export function Navbar() {
 
           <div className="flex items-center gap-3">
             <LanguageSwitcher className="hidden sm:flex" />
-            <ThemeDropdown />
+            <ThemeDropdown className="hidden lg:flex" />
             <div className="hidden items-center gap-6 lg:flex">
               <a
                 href={PHONE_TEL}
