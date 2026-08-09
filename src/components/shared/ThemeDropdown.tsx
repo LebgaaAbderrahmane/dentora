@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, SunMoon } from 'lucide-react'
+import { Check, Monitor, Moon, Sun, SunMoon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTheme, type Theme } from '@/providers/theme'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,8 @@ const options: { value: Theme; icon: 'sun' | 'moon' | 'monitor' }[] = [
   { value: 'dark', icon: 'moon' },
   { value: 'system', icon: 'monitor' },
 ]
+
+const icons = { sun: Sun, moon: Moon, monitor: Monitor }
 
 export function ThemeDropdown({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
@@ -48,8 +50,9 @@ export function ThemeDropdown({ className }: { className?: string }) {
             transition={{ duration: 0.16, ease: 'easeOut' }}
             className="absolute end-0 top-11 z-50 min-w-[184px] overflow-hidden rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--content))] p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.22)]"
           >
-            {options.map(({ value }) => {
+            {options.map(({ value, icon }) => {
               const active = theme === value
+              const Icon = icons[icon]
               return (
                 <button
                   key={value}
@@ -59,14 +62,15 @@ export function ThemeDropdown({ className }: { className?: string }) {
                     setOpen(false)
                   }}
                   className={cn(
-                    'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[0.8rem] transition-colors',
+                    'flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-[0.8rem] transition-colors',
                     active
                       ? 'bg-[hsl(var(--primary-soft))] font-semibold text-[hsl(var(--primary))]'
                       : 'font-normal text-[hsl(var(--heading))] hover:bg-[hsl(var(--soft))]',
                   )}
                 >
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span>{t(`ui.theme.${value}`)}</span>
-                  {active && <Check className="h-4 w-4" />}
+                  <span className="ms-auto">{active && <Check className="h-4 w-4 shrink-0" />}</span>
                 </button>
               )
             })}
