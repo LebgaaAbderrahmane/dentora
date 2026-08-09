@@ -3,6 +3,8 @@ import { u } from '@/data/images'
 export const PHONE = '+213 21 55 88 00'
 export const EMERGENCY_PHONE = '+213 555 00 00 00'
 export const PHONE_TEL = 'tel:+21321558800'
+export const EMERGENCY_TEL = 'tel:+213555000000'
+export const EMAIL_LINK = 'mailto:hello@dentora.dz'
 export const EMAIL = 'hello@dentora.dz'
 
 export const heroImage = u('photo-1588776814546-1ffcf47267a5', 1920)

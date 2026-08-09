@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays, Check, Send, X } from 'lucide-react'
+import { Check, Send, X } from 'lucide-react'
 import { useBooking } from '@/providers/booking'
 import { EMERGENCY_PHONE } from '@/data/content'
 
@@ -35,7 +35,7 @@ export function BookingModal() {
 
   const whatsappHref = () => {
     const lines = [
-      `*DENTORA — ${t('booking.title')}*`,
+      `*DENTORA: ${t('booking.title')}*`,
       t('booking.name') + ': ' + name,
       t('booking.phone') + ': ' + phone,
       t('booking.service') + ': ' + picked,
@@ -133,7 +133,7 @@ export function BookingModal() {
                         className="h-11 w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--soft))] px-3.5 text-[0.85rem] text-[hsl(var(--heading))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
                       >
                         <option value="" disabled>
-                          —{// placeholder
+                         :{// placeholder
                           }—
                         </option>
                         {services.map((s) => (
@@ -148,16 +148,13 @@ export function BookingModal() {
                       <span className="mb-1.5 block text-[0.72rem] font-semibold text-[hsl(var(--muted-foreground))]">
                         {t('booking.date')}
                       </span>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          required
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="h-11 w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--soft))] px-3.5 text-[0.85rem] text-[hsl(var(--heading))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
-                        />
-                        <CalendarDays className="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" />
-                      </div>
+                      <input
+                        type="date"
+                        required
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="h-11 w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--soft))] px-3.5 text-[0.85rem] text-[hsl(var(--heading))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
+                      />
                     </label>
 
                     <label className="block">

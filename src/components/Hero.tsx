@@ -6,7 +6,7 @@ import { Container } from '@/components/shared/Container'
 import { Button } from '@/components/shared/Button'
 import { TagPill } from '@/components/shared/TagPill'
 import { u } from '@/data/images'
-import { PHONE } from '@/data/content'
+import { PHONE, PHONE_TEL } from '@/data/content'
 import { useBooking } from '@/providers/booking'
 import { cn } from '@/lib/utils'
 
@@ -112,7 +112,7 @@ export function Hero() {
             <ArrowRight className="h-4 w-4" />
           </Button>
           <a
-            href="tel:+21321558800"
+            href={PHONE_TEL}
             className="ltr-isolate flex items-center gap-2 text-[0.82rem] font-normal text-white/65 transition-colors hover:text-white"
           >
             <Phone className="h-4 w-4" />

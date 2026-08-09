@@ -2,7 +2,7 @@ import { Phone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/shared/Container'
 import { ToothIcon } from '@/components/shared/ToothIcon'
-import { EMAIL, EMERGENCY_PHONE, PHONE } from '@/data/content'
+import { EMAIL, EMAIL_LINK, EMERGENCY_PHONE, EMERGENCY_TEL, PHONE, PHONE_TEL } from '@/data/content'
 import { useBooking } from '@/providers/booking'
 import {
   FacebookIcon,
@@ -18,7 +18,11 @@ const socials = [
   { label: 'WhatsApp', Icon: WhatsAppIcon, href: 'https://wa.me/21321558800' },
 ]
 
-export function Footer() {
+export function Footer({
+  onOpenLegal,
+}: {
+  onOpenLegal?: (page: 'privacy' | 'terms') => void
+}) {
   const { t } = useTranslation()
   const { openBooking } = useBooking()
   const servicesLinks = t('footer.servicesLinks', { returnObjects: true }) as string[]
@@ -41,8 +45,18 @@ export function Footer() {
             <p className="mt-1 text-[0.72rem] font-normal tracking-[0.1em] text-white/55">
               {t('footer.tagline')}
             </p>
-            <p className="ltr-isolate mt-5 text-sm font-semibold text-white">{PHONE}</p>
-            <p className="ltr-isolate text-sm font-normal text-white/65">{EMAIL}</p>
+            <a
+              href={PHONE_TEL}
+              className="ltr-isolate mt-5 block text-sm font-semibold text-white transition-colors hover:text-[hsl(var(--primary))]"
+            >
+              {PHONE}
+            </a>
+            <a
+              href={EMAIL_LINK}
+              className="ltr-isolate block text-sm font-normal text-white/65 transition-colors hover:text-white"
+            >
+              {EMAIL}
+            </a>
           </div>
 
           <div>
@@ -85,10 +99,13 @@ export function Footer() {
                 {h}
               </p>
             ))}
-            <p className="ltr-isolate mt-2 flex items-center gap-2 text-sm font-normal text-white/80">
-              <Phone className="h-4 w-4 text-[hsl(var(--primary))]" />
+            <a
+              href={EMERGENCY_TEL}
+              className="ltr-isolate mt-2 flex items-center gap-2 text-sm font-normal text-white/80 transition-colors hover:text-white"
+            >
+              <Phone className="h-4 w-4 shrink-0 text-[hsl(var(--primary))]" />
               {t('footer.emergency')} {EMERGENCY_PHONE}
-            </p>
+            </a>
             <div className="mt-5 flex gap-5">
               {socials.map((s) => (
                 <a
@@ -111,12 +128,33 @@ export function Footer() {
             {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
           <p className="flex gap-6 text-xs font-normal text-white/45">
-            <a href="#about" className="transition-colors hover:text-white/60">
-              {t('footer.privacy')}
-            </a>
-            <a href="#contact" className="transition-colors hover:text-white/60">
-              {t('footer.terms')}
-            </a>
+            {onOpenLegal ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onOpenLegal('privacy')}
+                  className="cursor-pointer transition-colors hover:text-white/60"
+                >
+                  {t('footer.privacy')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenLegal('terms')}
+                  className="cursor-pointer transition-colors hover:text-white/60"
+                >
+                  {t('footer.terms')}
+                </button>
+              </>
+            ) : (
+              <>
+                <a href="#about" className="transition-colors hover:text-white/60">
+                  {t('footer.privacy')}
+                </a>
+                <a href="#contact" className="transition-colors hover:text-white/60">
+                  {t('footer.terms')}
+                </a>
+              </>
+            )}
           </p>
         </div>
       </Container>

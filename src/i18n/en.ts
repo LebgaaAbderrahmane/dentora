@@ -22,7 +22,7 @@ export const en = {
     badge: 'BEST DENTAL CARE · ALGER',
     lines: ['Experience', 'Comfortable', 'Dental Care.'],
     subline:
-      "Your family's dental health, handled with care. Modern technology, gentle hands, and transparent pricing — always.",
+      "Your family's dental health, handled with care. Modern technology, gentle hands, and transparent pricing: always.",
     cta: 'Book Appointment',
     callPrefix: 'Or Call:',
     imageAlt: 'Patient smiling in a bright dental chair',
@@ -79,7 +79,7 @@ export const en = {
       {
         price: 'FROM 90,000 DA',
         title: 'Dental Implants',
-        body: 'Permanent, natural-looking replacements for missing teeth — surgically placed and built to last a lifetime.',
+        body: 'Permanent, natural-looking replacements for missing teeth: surgically placed and built to last a lifetime.',
         alt: 'Dental implant model with crown',
       },
       {
@@ -116,7 +116,7 @@ export const en = {
     list: [
       {
         title: 'Book Online',
-        body: "Fill out our quick form or call us — we'll confirm your appointment within the hour.",
+        body: "Fill out our quick form or call us: we'll confirm your appointment within the hour.",
         alt: 'Booking an appointment on a laptop at home',
       },
       {
@@ -173,7 +173,7 @@ export const en = {
     list: [
       {
         q: 'Do you accept new patients?',
-        a: "Yes — we're always welcoming new patients and their families. You can book online, call us, or simply walk in during opening hours. Same-day appointments are often available.",
+        a: "Yes: we're always welcoming new patients and their families. You can book online, call us, or simply walk in during opening hours. Same-day appointments are often available.",
       },
       {
         q: 'Is dental treatment painful?',
@@ -181,7 +181,7 @@ export const en = {
       },
       {
         q: 'How often should I come in for a check-up?',
-        a: "We recommend a dental check-up and professional cleaning every 6 months. Some patients may benefit from more frequent visits — your dentist will advise based on your individual needs.",
+        a: "We recommend a dental check-up and professional cleaning every 6 months. Some patients may benefit from more frequent visits: your dentist will advise based on your individual needs.",
       },
       {
         q: 'Do you offer payment plans?',
@@ -189,7 +189,7 @@ export const en = {
       },
       {
         q: 'What should I do in a dental emergency?',
-        a: "Call our emergency line immediately — +213 555 00 00 00. We offer same-day emergency slots for toothaches, broken teeth, lost crowns, and dental trauma. Don't wait if you're in pain.",
+        a: "Call our emergency line immediately: +213 555 00 00 00. We offer same-day emergency slots for toothaches, broken teeth, lost crowns, and dental trauma. Don't wait if you're in pain.",
       },
       {
         q: 'Can children be patients at Dentora?',
@@ -197,7 +197,7 @@ export const en = {
       },
       {
         q: 'How long do treatments take?',
-        a: "It depends on the treatment. A standard check-up takes 45–60 minutes. Cleaning is 45 minutes. More complex procedures like implants or crowns involve multiple visits — your dentist will give you a full timeline at your consultation.",
+        a: "It depends on the treatment. A standard check-up takes 45–60 minutes. Cleaning is 45 minutes. More complex procedures like implants or crowns involve multiple visits: your dentist will give you a full timeline at your consultation.",
       },
     ],
   },
@@ -240,6 +240,84 @@ export const en = {
     successNote: 'Our team will call you shortly to confirm.',
     whatsapp: 'Send via WhatsApp',
     close: 'Close',
+  },
+  legal: {
+    back: 'Back to home',
+    updatedOn: 'Last updated: ',
+    privacy: {
+      title: 'Privacy Policy',
+      intro:
+        'This policy explains what information the DENTORA website collects, how it is used, and the choices you have. By using this website, you agree to the practices described below.',
+      sections: [
+        {
+          heading: '1. Information we collect',
+          body: 'When you use our website we may collect the information you provide through the booking form (name, phone number, service of interest and preferred date), as well as basic technical data such as your browser type and the pages you visit.',
+        },
+        {
+          heading: '2. How we use your information',
+          body: 'We use your details solely to receive, confirm and manage your appointment requests — for example by contacting you by phone or via WhatsApp. We do not sell your personal data to third parties.',
+        },
+        {
+          heading: '3. Health data',
+          body: 'We do not collect medical records or health information through this website. Your personal health data is only ever shared during an in-clinic appointment under the applicable confidentiality rules.',
+        },
+        {
+          heading: '4. Cookies and third-party services',
+          body: 'This website uses minimal local storage (for your theme and language preferences) and loads fonts and images from third-party providers (Google Fonts, Unsplash). These providers may process basic technical data according to their own privacy policies.',
+        },
+        {
+          heading: '5. Data security',
+          body: 'We take reasonable technical and organisational measures to protect your information from unauthorised access, loss or misuse.',
+        },
+        {
+          heading: '6. Your rights',
+          body: 'You may request access to, correction of, or deletion of your personal information at any time by contacting us using the details below.',
+        },
+        {
+          heading: '7. Contact',
+          body: 'For any question relating to your privacy, you can reach us by phone at +213 21 55 88 00 or by email at hello@dentora.dz.',
+        },
+      ],
+    },
+    terms: {
+      title: 'Terms of Use',
+      updated:
+        'By accessing the DENTORA website you agree to the following terms.',
+      sections: [
+        {
+          heading: '1. Acceptance of terms',
+          body: 'By using this website you agree to be bound by these terms. If you do not agree, please do not use our website.',
+        },
+        {
+          heading: '2. Use of the website',
+          body: 'You agree to use this website for lawful purposes only and not to misuse its content, nor attempt to damage its availability or security.',
+        },
+        {
+          heading: '3. Bookings and appointments',
+          body: 'Submitting a booking request is an expression of interest and does not guarantee an appointment. We confirm every appointment by phone or WhatsApp before it is final.',
+        },
+        {
+          heading: '4. No medical advice',
+          body: 'The content of this website is provided for general information only and does not constitute medical advice. Only a clinical examination allows us to give you a diagnosis and a personalised treatment plan.',
+        },
+        {
+          heading: '5. Intellectual property',
+          body: 'All content on this website (text, images, logo and design) belongs to DENTORA or its providers and may not be reproduced without prior written consent.',
+        },
+        {
+          heading: '6. Limitation of liability',
+          body: 'We do our best to keep the website accurate and operational, but we cannot be held responsible for temporary unavailability or for decisions taken on the basis of the information published here.',
+        },
+        {
+          heading: '7. Changes to these terms',
+          body: 'We may update these terms at any time. The latest version will always be published on this page.',
+        },
+        {
+          heading: '8. Contact',
+          body: 'For any legal enquiry, please contact us at hello@dentora.dz.',
+        },
+      ],
+    },
   },
 }
 

@@ -24,7 +24,7 @@ export const fr: EnDictionary = {
     badge: 'SOINS DENTAIRES · ALGER',
     lines: ['Des soins', 'confortables et', 'durables.'],
     subline:
-      "La santé bucco-dentaire de toute votre famille, avec soin. Technologies modernes, gestes doux et tarifs transparents — toujours.",
+      "La santé bucco-dentaire de toute votre famille, avec soin. Technologies modernes, gestes doux et tarifs transparents: toujours.",
     cta: 'Prendre rendez-vous',
     callPrefix: 'Ou appelez :',
     imageAlt: 'Patiente souriant dans un fauteuil dentaire lumineux',
@@ -81,7 +81,7 @@ export const fr: EnDictionary = {
       {
         price: 'DÈS 90 000 DA',
         title: 'Implants dentaires',
-        body: 'Des remplacements permanents et esthétiques pour vos dents manquantes — posés chirurgicalement et conçus pour durer.',
+        body: 'Des remplacements permanents et esthétiques pour vos dents manquantes: posés chirurgicalement et conçus pour durer.',
         alt: 'Maquette d\u2019implant dentaire avec couronne',
       },
       {
@@ -118,7 +118,7 @@ export const fr: EnDictionary = {
     list: [
       {
         title: 'Réserver en ligne',
-        body: "Remplissez notre formulaire rapide ou appelez-nous — nous confirmons votre rendez-vous dans l'heure.",
+        body: "Remplissez notre formulaire rapide ou appelez-nous: nous confirmons votre rendez-vous dans l'heure.",
         alt: 'Réservation d\u2019un rendez-vous sur un ordinateur portable à la maison',
       },
       {
@@ -175,7 +175,7 @@ export const fr: EnDictionary = {
     list: [
       {
         q: 'Acceptez-vous de nouveaux patients ?',
-        a: "Oui — nous accueillons toujours de nouveaux patients et leurs familles. Vous pouvez réserver en ligne, nous appeler ou simplement passer pendant les heures d'ouverture. Des rendez-vous le jour même sont souvent disponibles.",
+        a: "Oui: nous accueillons toujours de nouveaux patients et leurs familles. Vous pouvez réserver en ligne, nous appeler ou simplement passer pendant les heures d'ouverture. Des rendez-vous le jour même sont souvent disponibles.",
       },
       {
         q: 'Les soins dentaires sont-ils douloureux ?',
@@ -183,7 +183,7 @@ export const fr: EnDictionary = {
       },
       {
         q: 'À quelle fréquence dois-je faire un contrôle ?',
-        a: 'Nous recommandons un contrôle et un détartrage professionnel tous les 6 mois. Certains patients peuvent bénéficier de visites plus fréquentes — votre dentiste vous conseillera selon vos besoins.',
+        a: 'Nous recommandons un contrôle et un détartrage professionnel tous les 6 mois. Certains patients peuvent bénéficier de visites plus fréquentes: votre dentiste vous conseillera selon vos besoins.',
       },
       {
         q: 'Proposez-vous des facilités de paiement ?',
@@ -191,7 +191,7 @@ export const fr: EnDictionary = {
       },
       {
         q: 'Que faire en cas d\u2019urgence dentaire ?',
-        a: "Appelez immédiatement notre ligne d'urgence — +213 555 00 00 00. Nous proposons des créneaux le jour même pour les maux de dents, dents cassées, couronnes perdues et traumatismes. N\u2019attendez pas si vous avez mal.",
+        a: "Appelez immédiatement notre ligne d'urgence: +213 555 00 00 00. Nous proposons des créneaux le jour même pour les maux de dents, dents cassées, couronnes perdues et traumatismes. N\u2019attendez pas si vous avez mal.",
       },
       {
         q: 'Les enfants peuvent-ils être patients chez Dentor ?',
@@ -199,7 +199,7 @@ export const fr: EnDictionary = {
       },
       {
         q: 'Combien de temps durent les traitements ?',
-        a: 'Cela dépend du traitement. Un contrôle standard dure 45–60 min. Un détartrage 45 min. Les interventions plus complexes, comme les implants ou les couronnes, nécessitent plusieurs visites — le dentiste vous donnera un calendrier complet lors de la consultation.',
+        a: 'Cela dépend du traitement. Un contrôle standard dure 45–60 min. Un détartrage 45 min. Les interventions plus complexes, comme les implants ou les couronnes, nécessitent plusieurs visites: le dentiste vous donnera un calendrier complet lors de la consultation.',
       },
     ],
   },
@@ -242,5 +242,83 @@ export const fr: EnDictionary = {
     successNote: 'Notre équipe vous appellera prochainement pour confirmer.',
     whatsapp: 'Envoyer via WhatsApp',
     close: 'Fermer',
+  },
+  legal: {
+    back: 'Retour à l\u2019accueil',
+    updatedOn: 'Dernière mise à jour : ',
+    privacy: {
+      title: 'Politique de confidentialité',
+      intro:
+        'Cette politique explique quelles informations le site DENTORA collecte, comment elles sont utilisées et quels sont vos choix. En utilisant ce site, vous acceptez les pratiques décrites ci-dessous.',
+      sections: [
+        {
+          heading: '1. Informations que nous collectons',
+          body: 'Lorsque vous utilisez notre site, nous pouvons collecter les informations que vous fournissez via le formulaire de rendez-vous (nom, numéro de téléphone, service souhaité et date préférée), ainsi que des données techniques basiques telles que le type de navigateur et les pages consultées.',
+        },
+        {
+          heading: '2. Utilisation de vos informations',
+          body: 'Nous utilisons vos coordonnées uniquement pour recevoir, confirmer et gérer vos demandes de rendez-vous, par exemple en vous contactant par téléphone ou via WhatsApp. Nous ne vendons jamais vos données personnelles à des tiers.',
+        },
+        {
+          heading: '3. Données de santé',
+          body: 'Nous ne collectons aucun dossier médical ni information de santé via ce site. Vos données de santé ne sont échangées qu\u2019au cours d\u2019une consultation en clinique, dans le respect du secret professionnel.',
+        },
+        {
+          heading: '4. Cookies et services tiers',
+          body: 'Ce site utilise un stockage local minimal (vos préférences de thème et de langue) et charge des polices et images auprès de fournisseurs tiers (Google Fonts, Unsplash). Ces fournisseurs peuvent traiter des données techniques selon leurs propres politiques de confidentialité.',
+        },
+        {
+          heading: '5. Sécurité des données',
+          body: 'Nous prenons des mesures techniques et organisationnelles raisonnables pour protéger vos informations contre tout accès non autorisé, toute perte ou tout usage abusif.',
+        },
+        {
+          heading: '6. Vos droits',
+          body: 'Vous pouvez à tout moment demander l\u2019accès, la rectification ou la suppression de vos informations personnelles en nous contactant via les coordonnées ci-dessous.',
+        },
+        {
+          heading: '7. Contact',
+          body: 'Pour toute question relative à votre vie privée, contactez-nous au +213 21 55 88 00 ou par e-mail à hello@dentora.dz.',
+        },
+      ],
+    },
+    terms: {
+      title: 'Conditions d\u2019utilisation',
+      updated:
+        'En accédant au site DENTORA, vous acceptez les conditions suivantes.',
+      sections: [
+        {
+          heading: '1. Acceptation des conditions',
+          body: 'En utilisant ce site, vous acceptez d\u2019être lié par les présentes conditions. Si vous n\u2019êtes pas d\u2019accord, veuillez ne pas utiliser notre site.',
+        },
+        {
+          heading: '2. Utilisation du site',
+          body: 'Vous vous engagez à utiliser ce site uniquement à des fins légales et à ne pas en abuser du contenu, ni tenter de nuire à sa disponibilité ou à sa sécurité.',
+        },
+        {
+          heading: '3. Rendez-vous et réservations',
+          body: 'Envoyer une demande de rendez-vous est une expression d\u2019intérêt et ne garantit pas de rendez-vous. Chaque rendez-vous est confirmé par téléphone ou WhatsApp avant d\u2019être finalisé.',
+        },
+        {
+          heading: '4. Absence d\u2019avis médical',
+          body: 'Le contenu de ce site est fourni à titre informatif uniquement et ne constitue pas un avis médical. Seul un examen clinique permet d\u2019établir un diagnostic et un plan de traitement personnalisé.',
+        },
+        {
+          heading: '5. Propriété intellectuelle',
+          body: 'Tout le contenu de ce site (textes, images, logo et design) appartient à DENTORA ou à ses fournisseurs et ne peut être reproduit sans autorisation écrite préalable.',
+        },
+        {
+          heading: '6. Limitation de responsabilité',
+          body: 'Nous faisons de notre mieux pour que le site soit exact et opérationnel, mais nous ne pouvons être tenus responsables d\u2019une indisponibilité temporaire ou de décisions prises sur la base des informations publiées.',
+        },
+        {
+          heading: '7. Modifications des conditions',
+          body: 'Nous pouvons modifier ces conditions à tout moment. La version la plus récente sera toujours publiée sur cette page.',
+        },
+        {
+          heading: '8. Contact',
+          body: 'Pour toute question juridique, contactez-nous à hello@dentora.dz.',
+        },
+      ],
+    },
   },
 }

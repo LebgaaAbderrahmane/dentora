@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { Hero } from '@/components/Hero'
 import { About } from '@/components/About'
@@ -10,8 +11,23 @@ import { Faq } from '@/components/Faq'
 import { FinalCta } from '@/components/FinalCta'
 import { Footer } from '@/components/Footer'
 import { BookingModal } from '@/components/BookingModal'
+import { LegalPage, type LegalKind } from '@/components/LegalPage'
 
 function App() {
+  const [legal, setLegal] = useState<LegalKind | null>(null)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [legal])
+
+  if (legal) {
+    return (
+      <main className="min-h-screen bg-[hsl(var(--background))]">
+        <LegalPage kind={legal} onBack={() => setLegal(null)} onOpenLegal={setLegal} />
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-[hsl(var(--background))]">
       <Navbar />
@@ -24,7 +40,7 @@ function App() {
       <PhotoCTA />
       <Faq />
       <FinalCta />
-      <Footer />
+      <Footer onOpenLegal={setLegal} />
       <BookingModal />
     </main>
   )

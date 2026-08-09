@@ -67,7 +67,7 @@ html {
 }
 
 html:lang(ar) {
-  --font-sans: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Tajawal', 'Plus Jakarta Sans', system-ui, sans-serif;
   letter-spacing: 0;
 }
 
