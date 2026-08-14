@@ -1,30 +1,24 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { AuditAction, AuditEntry, Role, SafeUser } from '@dentora/contracts'
+import { Button, Input, useTheme } from '@dentora/ui'
+import { useI18n } from '@dentora/i18n'
+import type { Locale, MessageKey } from '@dentora/i18n'
+import type { SafeUser } from '@dentora/contracts'
 import { api, ApiError } from './lib/api'
+import { DashboardView } from './views/DashboardView'
+import { UsersView } from './views/UsersView'
+import { AuditView } from './views/AuditView'
 
-const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: 'Admin',
-  DENTIST: 'Dentiste',
-  RECEPTIONIST: 'Réception',
-  ACCOUNTANT: 'Comptable',
-  INTERN: 'Stagiaire',
-  PATIENT: 'Patient',
+const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
+  ADMIN: 'role.admin',
+  DENTIST: 'role.dentist',
+  RECEPTIONIST: 'role.receptionist',
+  ACCOUNTANT: 'role.accountant',
+  INTERN: 'role.intern',
+  PATIENT: 'role.patient',
 }
 
-const ACTION_LABELS: Record<AuditAction, string> = {
-  LOGIN_SUCCESS: 'Connexion',
-  LOGIN_FAILURE: 'Échec connexion',
-  LOGOUT: 'Déconnexion',
-  CHANGE_PASSWORD: 'Changement mot de passe',
-  REVOKE_ALL_SESSIONS: 'Révoquer sessions',
-  USER_ROLE_CHANGE: 'Changement rôle',
-  REVOKE_SESSIONS: 'Révoquer sessions',
-  PATIENT_VIEW: 'Consultation patient',
-  PATIENT_CREATE: 'Création patient',
-  PATIENT_UPDATE: 'Modification patient',
-  PATIENT_DELETE: 'Suppression patient',
-}
+type View = 'dashboard' | 'users' | 'audit'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -40,63 +34,19 @@ export default function App() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-sm text-neutral-500">
-        Chargement…
+      <main className="flex min-h-screen items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
+        …
       </main>
     )
   }
 
-  if (!user) {
-    return <LoginScreen onLoggedIn={setUser} />
-  }
+  if (!user) return <Login onLoggedIn={setUser} />
 
-  return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
-      <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">DENTORA Admin</h1>
-          <p className="text-xs text-neutral-500">Practice management — squelette (Phase 0.5)</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right text-sm">
-            <div className="font-medium">{user.name}</div>
-            <div className="text-xs text-neutral-500">{user.email}</div>
-          </div>
-          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
-            {ROLE_LABELS[user.role]}
-          </span>
-          <button
-            onClick={() => {
-              void api.logout().finally(() => setUser(null))
-            }}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:border-neutral-500"
-          >
-            Se déconnecter
-          </button>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-6">
-          <h2 className="text-sm font-medium text-neutral-400">Tableau de bord</h2>
-          <p className="mt-2 text-sm text-neutral-500">
-            Connecté en tant que <span className="text-neutral-200">{user.email}</span> — les
-            données en temps réel arrivent à la phase 0.8.
-          </p>
-        </div>
-
-        {user.role === 'ADMIN' && (
-          <>
-            <UsersPanel />
-            <AuditPanel />
-          </>
-        )}
-      </div>
-    </main>
-  )
+  return <Shell user={user} onLoggedOut={() => setUser(null)} />
 }
 
-function LoginScreen({ onLoggedIn }: { onLoggedIn: (user: SafeUser) => void }) {
+function Login({ onLoggedIn }: { onLoggedIn: (user: SafeUser) => void }) {
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -110,200 +60,164 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (user: SafeUser) => void }) {
       const user = await api.login(email, password)
       onLoggedIn(user)
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setError('Identifiants invalides')
-      } else {
-        setError('Erreur du serveur — réessayez')
-      }
+      setError(
+        err instanceof ApiError && err.status === 401 ? t('auth.invalid') : t('auth.serverError'),
+      )
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-4">
+    <main className="flex min-h-screen items-center justify-center px-4">
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-8"
+        className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
-        <h1 className="text-xl font-semibold tracking-tight text-neutral-100">DENTORA Admin</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Connectez-vous pour accéder au tableau de bord
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+          {t('app.name')}
+        </h1>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{t('app.tagline')}</p>
 
         <div className="mt-6 flex flex-col gap-2">
-          <label htmlFor="email" className="text-sm font-medium text-neutral-300">
-            Email
+          <label
+            htmlFor="email"
+            className="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+          >
+            {t('auth.email')}
           </label>
-          <input
+          <Input
             id="email"
             type="email"
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-emerald-500"
           />
         </div>
 
         <div className="mt-4 flex flex-col gap-2">
-          <label htmlFor="password" className="text-sm font-medium text-neutral-300">
-            Mot de passe
+          <label
+            htmlFor="password"
+            className="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+          >
+            {t('auth.password')}
           </label>
-          <input
+          <Input
             id="password"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-emerald-500"
           />
         </div>
 
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-4 text-sm text-red-500 dark:text-red-400">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-6 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
-        >
-          {submitting ? 'Connexion…' : 'Se connecter'}
-        </button>
+        <Button type="submit" disabled={submitting} className="mt-6 w-full">
+          {submitting ? t('auth.connecting') : t('auth.login')}
+        </Button>
       </form>
     </main>
   )
 }
 
-function UsersPanel() {
-  const [users, setUsers] = useState<SafeUser[] | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void }) {
+  const { t } = useI18n()
+  const [view, setView] = useState<View>('dashboard')
 
-  useEffect(() => {
-    api
-      .users()
-      .then(setUsers)
-      .catch(() => setUsers([]))
-  }, [])
-
-  async function changeRole(id: string, role: Role) {
-    setMessage(null)
-    await api.updateRole(id, role)
-    const updated = await api.users()
-    setUsers(updated)
-    setMessage('Rôle changé — la session de cet utilisateur a été révoquée.')
-  }
-
-  async function revoke(id: string) {
-    setMessage(null)
-    const { revokedCount } = await api.revokeSessions(id)
-    setMessage(`Sessions révoquées : ${revokedCount}.`)
-  }
+  const isAdmin = user.role === 'ADMIN'
+  const views: Array<{ id: View; label: MessageKey }> = [
+    { id: 'dashboard', label: 'nav.dashboard' },
+    ...(isAdmin ? [{ id: 'users' as const, label: 'nav.users' as MessageKey }] : []),
+    ...(isAdmin ? [{ id: 'audit' as const, label: 'nav.audit' as MessageKey }] : []),
+  ]
 
   return (
-    <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
-      <h2 className="text-sm font-medium text-neutral-400">Utilisateurs</h2>
-      {message && <p className="mt-2 text-xs text-emerald-400">{message}</p>}
-      <ul className="mt-4 flex flex-col gap-2">
-        {(users ?? []).map((u) => (
-          <li
-            key={u.id}
-            className="flex items-center justify-between gap-4 rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3"
-          >
+    <div className="flex min-h-screen">
+      <aside className="flex w-56 shrink-0 flex-col border-e border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950">
+        <div className="flex items-baseline gap-2 px-2">
+          <span className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+            {t('app.name')}
+          </span>
+        </div>
+        <nav className="mt-6 flex flex-col gap-1">
+          {views.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setView(v.id)}
+              className={
+                view === v.id
+                  ? 'rounded-lg bg-neutral-100 px-3 py-2 text-start text-sm font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
+                  : 'rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
+              }
+            >
+              {v.label}
+            </button>
+          ))}
+        </nav>
+        <div className="mt-auto flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          <div className="flex items-center gap-3 px-2">
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{u.name}</div>
-              <div className="truncate text-xs text-neutral-500">{u.email}</div>
+              <div className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                {user.name}
+              </div>
+              <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+                {user.email}
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <select
-                value={u.role}
-                onChange={(e) => void changeRole(u.id, e.target.value as Role)}
-                className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm"
-              >
-                {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => void revoke(u.id)}
-                className="rounded-lg border border-neutral-700 px-2 py-1 text-xs hover:border-amber-500"
-                title="Révoquer toutes les sessions"
-              >
-                Révoquer
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+            <span className="shrink-0 rounded-full border border-brand-500/30 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+              {t(ROLE_KEY[user.role])}
+            </span>
+          </div>
+          <Button variant="secondary" size="sm" onClick={onLoggedOut}>
+            {t('auth.logout')}
+          </Button>
+        </div>
+      </aside>
+
+      <main className="flex-1 p-6">
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+            {t(
+              view === 'dashboard' ? 'nav.dashboard' : view === 'users' ? 'nav.users' : 'nav.audit',
+            )}
+          </h1>
+          <Controls />
+        </header>
+        {view === 'dashboard' && <DashboardView />}
+        {view === 'users' && isAdmin && <UsersView />}
+        {view === 'audit' && isAdmin && <AuditView />}
+      </main>
+    </div>
   )
 }
 
-function AuditPanel() {
-  const [entries, setEntries] = useState<AuditEntry[]>([])
-  const [total, setTotal] = useState(0)
-  const [action, setAction] = useState<AuditAction | undefined>(undefined)
-
-  useEffect(() => {
-    api
-      .audit({ limit: 50, action })
-      .then((r) => {
-        setEntries(r.entries)
-        setTotal(r.total)
-      })
-      .catch(() => {
-        setEntries([])
-        setTotal(0)
-      })
-  }, [action])
+function Controls() {
+  const { locale, setLocale, t } = useI18n()
+  const { theme, setTheme } = useTheme()
 
   return (
-    <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-neutral-400">Journal d'audit</h2>
-        <select
-          value={action ?? ''}
-          onChange={(e) => setAction(e.target.value ? (e.target.value as AuditAction) : undefined)}
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
-        >
-          <option value="">Toutes les actions</option>
-          {(Object.keys(ACTION_LABELS) as AuditAction[]).map((a) => (
-            <option key={a} value={a}>
-              {ACTION_LABELS[a]}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mt-4 flex flex-col gap-1.5">
-        {entries.map((e) => (
-          <div
-            key={e.id}
-            className="flex items-center justify-between gap-4 rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-2.5 text-sm"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">
-                {new Date(e.createdAt).toLocaleTimeString('fr-FR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <span className="shrink-0 font-medium text-neutral-200">
-                {ACTION_LABELS[e.action]}
-              </span>
-              <span className="min-w-0 truncate text-xs text-neutral-500">
-                {e.actorEmail ?? '—'}
-              </span>
-            </div>
-            <span className="shrink-0 font-mono text-xs text-neutral-600">{e.ip ?? ''}</span>
-          </div>
-        ))}
-        {entries.length === 0 && (
-          <p className="text-sm text-neutral-600">Aucun événement récent.</p>
-        )}
-      </div>
-      <p className="mt-3 text-xs text-neutral-600">
-        {total} événement{total === 1 ? '' : 's'}.
-      </p>
-    </section>
+    <div className="flex items-center gap-3">
+      <select
+        value={theme}
+        onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
+        className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+        aria-label={t('locale.label')}
+      >
+        <option value="system">{t('theme.system')}</option>
+        <option value="light">{t('theme.light')}</option>
+        <option value="dark">{t('theme.dark')}</option>
+      </select>
+      <select
+        value={locale}
+        onChange={(e) => setLocale(e.target.value as Locale)}
+        className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+        aria-label={t('locale.label')}
+      >
+        <option value="fr">{t('locale.fr')}</option>
+        <option value="ar">{t('locale.ar')}</option>
+        <option value="en">{t('locale.en')}</option>
+      </select>
+    </div>
   )
 }

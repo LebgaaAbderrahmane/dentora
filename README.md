@@ -17,6 +17,7 @@ Built on top of the [Dentora](https://dentora.dz) public marketing site.
 | Package              | Description                                           |
 | -------------------- | ----------------------------------------------------- |
 | `packages/contracts` | Shared Zod schemas + inferred types (api ↔ frontends) |
+| `packages/i18n`      | fr/ar/en translations + RTL + locale context (SPAs)   |
 | `packages/ui`        | Design system (grown incrementally)                   |
 | `packages/config`    | Shared TypeScript config, lint/format presets         |
 

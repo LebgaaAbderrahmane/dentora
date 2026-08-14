@@ -36,5 +36,6 @@
 ## i18n
 
 - fr / ar / en for every user-facing string; never hardcode text in components.
+- Grep-guarded by design: messages live in `packages/i18n/src/messages.ts` (dictionary keyed from `fr`, `MessageKey` type). SPAs render via `useI18n()`; `I18nProvider` sets `documentElement.lang`/`dir` (RTL for ar) and persists `dentora-locale`.
 - Arabic must be RTL-safe (logical CSS properties / `rtl:` utilities).
 - Currency: DZD (number formatting via the shared locale helpers).

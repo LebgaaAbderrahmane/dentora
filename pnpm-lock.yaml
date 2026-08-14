@@ -20,6 +20,12 @@ importers:
       '@dentora/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@dentora/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@dentora/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@sentry/react':
         specifier: ^10.70.0
         version: 10.70.0(react@19.2.8)
@@ -118,6 +124,12 @@ importers:
 
   apps/portal:
     dependencies:
+      '@dentora/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@dentora/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@sentry/react':
         specifier: ^10.70.0
         version: 10.70.0(react@19.2.8)
@@ -235,8 +247,31 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.12)
 
-  packages/ui:
+  packages/i18n:
+    dependencies:
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
     devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.18
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.12)
+
+  packages/ui:
+    dependencies:
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.18
       typescript:
         specifier: ~6.0.2
         version: 6.0.3

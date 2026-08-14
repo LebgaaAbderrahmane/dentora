@@ -4,6 +4,7 @@ import {
   type AuditList,
   type AuthResponse,
   type Role,
+  type SystemStatus,
   type UserList,
 } from '@dentora/contracts'
 
@@ -66,4 +67,6 @@ export const api = {
     if (params.action) q.set('action', params.action)
     return request<AuditList>(`/api/audit?${q.toString()}`)
   },
+
+  systemStatus: () => request<SystemStatus>('/api/system/status'),
 }
