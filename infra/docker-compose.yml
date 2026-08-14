@@ -4,6 +4,7 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    entrypoint: ['/bin/sh', '/wal-archive-entrypoint.sh']
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dentora}
       POSTGRES_USER: ${POSTGRES_USER:-dentora}
@@ -18,9 +19,13 @@ services:
       - archive_timeout=300
       - -c
       - wal_level=replica
+      - -c
+      - hba_file=/pg_hba.conf
     volumes:
       - pgdata:/var/lib/postgresql/data
       - wal_archive:/wal_archive
+      - ./postgres-entrypoint.sh:/wal-archive-entrypoint.sh:ro
+      - ./postgres-pg_hba.conf:/pg_hba.conf:ro
     ports:
       - '127.0.0.1:5432:5432'
     healthcheck:

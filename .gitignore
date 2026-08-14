@@ -43,3 +43,6 @@ skills-lock.json
 # Misc
 *.local
 screenshots
+
+# Database backups (sensitive)
+infra/backups/
