@@ -25,6 +25,12 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 
 Sessions are opaque 256-bit tokens; the DB stores only the SHA-256 hash (see `docs/security.md`).
 
+## Error tracking (ADR 009, Phase 0.7)
+
+- `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware
+  captures exceptions with route/method and the signed-in user context.
+- Structured JSON request + error logs via `pino` (`src/lib/logger.ts`, level from `LOG_LEVEL`).
+
 ## Audit (ADR 007)
 
 Every mutating/auth event writes a row to `audit_logs` via `src/lib/audit.ts`

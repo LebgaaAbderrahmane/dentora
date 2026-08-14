@@ -53,7 +53,10 @@
 
 ## Incident visibility (ADR 009)
 
-- Sentry on `api` + `admin`/`portal` from Phase 0; structured request logs (pino).
+- Sentry wired on `api` + `admin`/`portal` in Phase 0.7 — DSN from environment (`SENTRY_DSN`,
+  `VITE_SENTRY_DSN` at build time); disabled when empty.
+- API also logs structured JSON (pino) per request + on errors (`LOG_LEVEL`).
+- API error events carry route/method and the signed-in user when available.
 - Restore drill and security/perf audit in Phase 6.5.
 
 ## Threat notes to revisit before launch

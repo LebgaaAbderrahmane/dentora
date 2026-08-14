@@ -73,6 +73,17 @@ runs a `--prod` filtered `pnpm install` before `node dist/index.js`.
 `DATABASE_URL` and `ENCRYPTION_KEY` (64 hex chars, `openssl rand -hex 32`) come from the environment
 (`apps/api/.env` in dev, `infra/.env` in the stack).
 
+## Error tracking (Sentry, ADR 009)
+
+Sentry is wired at runtime for the API and at build time for the SPAs. All of it is optional —
+leaving the DSN empty disables it cleanly (no events, no overhead).
+
+- API: `SENTRY_DSN` read from the environment (e.g. `infra/.env`). Structure errors are also
+  captured with pino structured logs (`LOG_LEVEL`).
+- SPAs (`admin`, `portal`): `VITE_SENTRY_DSN` is **baked at build time** by Vite — set it in the
+  frontend `.env`/build args before building the images, e.g. `VITE_SENTRY_DSN=... pnpm build`.
+- DSN format: `https://<key>@<org>.ingest.sentry.io/<project>` (SaaS or self-hosted).
+
 ## Docker stack (self-hosted infra)
 
 The production shape runs on Docker Compose from `infra/docker-compose.yml`:
