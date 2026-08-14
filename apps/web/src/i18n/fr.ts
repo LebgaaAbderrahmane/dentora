@@ -24,7 +24,7 @@ export const fr: EnDictionary = {
     badge: 'SOINS DENTAIRES · ALGER',
     lines: ['Des soins', 'confortables et', 'durables.'],
     subline:
-      "La santé bucco-dentaire de toute votre famille, avec soin. Technologies modernes, gestes doux et tarifs transparents: toujours.",
+      'La santé bucco-dentaire de toute votre famille, avec soin. Technologies modernes, gestes doux et tarifs transparents: toujours.',
     cta: 'Prendre rendez-vous',
     callPrefix: 'Ou appelez :',
     imageAlt: 'Patiente souriant dans un fauteuil dentaire lumineux',
@@ -45,7 +45,7 @@ export const fr: EnDictionary = {
     statementB:
       ' grâce à des technologies modernes et une approche douce, pour des sourires sains et confiants chez chaque patient.',
     statsHint: 'Des milliers de patients nous font confiance !',
-    imageAlt: "Int\u00e9rieur moderne de la clinique dentaire avec un fauteuil dentaire",
+    imageAlt: 'Int\u00e9rieur moderne de la clinique dentaire avec un fauteuil dentaire',
     statSatisfaction: 'Taux de satisfaction',
     statSmiles: 'Sourires transformés',
     statRating: 'Note des patients',
@@ -63,7 +63,7 @@ export const fr: EnDictionary = {
       {
         price: 'DÈS 3 500 DA',
         title: 'Contrôle dentaire',
-        body: "Examen complet de vos dents, gencives et mâchoire. Radiographies numériques et plan de traitement complet inclus.",
+        body: 'Examen complet de vos dents, gencives et mâchoire. Radiographies numériques et plan de traitement complet inclus.',
         alt: 'Dentiste examinant un patient avec un miroir et une sonde dentaire',
       },
       {
@@ -110,7 +110,7 @@ export const fr: EnDictionary = {
       'Implants dentaires',
       'Blanchiment professionnel',
     ],
-    imageAlt: "L\u2019\u00e9quipe de Dentora r\u00e9unie dans ses tenues de travail",
+    imageAlt: 'L\u2019\u00e9quipe de Dentora r\u00e9unie dans ses tenues de travail',
   },
   process: {
     label: 'Comment ça marche',
@@ -145,7 +145,7 @@ export const fr: EnDictionary = {
     list: [
       {
         quote:
-          "Je vais chez Dentura depuis deux ans et je ne changerai pour rien au monde. Chaque étape de mon traitement a été expliquée clairement, sans aucune pression. La meilleure expérience dentaire de ma vie.",
+          'Je vais chez Dentura depuis deux ans et je ne changerai pour rien au monde. Chaque étape de mon traitement a été expliquée clairement, sans aucune pression. La meilleure expérience dentaire de ma vie.',
         name: 'Amina B.',
         source: 'Avis Google vérifié',
       },
@@ -179,7 +179,7 @@ export const fr: EnDictionary = {
       },
       {
         q: 'Les soins dentaires sont-ils douloureux ?',
-        a: "Votre confort est notre priorité à chaque étape. Tous les soins sont réalisés sous anesthésie locale, sans douleur. Nous proposons aussi des options de sédation pour les patients anxieux.",
+        a: 'Votre confort est notre priorité à chaque étape. Tous les soins sont réalisés sous anesthésie locale, sans douleur. Nous proposons aussi des options de sédation pour les patients anxieux.',
       },
       {
         q: 'À quelle fréquence dois-je faire un contrôle ?',
@@ -222,7 +222,13 @@ export const fr: EnDictionary = {
       'Facettes',
       'Urgences',
     ],
-    clinicLinks: ['À propos', 'Rencontrer l\u2019équipe', 'Avis des patients', 'Blogue', 'Carrières'],
+    clinicLinks: [
+      'À propos',
+      'Rencontrer l\u2019équipe',
+      'Avis des patients',
+      'Blogue',
+      'Carrières',
+    ],
     hours: ['Dim – Jeu : 8h30 – 18h30', 'Samedi : 9h00 – 13h00', 'Vendredi : Fermé'],
     emergency: 'Urgences 24/7 :',
     copyright: '© {{year}} Dentora Clinique Dentaire. Tous droits réservés.',
@@ -283,8 +289,7 @@ export const fr: EnDictionary = {
     },
     terms: {
       title: 'Conditions d\u2019utilisation',
-      updated:
-        'En accédant au site DENTORA, vous acceptez les conditions suivantes.',
+      updated: 'En accédant au site DENTORA, vous acceptez les conditions suivantes.',
       sections: [
         {
           heading: '1. Acceptation des conditions',

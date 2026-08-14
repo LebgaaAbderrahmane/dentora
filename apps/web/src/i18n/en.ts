@@ -149,7 +149,7 @@ export const en = {
       },
       {
         quote:
-          "As someone who used to dread the dentist, Dentora completely changed my experience. Painless, quick, and the results were incredible. My smile has never looked better.",
+          'As someone who used to dread the dentist, Dentora completely changed my experience. Painless, quick, and the results were incredible. My smile has never looked better.',
         name: 'Mohamed T.',
         source: 'Verified Google Review',
       },
@@ -181,11 +181,11 @@ export const en = {
       },
       {
         q: 'How often should I come in for a check-up?',
-        a: "We recommend a dental check-up and professional cleaning every 6 months. Some patients may benefit from more frequent visits: your dentist will advise based on your individual needs.",
+        a: 'We recommend a dental check-up and professional cleaning every 6 months. Some patients may benefit from more frequent visits: your dentist will advise based on your individual needs.',
       },
       {
         q: 'Do you offer payment plans?',
-        a: "Yes. We offer flexible monthly payment plans through our financing partners. Ask our team about 0% interest options on qualifying treatments over 40,000 DA.",
+        a: 'Yes. We offer flexible monthly payment plans through our financing partners. Ask our team about 0% interest options on qualifying treatments over 40,000 DA.',
       },
       {
         q: 'What should I do in a dental emergency?',
@@ -193,11 +193,11 @@ export const en = {
       },
       {
         q: 'Can children be patients at Dentora?',
-        a: "Absolutely. We treat patients of all ages, including children from their first tooth onwards. Our team is experienced in making young patients feel comfortable and confident about dental care.",
+        a: 'Absolutely. We treat patients of all ages, including children from their first tooth onwards. Our team is experienced in making young patients feel comfortable and confident about dental care.',
       },
       {
         q: 'How long do treatments take?',
-        a: "It depends on the treatment. A standard check-up takes 45–60 minutes. Cleaning is 45 minutes. More complex procedures like implants or crowns involve multiple visits: your dentist will give you a full timeline at your consultation.",
+        a: 'It depends on the treatment. A standard check-up takes 45–60 minutes. Cleaning is 45 minutes. More complex procedures like implants or crowns involve multiple visits: your dentist will give you a full timeline at your consultation.',
       },
     ],
   },
@@ -281,8 +281,7 @@ export const en = {
     },
     terms: {
       title: 'Terms of Use',
-      updated:
-        'By accessing the DENTORA website you agree to the following terms.',
+      updated: 'By accessing the DENTORA website you agree to the following terms.',
       sections: [
         {
           heading: '1. Acceptance of terms',

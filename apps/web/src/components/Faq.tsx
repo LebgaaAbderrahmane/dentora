@@ -4,11 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 import { Container } from '@/components/shared/Container'
 import { SectionLabel } from '@/components/shared/SectionLabel'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { fadeUp } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 

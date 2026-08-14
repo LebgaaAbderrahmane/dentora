@@ -1,0 +1,29 @@
+# Dentora reverse proxy + TLS termination (Caddy).
+# Domains are injected via environment variables (see infra/.env.example).
+# For local testing without DNS, set the *_DOMAIN vars to "localhost" —
+# Caddy will then use its internal CA instead of Let's Encrypt.
+
+{
+    email {$CADDY_EMAIL}
+    admin off
+}
+
+{$WEB_DOMAIN} {
+    reverse_proxy nginx:8080
+}
+
+{$WWW_WEB_DOMAIN} {
+    redir {$WEB_DOMAIN} permanent
+}
+
+{$ADMIN_DOMAIN} {
+    reverse_proxy nginx:8081
+}
+
+{$PORTAL_DOMAIN} {
+    reverse_proxy nginx:8082
+}
+
+{$API_DOMAIN} {
+    reverse_proxy api:4000
+}

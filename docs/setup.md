@@ -1,0 +1,115 @@
+# Setup
+
+Prerequisites:
+
+- Node.js ≥ 20 (LTS 22 recommended)
+- pnpm ≥ 9 (via Corepack or standalone)
+- PostgreSQL 16+ and MinIO (or use Docker Compose from Phase 0.3)
+
+## Install
+
+```sh
+pnpm install
+```
+
+## Run in development
+
+```sh
+pnpm dev        # all apps in parallel (vite watch + tsx watch)
+```
+
+| App    | URL                   |
+| ------ | --------------------- |
+| web    | http://localhost:5173 |
+| admin  | http://localhost:5174 |
+| portal | http://localhost:5175 |
+| api    | http://localhost:4000 |
+
+To run a single workspace: `pnpm --filter @dentora/admin dev`.
+
+## Common commands
+
+```sh
+pnpm build        # production build of all workspaces
+pnpm typecheck    # tsc across all workspaces
+pnpm test         # vitest across all workspaces
+pnpm lint         # oxlint (whole repo)
+pnpm format       # prettier --write .
+pnpm format:check # prettier --check .
+```
+
+## Environment variables
+
+Environment files are never committed. Use `infra/.env.example` as a template (added in Phase 0.3) and
+copy it to `.env` locally. Every secret goes through the environment — never hardcode keys.
+
+## The API package
+
+- Dev: `pnpm --filter @dentora/api dev` (tsx watch)
+- Build: `pnpm --filter @dentora/api build` (tsup → `dist/`, ESM bundle with runtime deps external)
+- Smoke test: `curl http://localhost:4000/api/health`
+
+`apps/api` and `packages/contracts` export TypeScript source directly; both `tsx` and `tsup` handle it,
+so there is no build-ordering dance between workspaces. API routes live under the `/api` prefix so dev
+(direct) and prod (through nginx) behave identically.
+
+### Database (Prisma 7 driver adapter)
+
+The API uses Prisma 7 with the `@prisma/adapter-pg` driver adapter — **no native engine** — and
+generates its client into `apps/api/src/generated` (gitignored, recreated by `prisma generate`).
+
+```sh
+pnpm --filter @dentora/api prisma:generate   # regenerate client into src/generated
+pnpm --filter @dentora/api prisma:migrate    # apply pending migrations (dev)
+pnpm --filter @dentora/api prisma:deploy     # apply migrations (prod)
+pnpm --filter @dentora/api prisma:seed       # create branch + admin user
+```
+
+The generated client is committed to `.gitignore`; CI and the Docker build run `prisma generate`
+against `apps/api/prisma/schema.prisma`. Runtime needs `@prisma/client` (its `runtime/client` module)
+present in `node_modules` — the tsup bundle keeps runtime deps external, so the Docker runtime stage
+runs a `--prod` filtered `pnpm install` before `node dist/index.js`.
+
+`DATABASE_URL` and `ENCRYPTION_KEY` (64 hex chars, `openssl rand -hex 32`) come from the environment
+(`apps/api/.env` in dev, `infra/.env` in the stack).
+
+## Error tracking (Sentry, ADR 009)
+
+Sentry is wired at runtime for the API and at build time for the SPAs. All of it is optional —
+leaving the DSN empty disables it cleanly (no events, no overhead).
+
+- API: `SENTRY_DSN` read from the environment (e.g. `infra/.env`). Structure errors are also
+  captured with pino structured logs (`LOG_LEVEL`).
+- SPAs (`admin`, `portal`): `VITE_SENTRY_DSN` is **baked at build time** by Vite — set it in the
+  frontend `.env`/build args before building the images, e.g. `VITE_SENTRY_DSN=... pnpm build`.
+- DSN format: `https://<key>@<org>.ingest.sentry.io/<project>` (SaaS or self-hosted).
+
+## Docker stack (self-hosted infra)
+
+The production shape runs on Docker Compose from `infra/docker-compose.yml`:
+
+```
+cd infra
+cp .env.example .env    # fill in real secrets
+docker compose up -d    # postgres + minio + api + nginx (`+ caddy` on a real host)
+```
+
+| Service  | Purpose                                                             | Port                       |
+| -------- | ------------------------------------------------------------------- | -------------------------- |
+| postgres | PostgreSQL 16, **WAL archiving on** (`wal_archive` volume, ADR 010) | — (internal)               |
+| minio    | S3-compatible object storage (documents/X-rays, ADR 005)            | 9000 (S3) · 9001 (console) |
+| api      | Express, bundled single-file output                                 | 4000 (internal)            |
+| nginx    | Serves the three SPAs + proxies `/api/` → api                       | 8080/8081/8082 (internal)  |
+| caddy    | TLS termination + domain routing (`infra/caddy/Caddyfile`)          | 80 · 443                   |
+
+- `nginx` image builds the SPAs inside Docker (multi-stage) — no host build needed.
+- For local testing without DNS, set the `*_DOMAIN` vars to `localhost` so Caddy uses its internal CA.
+- API image runs `prisma generate` at build; runtime installs prod `node_modules` (external deps) then serves `dist/`.
+- Secrets come from `infra/.env` (gitignored); never commit real credentials.
+
+Sanity check after `up`:
+
+```sh
+docker run --rm --network dentora_internal curlimages/curl:latest http://nginx:8080/api/health
+# -> {"status":"ok","service":"api",...}
+```

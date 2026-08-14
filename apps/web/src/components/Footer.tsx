@@ -18,11 +18,7 @@ const socials = [
   { label: 'WhatsApp', Icon: WhatsAppIcon, href: 'https://wa.me/21321558800' },
 ]
 
-export function Footer({
-  onOpenLegal,
-}: {
-  onOpenLegal?: (page: 'privacy' | 'terms') => void
-}) {
+export function Footer({ onOpenLegal }: { onOpenLegal?: (page: 'privacy' | 'terms') => void }) {
   const { t } = useTranslation()
   const { openBooking } = useBooking()
   const servicesLinks = t('footer.servicesLinks', { returnObjects: true }) as string[]

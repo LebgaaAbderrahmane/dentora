@@ -5,9 +5,7 @@ import { SectionLabel } from '@/components/shared/SectionLabel'
 import { testimonialImages } from '@/data/content'
 import { fadeUp } from '@/lib/motion'
 
-const Stars = () => (
-  <p className="mb-4 text-sm tracking-[2px] text-[hsl(var(--warning))]">★★★★★</p>
-)
+const Stars = () => <p className="mb-4 text-sm tracking-[2px] text-[hsl(var(--warning))]">★★★★★</p>
 
 export function Testimonials() {
   const { t } = useTranslation()
@@ -50,7 +48,8 @@ export function Testimonials() {
               <Stars />
               <p className="text-[0.92rem] font-normal leading-[1.75] text-[hsl(var(--heading))]">
                 &ldquo;{item.quote}&rdquo;
-              </p>              <div className="mt-6 flex items-center gap-3">
+              </p>{' '}
+              <div className="mt-6 flex items-center gap-3">
                 <img
                   src={testimonialImages[i]}
                   alt={item.name}

@@ -58,7 +58,10 @@ export function FinalCta() {
         </motion.div>
         <div className="mt-8 flex flex-wrap justify-center gap-8">
           {trust.map((item) => (
-            <p key={item} className="flex items-center gap-2 text-[0.82rem] font-normal text-white/75">
+            <p
+              key={item}
+              className="flex items-center gap-2 text-[0.82rem] font-normal text-white/75"
+            >
               <Check className="h-3.5 w-3.5 text-white" />
               {item}
             </p>

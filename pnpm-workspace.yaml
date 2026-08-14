@@ -1,3 +1,6 @@
 packages:
   - apps/*
   - packages/*
+
+# Private monorepo with only trusted postinstall scripts (esbuild, tailwind oxide).
+dangerouslyAllowAllBuilds: true

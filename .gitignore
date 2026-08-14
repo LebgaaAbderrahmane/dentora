@@ -17,6 +17,9 @@ dist-ssr
 coverage
 *.tsbuildinfo
 
+# Prisma generated client
+apps/api/src/generated
+
 # Env / secrets
 .env
 .env.*
@@ -32,7 +35,14 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+.claude/
+.agents/
+.windsurf/
+skills-lock.json
 
 # Misc
 *.local
 screenshots
+
+# Database backups (sensitive)
+infra/backups/

@@ -1,1 +1,14 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import '@dentora/ui/tokens.css';
+
+:root {
+  color-scheme: light dark;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+}
