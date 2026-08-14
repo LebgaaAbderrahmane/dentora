@@ -7,6 +7,7 @@ import {
 } from '@dentora/contracts'
 import { prisma } from './lib/prisma'
 import authRouter from './routes/auth'
+import auditRouter from './routes/audit'
 import usersRouter from './routes/users'
 
 const app = express()
@@ -43,6 +44,7 @@ api.get('/system/status', async (_req, res) => {
 
 api.use('/auth', authRouter)
 api.use('/users', usersRouter)
+api.use('/audit', auditRouter)
 
 app.use('/api', api)
 

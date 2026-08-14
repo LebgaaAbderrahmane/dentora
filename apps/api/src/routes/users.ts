@@ -7,6 +7,7 @@ import {
 } from '@dentora/contracts'
 import { assertAuth, requireAuth, requireRole, toSafeUser } from '../lib/auth'
 import { prisma } from '../lib/prisma'
+import { recordAuditFor } from '../lib/audit'
 import { clearSessionCookie } from '../lib/session'
 
 const router = Router()
@@ -39,6 +40,12 @@ router.patch('/:id/role', async (req, res) => {
     }),
   ])
   if (updated.id === user.id) clearSessionCookie(res)
+  await recordAuditFor(req)({
+    action: 'USER_ROLE_CHANGE',
+    targetType: 'USER',
+    targetId: updated.id,
+    metadata: { from: target.role, to: updated.role },
+  })
   res.json(authResponseSchema.parse({ user: toSafeUser(updated) }))
 })
 
@@ -52,6 +59,12 @@ router.post('/:id/revoke-sessions', async (req, res) => {
   const { count } = await prisma.session.updateMany({
     where: { userId: target.id, revokedAt: null },
     data: { revokedAt: new Date() },
+  })
+  await recordAuditFor(req)({
+    action: 'REVOKE_SESSIONS',
+    targetType: 'USER',
+    targetId: target.id,
+    metadata: { revokedCount: count },
   })
   res.json(revokeSessionsSchema.parse({ revokedCount: count }))
 })

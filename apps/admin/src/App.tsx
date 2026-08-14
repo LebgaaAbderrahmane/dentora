@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { Role, SafeUser } from '@dentora/contracts'
+import type { AuditAction, AuditEntry, Role, SafeUser } from '@dentora/contracts'
 import { api, ApiError } from './lib/api'
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -10,6 +10,20 @@ const ROLE_LABELS: Record<Role, string> = {
   ACCOUNTANT: 'Comptable',
   INTERN: 'Stagiaire',
   PATIENT: 'Patient',
+}
+
+const ACTION_LABELS: Record<AuditAction, string> = {
+  LOGIN_SUCCESS: 'Connexion',
+  LOGIN_FAILURE: 'Échec connexion',
+  LOGOUT: 'Déconnexion',
+  CHANGE_PASSWORD: 'Changement mot de passe',
+  REVOKE_ALL_SESSIONS: 'Révoquer sessions',
+  USER_ROLE_CHANGE: 'Changement rôle',
+  REVOKE_SESSIONS: 'Révoquer sessions',
+  PATIENT_VIEW: 'Consultation patient',
+  PATIENT_CREATE: 'Création patient',
+  PATIENT_UPDATE: 'Modification patient',
+  PATIENT_DELETE: 'Suppression patient',
 }
 
 export default function App() {
@@ -71,7 +85,12 @@ export default function App() {
           </p>
         </div>
 
-        {user.role === 'ADMIN' && <UsersPanel />}
+        {user.role === 'ADMIN' && (
+          <>
+            <UsersPanel />
+            <AuditPanel />
+          </>
+        )}
       </div>
     </main>
   )
@@ -216,6 +235,75 @@ function UsersPanel() {
           </li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+function AuditPanel() {
+  const [entries, setEntries] = useState<AuditEntry[]>([])
+  const [total, setTotal] = useState(0)
+  const [action, setAction] = useState<AuditAction | undefined>(undefined)
+
+  useEffect(() => {
+    api
+      .audit({ limit: 50, action })
+      .then((r) => {
+        setEntries(r.entries)
+        setTotal(r.total)
+      })
+      .catch(() => {
+        setEntries([])
+        setTotal(0)
+      })
+  }, [action])
+
+  return (
+    <section className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-medium text-neutral-400">Journal d'audit</h2>
+        <select
+          value={action ?? ''}
+          onChange={(e) => setAction(e.target.value ? (e.target.value as AuditAction) : undefined)}
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs"
+        >
+          <option value="">Toutes les actions</option>
+          {(Object.keys(ACTION_LABELS) as AuditAction[]).map((a) => (
+            <option key={a} value={a}>
+              {ACTION_LABELS[a]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="mt-4 flex flex-col gap-1.5">
+        {entries.map((e) => (
+          <div
+            key={e.id}
+            className="flex items-center justify-between gap-4 rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-2.5 text-sm"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500">
+                {new Date(e.createdAt).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+              <span className="shrink-0 font-medium text-neutral-200">
+                {ACTION_LABELS[e.action]}
+              </span>
+              <span className="min-w-0 truncate text-xs text-neutral-500">
+                {e.actorEmail ?? '—'}
+              </span>
+            </div>
+            <span className="shrink-0 font-mono text-xs text-neutral-600">{e.ip ?? ''}</span>
+          </div>
+        ))}
+        {entries.length === 0 && (
+          <p className="text-sm text-neutral-600">Aucun événement récent.</p>
+        )}
+      </div>
+      <p className="mt-3 text-xs text-neutral-600">
+        {total} événement{total === 1 ? '' : 's'}.
+      </p>
     </section>
   )
 }

@@ -16,6 +16,28 @@ enum Role {
   PATIENT
 }
 
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  CHANGE_PASSWORD
+  REVOKE_ALL_SESSIONS
+  USER_ROLE_CHANGE
+  REVOKE_SESSIONS
+  PATIENT_VIEW
+  PATIENT_CREATE
+  PATIENT_UPDATE
+  PATIENT_DELETE
+}
+
+enum AuditTarget {
+  USER
+  SESSION
+  PATIENT
+  BRANCH
+  SYSTEM
+}
+
 model Branch {
   id        String    @id @default(cuid())
   name      String
@@ -90,4 +112,23 @@ model Setting {
 
   @@unique([branchId, key])
   @@map("settings")
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  branchId   String
+  actorId    String?
+  actorEmail String?
+  action     AuditAction
+  targetType AuditTarget
+  targetId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([branchId, createdAt])
+  @@index([action])
+  @@index([actorId])
+  @@map("audit_logs")
 }

@@ -1,7 +1,7 @@
 # Security model
 
-> Draft: schema-level decisions are locked (ADRs 006/007/009/010/011). Auth + RBAC landed in Phase 0.5;
-> an audit trail is next (0.6), then Sentry (0.7).
+> Draft: schema-level decisions are locked (ADRs 006/007/009/010/011). Auth + RBAC landed in Phase 0.5,
+> basic audit log in 0.6; Sentry is next (0.7).
 
 ## Data classification
 
@@ -32,7 +32,11 @@
 
 ## Audit (ADR 007)
 
-- Basic audit log from Phase 0: who viewed/edited what patient record, and when.
+- Audit log implemented in Phase 0.6: every auth/mutation event writes `who / what / which record / when`
+  (+ `ip`, `userAgent`, before/after `metadata`) to `audit_logs` via `src/lib/audit.ts`.
+  Read API: `GET /api/audit` (ADMIN, branch-scoped, paginated, filterable).
+- Events logged today: login success/failure, logout, change-password, revoke-all, role change,
+  revoke sessions. Patient view/edit/create/delete events wire in with Phase 1.1.
 - Admin audit UI + retention policy in Phase 6.
 
 ## Encryption at rest (ADR 006)

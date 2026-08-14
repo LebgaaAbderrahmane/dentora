@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { loginSchema, roleSchema, safeUserSchema, updateUserRoleSchema } from './index'
+import {
+  auditActionSchema,
+  auditEntrySchema,
+  auditQuerySchema,
+  loginSchema,
+  roleSchema,
+  safeUserSchema,
+  updateUserRoleSchema,
+} from './index'
 
 describe('auth contracts', () => {
   it('roleSchema accepts known roles only', () => {
@@ -44,5 +52,35 @@ describe('auth contracts', () => {
         passwordHash: 'secret',
       }).success,
     ).toBe(true)
+  })
+
+  it('audit schemas validate actions, entries and queries', () => {
+    expect(auditActionSchema.parse('LOGIN_FAILURE')).toBe('LOGIN_FAILURE')
+    expect(() => auditActionSchema.parse('UNKNOWN')).toThrow()
+
+    const entry = auditEntrySchema.safeParse({
+      id: '1',
+      action: 'USER_ROLE_CHANGE',
+      targetType: 'USER',
+      targetId: 'u1',
+      actorId: 'u2',
+      actorEmail: 'a@b.dz',
+      metadata: { from: 'ADMIN', to: 'DENTIST' },
+      ip: '127.0.0.1',
+      userAgent: 'curl',
+      createdAt: '2026-08-14T12:00:00.000Z',
+    })
+    expect(entry.success).toBe(true)
+    expect(
+      auditEntrySchema.safeParse({ id: '1', action: 'BOGUS', targetType: 'USER' }).success,
+    ).toBe(false)
+  })
+
+  it('auditQuerySchema coerces and bounds limit', () => {
+    expect(auditQuerySchema.parse({ limit: '10' }).limit).toBe(10)
+    expect(auditQuerySchema.parse({}).limit).toBe(50)
+    expect(() => auditQuerySchema.parse({ limit: '201' })).toThrow()
+    expect(auditQuerySchema.parse({ action: 'LOGOUT' }).action).toBe('LOGOUT')
+    expect(() => auditQuerySchema.parse({ action: 'NOPE' })).toThrow()
   })
 })

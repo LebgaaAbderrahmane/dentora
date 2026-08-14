@@ -8,6 +8,7 @@ import {
 } from '@dentora/contracts'
 import { assertAuth, requireAuth, toSafeUser } from '../lib/auth'
 import { prisma } from '../lib/prisma'
+import { recordAudit, recordAuditFor, requestMeta } from '../lib/audit'
 import {
   clearSessionCookie,
   generateSessionToken,
@@ -24,13 +25,32 @@ router.post('/login', async (req, res) => {
     res.status(400).json({ error: 'INVALID_BODY', issues: parsed.error.flatten() })
     return
   }
-  const user = await prisma.user.findUnique({ where: { email: parsed.data.email.toLowerCase() } })
+  const email = parsed.data.email.toLowerCase()
+  const user = await prisma.user.findUnique({ where: { email } })
   if (!user || !user.active) {
+    await recordAudit({
+      action: 'LOGIN_FAILURE',
+      targetType: 'SYSTEM',
+      branchId: 'system',
+      actorEmail: email,
+      metadata: { email, reason: 'NO_USER' },
+      ...requestMeta(req),
+    })
     res.status(401).json({ error: 'INVALID_CREDENTIALS' })
     return
   }
   const valid = await bcrypt.compare(parsed.data.password, user.passwordHash)
   if (!valid) {
+    await recordAudit({
+      action: 'LOGIN_FAILURE',
+      targetType: 'USER',
+      targetId: user.id,
+      branchId: user.branchId,
+      actorId: user.id,
+      actorEmail: email,
+      metadata: { email, reason: 'BAD_PASSWORD' },
+      ...requestMeta(req),
+    })
     res.status(401).json({ error: 'INVALID_CREDENTIALS' })
     return
   }
@@ -42,13 +62,23 @@ router.post('/login', async (req, res) => {
       expiresAt: new Date(Date.now() + SESSION_TTL_MS),
     },
   })
+  await recordAudit({
+    action: 'LOGIN_SUCCESS',
+    targetType: 'USER',
+    targetId: user.id,
+    actorId: user.id,
+    actorEmail: user.email,
+    branchId: user.branchId,
+    ...requestMeta(req),
+  })
   setSessionCookie(res, token)
   res.json(authResponseSchema.parse({ user: toSafeUser(user) }))
 })
 
 router.post('/logout', requireAuth, async (req, res) => {
-  const { sessionId } = assertAuth(req)
-  await prisma.session.update({ where: { id: sessionId }, data: { revokedAt: new Date() } })
+  const auth = assertAuth(req)
+  await prisma.session.update({ where: { id: auth.sessionId }, data: { revokedAt: new Date() } })
+  await recordAuditFor(req)({ action: 'LOGOUT', targetType: 'SESSION', targetId: auth.sessionId })
   clearSessionCookie(res)
   res.status(204).end()
 })
@@ -58,10 +88,16 @@ router.get('/me', requireAuth, (req, res) => {
 })
 
 router.post('/revoke-all', requireAuth, async (req, res) => {
-  const { user, sessionId } = assertAuth(req)
+  const auth = assertAuth(req)
   const { count } = await prisma.session.updateMany({
-    where: { userId: user.id, id: { not: sessionId }, revokedAt: null },
+    where: { userId: auth.user.id, id: { not: auth.sessionId }, revokedAt: null },
     data: { revokedAt: new Date() },
+  })
+  await recordAuditFor(req)({
+    action: 'REVOKE_ALL_SESSIONS',
+    targetType: 'USER',
+    targetId: auth.user.id,
+    metadata: { revokedCount: count },
   })
   res.json(revokeSessionsSchema.parse({ revokedCount: count }))
 })
@@ -91,6 +127,11 @@ router.post('/change-password', requireAuth, async (req, res) => {
       data: { revokedAt: new Date() },
     }),
   ])
+  await recordAuditFor(req)({
+    action: 'CHANGE_PASSWORD',
+    targetType: 'USER',
+    targetId: auth.user.id,
+  })
   res.status(204).end()
 })
 

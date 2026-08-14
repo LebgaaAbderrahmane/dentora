@@ -1,5 +1,7 @@
 import {
   revokeSessionsSchema,
+  type AuditAction,
+  type AuditList,
   type AuthResponse,
   type Role,
   type UserList,
@@ -57,4 +59,11 @@ export const api = {
     request(`/api/users/${id}/revoke-sessions`, { method: 'POST' }).then((r) =>
       revokeSessionsSchema.parse(r),
     ),
+
+  audit: (params: { limit?: number; action?: AuditAction } = {}) => {
+    const q = new URLSearchParams()
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.action) q.set('action', params.action)
+    return request<AuditList>(`/api/audit?${q.toString()}`)
+  },
 }
