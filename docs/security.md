@@ -1,6 +1,7 @@
 # Security model
 
-> Draft: schema-level decisions are locked (ADRs 006/007/009/010/011); implementation lands in Phase 0.
+> Draft: schema-level decisions are locked (ADRs 006/007/009/010/011). Auth + RBAC landed in Phase 0.5;
+> an audit trail is next (0.6), then Sentry (0.7).
 
 ## Data classification
 
@@ -13,9 +14,15 @@
 
 ## Authentication & sessions
 
-- httpOnly cookie sessions (JWT), server-side session store.
-- **Logout-everywhere** (`/auth/revoke-all`) and automatic revocation on role change (Phase 0.5).
-- CSRF protection on state-changing requests.
+- **Opaque random tokens** (256-bit), **not JWT**: the raw token lives only in the httpOnly
+  `dentora_session` cookie; the DB stores only its SHA-256 hash (ADR-consistent server-side store).
+- Sessions live in the `sessions` table (expiry + `revokedAt`); loading a session also checks the
+  user is still `active`.
+- Endpoints (Phase 0.5): `POST /api/auth/login`, `POST /api/auth/logout`,
+  `GET /api/auth/me`, `POST /api/auth/revoke-all`, `POST /api/auth/change-password`.
+- **Revoke-all** and **automatic revocation on role change** (sessions revoked on `PATCH /api/users/:id/role`).
+- CSRF mitigation: `SameSite=Lax` httpOnly cookie (state-changing endpoints are same-site);
+  a CSRF token header is listed as a hardening item before launch.
 
 ## Authorization
 

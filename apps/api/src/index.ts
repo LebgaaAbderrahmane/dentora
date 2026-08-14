@@ -6,6 +6,8 @@ import {
   type SystemStatus,
 } from '@dentora/contracts'
 import { prisma } from './lib/prisma'
+import authRouter from './routes/auth'
+import usersRouter from './routes/users'
 
 const app = express()
 const port = Number(process.env.PORT ?? 4000)
@@ -39,7 +41,18 @@ api.get('/system/status', async (_req, res) => {
   res.json(status)
 })
 
+api.use('/auth', authRouter)
+api.use('/users', usersRouter)
+
 app.use('/api', api)
+
+app.use(
+  '/api',
+  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error(err)
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' })
+  },
+)
 
 app.listen(port, () => {
   console.log(`[dentora:api] listening on :${port}`)

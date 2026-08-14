@@ -52,7 +52,7 @@ model Session {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String    @unique
+  tokenHash String    @unique
   expiresAt DateTime
   createdAt DateTime  @default(now())
   revokedAt DateTime?
