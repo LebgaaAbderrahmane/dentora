@@ -1,0 +1,105 @@
+name: dentora
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dentora}
+      POSTGRES_USER: ${POSTGRES_USER:-dentora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /wal_archive/%f && cp %p /wal_archive/%f
+      - -c
+      - archive_timeout=300
+      - -c
+      - wal_level=replica
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - wal_archive:/wal_archive
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-dentora} -d ${POSTGRES_DB:-dentora}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dentora}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ':9001'
+    volumes:
+      - minio_data:/data
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: ${API_PORT:-4000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    expose:
+      - '4000'
+    networks: [internal]
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: infra/nginx/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - '8080'
+      - '8081'
+      - '8082'
+    networks: [internal]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - nginx
+      - api
+    networks: [internal]
+
+volumes:
+  pgdata:
+  wal_archive:
+  minio_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

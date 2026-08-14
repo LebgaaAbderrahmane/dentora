@@ -41,7 +41,7 @@ pnpm test         # vitest across all workspaces
 pnpm format       # prettier --write .
 ```
 
-The API listens on `:4000` and exposes `GET /health` (Zod-validated via `packages/contracts`).
+The API listens on `:4000` and exposes `GET /api/health` (Zod-validated via `packages/contracts`).
 
 ## Documentation
 

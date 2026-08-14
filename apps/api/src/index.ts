@@ -6,7 +6,9 @@ const port = Number(process.env.PORT ?? 4000)
 
 app.use(express.json())
 
-app.get('/health', (_req, res) => {
+const api = express.Router()
+
+api.get('/health', (_req, res) => {
   const health: Health = healthSchema.parse({
     status: 'ok',
     service: 'api',
@@ -15,6 +17,8 @@ app.get('/health', (_req, res) => {
   })
   res.json(health)
 })
+
+app.use('/api', api)
 
 app.listen(port, () => {
   console.log(`[dentora:api] listening on :${port}`)
