@@ -3,7 +3,9 @@
   "compilerOptions": {
     "lib": ["ES2023"],
     "types": ["node"],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "erasableSyntaxOnly": false
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/generated"]
 }

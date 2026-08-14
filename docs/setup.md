@@ -46,12 +46,32 @@ copy it to `.env` locally. Every secret goes through the environment — never h
 ## The API package
 
 - Dev: `pnpm --filter @dentora/api dev` (tsx watch)
-- Build: `pnpm --filter @dentora/api build` (tsup → `dist/`, self-contained bundle)
+- Build: `pnpm --filter @dentora/api build` (tsup → `dist/`, ESM bundle with runtime deps external)
 - Smoke test: `curl http://localhost:4000/api/health`
 
 `apps/api` and `packages/contracts` export TypeScript source directly; both `tsx` and `tsup` handle it,
 so there is no build-ordering dance between workspaces. API routes live under the `/api` prefix so dev
 (direct) and prod (through nginx) behave identically.
+
+### Database (Prisma 7 driver adapter)
+
+The API uses Prisma 7 with the `@prisma/adapter-pg` driver adapter — **no native engine** — and
+generates its client into `apps/api/src/generated` (gitignored, recreated by `prisma generate`).
+
+```sh
+pnpm --filter @dentora/api prisma:generate   # regenerate client into src/generated
+pnpm --filter @dentora/api prisma:migrate    # apply pending migrations (dev)
+pnpm --filter @dentora/api prisma:deploy     # apply migrations (prod)
+pnpm --filter @dentora/api prisma:seed       # create branch + admin user
+```
+
+The generated client is committed to `.gitignore`; CI and the Docker build run `prisma generate`
+against `apps/api/prisma/schema.prisma`. Runtime needs `@prisma/client` (its `runtime/client` module)
+present in `node_modules` — the tsup bundle keeps runtime deps external, so the Docker runtime stage
+runs a `--prod` filtered `pnpm install` before `node dist/index.js`.
+
+`DATABASE_URL` and `ENCRYPTION_KEY` (64 hex chars, `openssl rand -hex 32`) come from the environment
+(`apps/api/.env` in dev, `infra/.env` in the stack).
 
 ## Docker stack (self-hosted infra)
 
@@ -73,7 +93,7 @@ docker compose up -d    # postgres + minio + api + nginx (`+ caddy` on a real ho
 
 - `nginx` image builds the SPAs inside Docker (multi-stage) — no host build needed.
 - For local testing without DNS, set the `*_DOMAIN` vars to `localhost` so Caddy uses its internal CA.
-- API image installs only `@dentora/api...` (includes workspace deps) — keeps the image lean.
+- API image runs `prisma generate` at build; runtime installs prod `node_modules` (external deps) then serves `dist/`.
 - Secrets come from `infra/.env` (gitignored); never commit real credentials.
 
 Sanity check after `up`:

@@ -11,3 +11,4 @@ infra/.env
 .env
 .env.*
 !.env.example
+apps/api/src/generated

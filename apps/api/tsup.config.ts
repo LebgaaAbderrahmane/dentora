@@ -7,5 +7,5 @@ export default defineConfig({
   target: 'node22',
   outDir: 'dist',
   clean: true,
-  noExternal: [/.*/],
+  external: ['@prisma/client', '@prisma/adapter-pg', 'pg', 'express', 'zod', 'bcryptjs'],
 })
