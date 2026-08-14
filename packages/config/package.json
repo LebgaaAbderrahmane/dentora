@@ -1,0 +1,10 @@
+{
+  "name": "@dentora/config",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "echo 'config: no build step'",
+    "typecheck": "echo 'config: nothing to typecheck'",
+    "test": "echo 'config: no tests'"
+  }
+}
