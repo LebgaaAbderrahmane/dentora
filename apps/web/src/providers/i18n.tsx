@@ -26,9 +26,7 @@ function applyLang(lng: string) {
 
   const seo = SEO[lang] ?? SEO.fr
   document.title = seo.title
-  document
-    .querySelector('meta[name="description"]')
-    ?.setAttribute('content', seo.description)
+  document.querySelector('meta[name="description"]')?.setAttribute('content', seo.description)
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {

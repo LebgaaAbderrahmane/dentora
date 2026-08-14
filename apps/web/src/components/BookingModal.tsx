@@ -133,8 +133,11 @@ export function BookingModal() {
                         className="h-11 w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--soft))] px-3.5 text-[0.85rem] text-[hsl(var(--heading))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
                       >
                         <option value="" disabled>
-                         :{// placeholder
-                          }—
+                          :
+                          {
+                            // placeholder
+                          }
+                          —
                         </option>
                         {services.map((s) => (
                           <option key={s.title} value={s.title}>

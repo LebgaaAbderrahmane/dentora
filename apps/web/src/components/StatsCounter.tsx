@@ -35,10 +35,7 @@ export function StatsRow() {
   const { ref, inView } = useInViewOnce<HTMLDivElement>(0.3)
 
   return (
-    <div
-      ref={ref}
-      className="flex items-center gap-10 py-8 max-md:flex-col max-md:items-start"
-    >
+    <div ref={ref} className="flex items-center gap-10 py-8 max-md:flex-col max-md:items-start">
       <p className="max-w-[130px] shrink-0 text-[0.75rem] font-normal leading-[1.6] text-[hsl(var(--muted-foreground))]">
         {t('about.statsHint')}
       </p>

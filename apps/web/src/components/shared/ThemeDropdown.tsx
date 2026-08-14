@@ -70,7 +70,9 @@ export function ThemeDropdown({ className }: { className?: string }) {
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span>{t(`ui.theme.${value}`)}</span>
-                  <span className="ms-auto">{active && <Check className="h-4 w-4 shrink-0" />}</span>
+                  <span className="ms-auto">
+                    {active && <Check className="h-4 w-4 shrink-0" />}
+                  </span>
                 </button>
               )
             })}

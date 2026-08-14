@@ -37,63 +37,63 @@ export function Navbar() {
             : 'border-transparent bg-[hsl(var(--background))]/55 backdrop-blur-md',
         )}
       >
-      <nav>
-        <Container className="flex items-center justify-between gap-6 py-[18px]">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/25 bg-white/15">
-              <ToothIcon className="h-4 w-4 text-white" />
-            </span>
-            <span className="text-[0.95rem] font-bold tracking-[-0.01em] text-white">
-              {t('brand')}
-            </span>
-          </div>
-
-          <div className="hidden items-center gap-8 lg:flex">
-            {links.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className={cn(
-                  'relative text-[0.72rem] font-normal transition-colors hover:text-white',
-                  active === link.id ? 'text-[hsl(var(--primary))]' : 'text-white/80',
-                )}
-              >
-                {t(link.label)}
-                {active === link.id && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute -bottom-1.5 inset-x-0 h-[2px] rounded bg-[hsl(var(--primary))]"
-                  />
-                )}
-              </a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher className="hidden sm:flex" />
-            <ThemeDropdown className="hidden lg:flex" />
-            <div className="hidden items-center gap-6 lg:flex">
-              <a
-                href={PHONE_TEL}
-                className="ltr-isolate text-[0.72rem] font-medium text-white/80 transition-colors hover:text-white"
-              >
-                {PHONE}
-              </a>
-              <Button onClick={() => openBooking()} className="h-9 px-5 text-[0.72rem]">
-                {t('nav.book')}
-              </Button>
+        <nav>
+          <Container className="flex items-center justify-between gap-6 py-[18px]">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-white/25 bg-white/15">
+                <ToothIcon className="h-4 w-4 text-white" />
+              </span>
+              <span className="text-[0.95rem] font-bold tracking-[-0.01em] text-white">
+                {t('brand')}
+              </span>
             </div>
-            <button
-              type="button"
-              aria-label="Open menu"
-              onClick={() => setOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white lg:hidden"
-            >
-              <Menu className="h-4.5 w-4.5" />
-            </button>
-          </div>
-        </Container>
-      </nav>
+
+            <div className="hidden items-center gap-8 lg:flex">
+              {links.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className={cn(
+                    'relative text-[0.72rem] font-normal transition-colors hover:text-white',
+                    active === link.id ? 'text-[hsl(var(--primary))]' : 'text-white/80',
+                  )}
+                >
+                  {t(link.label)}
+                  {active === link.id && (
+                    <motion.span
+                      layoutId="nav-active"
+                      className="absolute -bottom-1.5 inset-x-0 h-[2px] rounded bg-[hsl(var(--primary))]"
+                    />
+                  )}
+                </a>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher className="hidden sm:flex" />
+              <ThemeDropdown className="hidden lg:flex" />
+              <div className="hidden items-center gap-6 lg:flex">
+                <a
+                  href={PHONE_TEL}
+                  className="ltr-isolate text-[0.72rem] font-medium text-white/80 transition-colors hover:text-white"
+                >
+                  {PHONE}
+                </a>
+                <Button onClick={() => openBooking()} className="h-9 px-5 text-[0.72rem]">
+                  {t('nav.book')}
+                </Button>
+              </div>
+              <button
+                type="button"
+                aria-label="Open menu"
+                onClick={() => setOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white lg:hidden"
+              >
+                <Menu className="h-4.5 w-4.5" />
+              </button>
+            </div>
+          </Container>
+        </nav>
       </header>
 
       <AnimatePresence>
