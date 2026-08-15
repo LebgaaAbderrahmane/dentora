@@ -12,13 +12,30 @@ import type {
   ToothStatus,
   ToothSurface,
 } from '@dentora/contracts'
-import { Button, Field, Input, Modal, useToast } from '@dentora/ui'
+import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
 import { DocumentsTab } from './DocumentsTab'
 import { OdontogramChart } from '../components/OdontogramChart'
 import { TOOTH_CONDITIONS, TOOTH_STATUSES, TOOTH_SURFACES } from '../components/odontogram'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const GENDERS: Gender[] = ['M', 'F', 'UNSPECIFIED']
 
@@ -84,16 +101,17 @@ export function PatientsView() {
           onChange={(e) => setQ(e.target.value)}
           className="max-w-xs"
         />
-        <select
-          value={archived}
-          onChange={(e) => setArchived(e.target.value as ArchivedFilter)}
-          className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-        >
-          <option value="exclude">{t('patients.activeOnly')}</option>
-          <option value="include">{t('patients.all')}</option>
-          <option value="only">{t('patients.archivedOnly')}</option>
-        </select>
-        <span className="text-xs text-neutral-500 dark:text-neutral-400">
+        <Select value={archived} onValueChange={(v) => setArchived(v as ArchivedFilter)}>
+          <SelectTrigger className="w-fit text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="exclude">{t('patients.activeOnly')}</SelectItem>
+            <SelectItem value="include">{t('patients.all')}</SelectItem>
+            <SelectItem value="only">{t('patients.archivedOnly')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">
           {total} {t('patients.total')}
         </span>
         <div className="ms-auto">
@@ -149,10 +167,10 @@ export function PatientsView() {
                   <td className="px-4 py-3 text-neutral-600 dark:text-neutral-300">{p.email}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => setEditing(p)}>
+                      <Button variant="outline" size="sm" onClick={() => setEditing(p)}>
                         {t('patients.edit')}
                       </Button>
-                      <Button variant="secondary" size="sm" onClick={() => void toggleArchived(p)}>
+                      <Button variant="outline" size="sm" onClick={() => void toggleArchived(p)}>
                         {t(p.archivedAt ? 'patients.restore' : 'patients.archive')}
                       </Button>
                     </div>
@@ -235,65 +253,75 @@ function PatientForm({
   }
 
   return (
-    <Modal
-      onClose={onClose}
-      title={patient ? t('patients.edit') : t('patients.newPatient')}
-      closeLabel={t('common.close')}
-    >
-      <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('patients.firstName')} required>
-            <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-          </Field>
-          <Field label={t('patients.lastName')} required>
-            <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          </Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t('patients.gender')}>
-            <select
-              value={gender}
-              onChange={(e) => setGender(e.target.value as Gender)}
-              className="rounded-lg border border-neutral-300 bg-white px-2 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              {GENDERS.map((g) => (
-                <option key={g} value={g}>
-                  {t(GENDER_KEY[g])}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t('patients.birthDate')}>
-            <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-          </Field>
-        </div>
-        <Field label={t('patients.phone')}>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </Field>
-        <Field label={t('patients.email')}>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label={t('patients.address')}>
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} />
-        </Field>
-        <Field label={t('patients.notes')}>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            className="rounded-lg border border-neutral-300 bg-white px-2 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-          />
-        </Field>
-        <div className="mt-2 flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>
-            {t('patients.cancel')}
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {t('patients.save')}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{patient ? t('patients.edit') : t('patients.newPatient')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('patients.firstName')} *</Label>
+              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('patients.lastName')} *</Label>
+              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('patients.gender')}</Label>
+              <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('patients.gender')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {GENDERS.map((g) => (
+                    <SelectItem key={g} value={g}>
+                      {t(GENDER_KEY[g])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('patients.birthDate')}</Label>
+              <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('patients.phone')}</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('patients.email')}</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('patients.address')}</Label>
+            <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('patients.notes')}</Label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:border-ring focus-visible:outline-none disabled:opacity-50 dark:bg-input/30"
+            />
+          </div>
+          <DialogFooter className="mt-2 gap-2">
+            <Button variant="outline" type="button" onClick={onClose}>
+              {t('patients.cancel')}
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {t('patients.save')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -339,60 +367,54 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
   ]
 
   return (
-    <Modal
-      onClose={onClose}
-      title={`${patient.lastName} ${patient.firstName}`}
-      closeLabel={t('common.close')}
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{`${patient.lastName} ${patient.firstName}`}</DialogTitle>
+        </DialogHeader>
+        <div role="tablist" aria-label={t('patients.tabs.details')} className="mb-3 flex gap-1">
+          {tabs.map((tb) => (
+            <button
+              key={tb.id}
+              role="tab"
+              aria-selected={tab === tb.id}
+              onClick={() => setTab(tb.id)}
+              className={
+                tab === tb.id
+                  ? 'rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white'
+                  : 'rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent'
+              }
+            >
+              {tb.label}
+            </button>
+          ))}
+        </div>
+        {tab === 'details' && (
+          <dl className="flex flex-col gap-2 text-sm">
+            {fields.map((f) => (
+              <div key={f.label} className="flex justify-between border-b border-border py-1">
+                <dt className="text-muted-foreground">{f.label}</dt>
+                <dd className="text-foreground">{f.value}</dd>
+              </div>
+            ))}
+            {detail?.notes ? (
+              <div className="flex flex-col gap-1 border-b border-border py-1">
+                <dt className="text-muted-foreground">{t('patients.notes')}</dt>
+                <dd className="whitespace-pre-wrap text-foreground">{detail.notes}</dd>
+              </div>
+            ) : null}
+          </dl>
+        )}
+        {tab === 'medical' && <MedicalHistoryTab patientId={patient.id} />}
+        {tab === 'odontogram' && <OdontogramTab patientId={patient.id} />}
+        {tab === 'documents' && <DocumentsTab patientId={patient.id} />}
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>
             {t('patients.cancel')}
           </Button>
-        </div>
-      }
-    >
-      <div role="tablist" aria-label={t('patients.tabs.details')} className="mb-3 flex gap-1">
-        {tabs.map((tb) => (
-          <button
-            key={tb.id}
-            role="tab"
-            aria-selected={tab === tb.id}
-            onClick={() => setTab(tb.id)}
-            className={
-              tab === tb.id
-                ? 'rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white'
-                : 'rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
-            }
-          >
-            {tb.label}
-          </button>
-        ))}
-      </div>
-      {tab === 'details' && (
-        <dl className="flex flex-col gap-2 text-sm">
-          {fields.map((f) => (
-            <div
-              key={f.label}
-              className="flex justify-between border-b border-neutral-100 py-1 dark:border-neutral-800"
-            >
-              <dt className="text-neutral-500 dark:text-neutral-400">{f.label}</dt>
-              <dd className="text-neutral-900 dark:text-neutral-100">{f.value}</dd>
-            </div>
-          ))}
-          {detail?.notes ? (
-            <div className="flex flex-col gap-1 border-b border-neutral-100 py-1 dark:border-neutral-800">
-              <dt className="text-neutral-500 dark:text-neutral-400">{t('patients.notes')}</dt>
-              <dd className="whitespace-pre-wrap text-neutral-900 dark:text-neutral-100">
-                {detail.notes}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-      )}
-      {tab === 'medical' && <MedicalHistoryTab patientId={patient.id} />}
-      {tab === 'odontogram' && <OdontogramTab patientId={patient.id} />}
-      {tab === 'documents' && <DocumentsTab patientId={patient.id} />}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -468,14 +490,15 @@ function MedicalHistoryTab({ patientId }: { patientId: string }) {
   return (
     <div className="flex flex-col gap-3">
       {MEDICAL_FIELDS.map((f) => (
-        <Field key={f.name} label={t(f.key)}>
+        <div key={f.name} className="flex flex-col gap-1.5">
+          <Label>{t(f.key)}</Label>
           <textarea
             value={form[f.name]}
             onChange={(e) => setForm((prev) => ({ ...prev, [f.name]: e.target.value }))}
             rows={2}
-            className="rounded-lg border border-neutral-300 bg-white px-2 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+            className="rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:border-ring focus-visible:outline-none disabled:opacity-50 dark:bg-input/30"
           />
-        </Field>
+        </div>
       ))}
       <div className="flex justify-end">
         <Button onClick={() => void handleSave()} disabled={saving} size="sm">
@@ -540,7 +563,7 @@ function OdontogramTab({ patientId }: { patientId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <OdontogramChart teeth={data?.teeth} selected={selected} onSelect={setSelected} t={t} />
+      <OdontogramChart teeth={data?.teeth} selected={selected} onSelect={setSelected} />
       {selected ? (
         <ToothEditor
           code={selected}
@@ -615,9 +638,9 @@ function ToothEditor({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+    <div className="flex flex-col gap-3 rounded-xl border bg-card p-3">
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+        <span className="text-xs font-medium text-muted-foreground">
           {t('patients.od.status')} — {code}
         </span>
         <div className="flex flex-wrap gap-2">
@@ -625,7 +648,7 @@ function ToothEditor({
             <Button
               key={s}
               size="sm"
-              variant={entry.status === s ? 'primary' : 'secondary'}
+              variant={entry.status === s ? 'default' : 'outline'}
               onClick={() => setStatus(s)}
             >
               {t(OD_STATUS_KEY[s])}
@@ -634,31 +657,28 @@ function ToothEditor({
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+        <span className="text-xs font-medium text-muted-foreground">
           {t('patients.od.surfaces')}
         </span>
         {TOOTH_SURFACES.map((surface) => (
           <div key={surface} className="flex items-center gap-2">
-            <span className="w-24 shrink-0 text-xs text-neutral-500 dark:text-neutral-400">
+            <span className="w-24 shrink-0 text-xs text-muted-foreground">
               {t(OD_SURFACE_KEY[surface])}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {TOOTH_CONDITIONS.map((c) => {
                 const active = entry.surfaces[surface].includes(c)
                 return (
-                  <button
+                  <Button
                     key={c}
                     type="button"
-                    onClick={() => toggleSurfaceCondition(surface, c)}
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
                     aria-pressed={active}
-                    className={
-                      active
-                        ? 'min-h-11 rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white'
-                        : 'min-h-11 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-neutral-600 dark:border-neutral-700 dark:text-neutral-300'
-                    }
+                    onClick={() => toggleSurfaceCondition(surface, c)}
                   >
                     {t(OD_CONDITION_KEY[c])}
-                  </button>
+                  </Button>
                 )
               })}
             </div>

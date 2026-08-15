@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import type { PatientDocument } from '@dentora/contracts'
-import { Button, useToast } from '@dentora/ui'
+import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 
 const MAX_SIZE_MB = 50
 const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024
@@ -68,49 +70,35 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
         <Button size="sm" onClick={() => inputRef.current?.click()} disabled={uploading}>
           {uploading ? t('patients.docs.uploading') : t('patients.docs.upload')}
         </Button>
-        {uploading && (
-          <div className="h-1.5 w-40 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
-            <div
-              className="h-full rounded-full bg-brand-600 transition-all"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
-        )}
+        {uploading && <Progress value={Math.round(progress * 100)} className="w-40" />}
       </div>
 
       {documents.length === 0 ? (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('patients.docs.empty')}</p>
+        <p className="text-sm text-muted-foreground">{t('patients.docs.empty')}</p>
       ) : (
         <ul className="flex flex-col gap-1.5">
           {documents.map((d) => (
             <li
               key={d.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-sm"
             >
               <div className="flex min-w-0 flex-col">
-                <span className="truncate font-medium text-neutral-900 dark:text-neutral-100">
-                  {d.originalName}
-                </span>
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="truncate font-medium text-foreground">{d.originalName}</span>
+                <span className="text-xs text-muted-foreground">
                   {formatSize(d.size)} · {new Date(d.createdAt).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex shrink-0 gap-2">
-                <a
-                  href={api.documentUrl(patientId, d.id)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-200 dark:hover:border-neutral-500"
-                >
-                  {t('patients.docs.open')}
-                </a>
-                <a
-                  href={api.documentUrl(patientId, d.id)}
-                  download={d.originalName}
-                  className="inline-flex items-center rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-500"
-                >
-                  {t('patients.docs.download')}
-                </a>
+                <Button asChild size="sm" variant="outline">
+                  <a href={api.documentUrl(patientId, d.id)} target="_blank" rel="noreferrer">
+                    {t('patients.docs.open')}
+                  </a>
+                </Button>
+                <Button asChild size="sm">
+                  <a href={api.documentUrl(patientId, d.id)} download={d.originalName}>
+                    {t('patients.docs.download')}
+                  </a>
+                </Button>
               </div>
             </li>
           ))}

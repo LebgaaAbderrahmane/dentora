@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Card, useToast } from '@dentora/ui'
+import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import { api } from '../lib/api'
 import type { SystemStatus } from '@dentora/contracts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function DashboardView() {
   const { t } = useI18n()
@@ -27,29 +28,28 @@ export function DashboardView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card title={t('dashboard.systemStatus')} className="flex flex-col gap-3">
-        <span
-          className={
-            !error && status?.db === 'up'
-              ? 'inline-flex w-fit items-center gap-2 rounded-full border border-brand-500/30 bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-              : 'inline-flex w-fit items-center gap-2 rounded-full border border-red-500/30 bg-red-50 px-3 py-1 text-sm font-medium text-red-700 dark:bg-red-950 dark:text-red-300'
-          }
-        >
+      <Card className="flex flex-col gap-3">
+        <CardHeader>
+          <CardTitle>{t('dashboard.systemStatus')}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
           <span
-            className={
+            className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${
               error
-                ? 'h-1.5 w-1.5 rounded-full bg-red-500'
-                : 'h-1.5 w-1.5 rounded-full bg-brand-500'
-            }
-          />
-          {error ? t('dashboard.dbDown') : t('dashboard.dbUp')}
-        </span>
-        <dl className="flex flex-col gap-2 text-sm">
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-neutral-500 dark:text-neutral-400">{t('dashboard.uptime')}</dt>
-            <dd className="font-mono text-neutral-800 dark:text-neutral-200">{uptime}</dd>
-          </div>
-        </dl>
+                ? 'border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
+                : 'border-brand-500/30 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${error ? 'bg-red-500' : 'bg-brand-500'}`} />
+            {error ? t('dashboard.dbDown') : t('dashboard.dbUp')}
+          </span>
+          <dl className="flex flex-col gap-2 text-sm">
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-muted-foreground">{t('dashboard.uptime')}</dt>
+              <dd className="font-mono text-foreground">{uptime}</dd>
+            </div>
+          </dl>
+        </CardContent>
       </Card>
     </div>
   )

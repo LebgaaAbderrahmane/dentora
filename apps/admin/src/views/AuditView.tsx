@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Card } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import type { AuditAction, AuditEntry } from '@dentora/contracts'
 import { api } from '../lib/api'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const ACTION_KEY: Record<AuditAction, MessageKey> = {
   LOGIN_SUCCESS: 'audit.actions.loginSuccess',
@@ -46,52 +53,61 @@ export function AuditView() {
   }, [action])
 
   return (
-    <Card title={t('audit.title')} className="flex flex-col gap-4">
-      <select
-        value={action ?? ''}
-        onChange={(e) => setAction(e.target.value ? (e.target.value as AuditAction) : undefined)}
-        className="w-fit rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-      >
-        <option value="">{t('audit.allActions')}</option>
-        {(Object.keys(ACTION_KEY) as AuditAction[]).map((a) => (
-          <option key={a} value={a}>
-            {t(ACTION_KEY[a])}
-          </option>
-        ))}
-      </select>
+    <Card className="flex flex-col gap-4">
+      <CardHeader>
+        <CardTitle>{t('audit.title')}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <Select
+          value={action ?? 'all'}
+          onValueChange={(v) => setAction(v === 'all' ? undefined : (v as AuditAction))}
+        >
+          <SelectTrigger className="w-fit">
+            <SelectValue placeholder={t('audit.allActions')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('audit.allActions')}</SelectItem>
+            {(Object.keys(ACTION_KEY) as AuditAction[]).map((a) => (
+              <SelectItem key={a} value={a}>
+                {t(ACTION_KEY[a])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <div className="flex flex-col gap-1.5">
-        {entries.map((e) => (
-          <div
-            key={e.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 px-4 py-2.5 text-sm dark:border-neutral-800"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="shrink-0 whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-500">
-                {new Date(e.createdAt).toLocaleDateString()}{' '}
-                {new Date(e.createdAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-              <span className="shrink-0 font-medium text-neutral-800 dark:text-neutral-200">
-                {t(ACTION_KEY[e.action])}
-              </span>
-              <span className="min-w-0 truncate text-xs text-neutral-500">
-                {e.actorEmail ?? '—'}
-              </span>
+        <div className="flex flex-col gap-1.5">
+          {entries.map((e) => (
+            <div
+              key={e.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background px-4 py-2.5 text-sm"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                  {new Date(e.createdAt).toLocaleDateString()}{' '}
+                  {new Date(e.createdAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+                <span className="shrink-0 font-medium text-foreground">
+                  {t(ACTION_KEY[e.action])}
+                </span>
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {e.actorEmail ?? '—'}
+                </span>
+              </div>
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">{e.ip ?? ''}</span>
             </div>
-            <span className="shrink-0 font-mono text-xs text-neutral-400">{e.ip ?? ''}</span>
-          </div>
-        ))}
-        {entries.length === 0 && (
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('audit.noEvents')}</p>
-        )}
-      </div>
+          ))}
+          {entries.length === 0 && (
+            <p className="text-sm text-muted-foreground">{t('audit.noEvents')}</p>
+          )}
+        </div>
 
-      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-        {total} {t('audit.events')}
-      </p>
+        <p className="text-xs text-muted-foreground">
+          {total} {t('audit.events')}
+        </p>
+      </CardContent>
     </Card>
   )
 }
