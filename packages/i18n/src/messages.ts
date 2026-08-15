@@ -136,6 +136,7 @@ const fr = {
   'locale.fr': 'Français',
   'locale.ar': 'العربية',
   'locale.en': 'English',
+  'common.close': 'Fermer',
 }
 
 export type MessageKey = keyof typeof fr
@@ -274,6 +275,7 @@ const en: Record<MessageKey, string> = {
   'locale.fr': 'Français',
   'locale.ar': 'العربية',
   'locale.en': 'English',
+  'common.close': 'Close',
 }
 
 const ar: Record<MessageKey, string> = {
@@ -408,6 +410,7 @@ const ar: Record<MessageKey, string> = {
   'locale.fr': 'Français',
   'locale.ar': 'العربية',
   'locale.en': 'English',
+  'common.close': 'إغلاق',
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { fr, en, ar }
