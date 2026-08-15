@@ -1,10 +1,23 @@
 import type { FormEvent } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Gender, Patient, PatientDetail, PatientInput } from '@dentora/contracts'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  Gender,
+  MedicalHistory,
+  Odontogram,
+  Patient,
+  PatientDetail,
+  PatientInput,
+  ToothCondition,
+  ToothEntry,
+  ToothStatus,
+  ToothSurface,
+} from '@dentora/contracts'
 import { Button, Input, useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
-import { api } from '../lib/api'
+import { api, ApiError } from '../lib/api'
+import { OdontogramChart } from '../components/OdontogramChart'
+import { TOOTH_CONDITIONS, TOOTH_STATUSES, TOOTH_SURFACES } from '../components/odontogram'
 
 const GENDERS: Gender[] = ['M', 'F', 'UNSPECIFIED']
 
@@ -279,10 +292,13 @@ function PatientForm({
   )
 }
 
+type DetailTab = 'details' | 'medical' | 'odontogram'
+
 function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => void }) {
   const { t } = useI18n()
   const { toast } = useToast()
   const [detail, setDetail] = useState<PatientDetail | null>(null)
+  const [tab, setTab] = useState<DetailTab>('details')
 
   useEffect(() => {
     api
@@ -310,6 +326,12 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
     [detail, t],
   )
 
+  const tabs: { id: DetailTab; label: string }[] = [
+    { id: 'details', label: t('patients.tabs.details') },
+    { id: 'medical', label: t('patients.tabs.medicalHistory') },
+    { id: 'odontogram', label: t('patients.tabs.odontogram') },
+  ]
+
   return (
     <Modal
       onClose={onClose}
@@ -322,26 +344,320 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
         </div>
       }
     >
-      <dl className="flex flex-col gap-2 text-sm">
-        {fields.map((f) => (
-          <div
-            key={f.label}
-            className="flex justify-between border-b border-neutral-100 py-1 dark:border-neutral-800"
+      <div role="tablist" aria-label={t('patients.tabs.details')} className="mb-3 flex gap-1">
+        {tabs.map((tb) => (
+          <button
+            key={tb.id}
+            role="tab"
+            aria-selected={tab === tb.id}
+            onClick={() => setTab(tb.id)}
+            className={
+              tab === tb.id
+                ? 'rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white'
+                : 'rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+            }
           >
-            <dt className="text-neutral-500 dark:text-neutral-400">{f.label}</dt>
-            <dd className="text-neutral-900 dark:text-neutral-100">{f.value}</dd>
+            {tb.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'details' && (
+        <dl className="flex flex-col gap-2 text-sm">
+          {fields.map((f) => (
+            <div
+              key={f.label}
+              className="flex justify-between border-b border-neutral-100 py-1 dark:border-neutral-800"
+            >
+              <dt className="text-neutral-500 dark:text-neutral-400">{f.label}</dt>
+              <dd className="text-neutral-900 dark:text-neutral-100">{f.value}</dd>
+            </div>
+          ))}
+          {detail?.notes ? (
+            <div className="flex flex-col gap-1 border-b border-neutral-100 py-1 dark:border-neutral-800">
+              <dt className="text-neutral-500 dark:text-neutral-400">{t('patients.notes')}</dt>
+              <dd className="whitespace-pre-wrap text-neutral-900 dark:text-neutral-100">
+                {detail.notes}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      )}
+      {tab === 'medical' && <MedicalHistoryTab patientId={patient.id} />}
+      {tab === 'odontogram' && <OdontogramTab patientId={patient.id} />}
+    </Modal>
+  )
+}
+
+const MEDICAL_FIELDS: { name: keyof MedicalHistory; key: MessageKey }[] = [
+  { name: 'allergies', key: 'patients.mh.allergies' },
+  { name: 'conditions', key: 'patients.mh.conditions' },
+  { name: 'medications', key: 'patients.mh.medications' },
+  { name: 'surgeryHistory', key: 'patients.mh.surgeryHistory' },
+  { name: 'familyHistory', key: 'patients.mh.familyHistory' },
+  { name: 'lifestyle', key: 'patients.mh.lifestyle' },
+  { name: 'otherNotes', key: 'patients.mh.otherNotes' },
+]
+
+const EMPTY_FORM: Record<keyof MedicalHistory, string> = {
+  allergies: '',
+  conditions: '',
+  medications: '',
+  surgeryHistory: '',
+  familyHistory: '',
+  lifestyle: '',
+  otherNotes: '',
+}
+
+function MedicalHistoryTab({ patientId }: { patientId: string }) {
+  const { t } = useI18n()
+  const { toast } = useToast()
+  const [version, setVersion] = useState(0)
+  const [form, setForm] = useState<Record<keyof MedicalHistory, string>>(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api.medicalHistory(patientId)
+      setVersion(r.version)
+      setForm({ ...EMPTY_FORM, ...(r.data ?? {}) })
+    } catch {
+      toast(t('auth.serverError'), 'error')
+    }
+  }, [patientId, t, toast])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function handleSave() {
+    const data: Partial<MedicalHistory> = {}
+    for (const f of MEDICAL_FIELDS) {
+      const value = form[f.name].trim()
+      if (value) data[f.name] = value
+    }
+    if (Object.keys(data).length === 0) {
+      toast(t('patients.mh.savedError'), 'error')
+      return
+    }
+    setSaving(true)
+    try {
+      const r = await api.saveMedicalHistory(patientId, { version, data: data as MedicalHistory })
+      setVersion(r.version)
+      setForm({ ...EMPTY_FORM, ...(r.data ?? {}) })
+      toast(t('patients.mh.saved'), 'success')
+    } catch (e) {
+      if (e instanceof ApiError && e.message === 'VERSION_CONFLICT') {
+        toast(t('patients.mh.versionConflict'), 'error')
+        await load()
+      } else {
+        toast(t('patients.mh.savedError'), 'error')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {MEDICAL_FIELDS.map((f) => (
+        <Field key={f.name} label={t(f.key)}>
+          <textarea
+            value={form[f.name]}
+            onChange={(e) => setForm((prev) => ({ ...prev, [f.name]: e.target.value }))}
+            rows={2}
+            className="rounded-lg border border-neutral-300 bg-white px-2 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+          />
+        </Field>
+      ))}
+      <div className="flex justify-end">
+        <Button onClick={() => void handleSave()} disabled={saving} size="sm">
+          {t('patients.save')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function OdontogramTab({ patientId }: { patientId: string }) {
+  const { t } = useI18n()
+  const { toast } = useToast()
+  const [version, setVersion] = useState(0)
+  const [data, setData] = useState<Odontogram | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api.odontogram(patientId)
+      setVersion(r.version)
+      setData(r.data)
+    } catch {
+      toast(t('auth.serverError'), 'error')
+    }
+  }, [patientId, t, toast])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  function updateSelected(entry: ToothEntry) {
+    setData((prev) => {
+      const teeth = { ...(prev?.teeth ?? {}) }
+      teeth[selected!] = entry
+      return { teeth }
+    })
+  }
+
+  async function handleSave() {
+    if (!data) return
+    setSaving(true)
+    try {
+      const r = await api.saveOdontogram(patientId, { version, data })
+      setVersion(r.version)
+      setData(r.data)
+      toast(t('patients.od.saved'), 'success')
+    } catch (e) {
+      if (e instanceof ApiError && e.message === 'VERSION_CONFLICT') {
+        toast(t('patients.od.versionConflict'), 'error')
+        await load()
+      } else {
+        toast(t('patients.od.savedError'), 'error')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const selectedEntry: ToothEntry | undefined = selected ? data?.teeth?.[selected] : undefined
+
+  return (
+    <div className="flex flex-col gap-4">
+      <OdontogramChart teeth={data?.teeth} selected={selected} onSelect={setSelected} t={t} />
+      {selected ? (
+        <ToothEditor
+          code={selected}
+          entry={
+            selectedEntry ?? {
+              status: 'present',
+              surfaces: { m: [], d: [], o: [], b: [], l: [] },
+            }
+          }
+          onChange={updateSelected}
+        />
+      ) : (
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          {t('patients.od.selectTooth')}
+        </p>
+      )}
+      <div className="flex justify-end">
+        <Button onClick={() => void handleSave()} disabled={saving}>
+          {saving ? t('patients.od.saving') : t('patients.save')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+const OD_STATUS_KEY: Record<ToothStatus, MessageKey> = {
+  present: 'patients.od.status.present',
+  missing: 'patients.od.status.missing',
+  implant: 'patients.od.status.implant',
+  crown: 'patients.od.status.crown',
+  root: 'patients.od.status.root',
+}
+
+const OD_SURFACE_KEY: Record<ToothSurface, MessageKey> = {
+  m: 'patients.od.surface.m',
+  d: 'patients.od.surface.d',
+  o: 'patients.od.surface.o',
+  b: 'patients.od.surface.b',
+  l: 'patients.od.surface.l',
+}
+
+const OD_CONDITION_KEY: Record<ToothCondition, MessageKey> = {
+  caries: 'patients.od.condition.caries',
+  filling: 'patients.od.condition.filling',
+  sealant: 'patients.od.condition.sealant',
+  fracture: 'patients.od.condition.fracture',
+  wear: 'patients.od.condition.wear',
+  stain: 'patients.od.condition.stain',
+}
+
+function ToothEditor({
+  code,
+  entry,
+  onChange,
+}: {
+  code: string
+  entry: ToothEntry
+  onChange: (entry: ToothEntry) => void
+}) {
+  const { t } = useI18n()
+
+  function setStatus(status: ToothStatus) {
+    onChange({ ...entry, status })
+  }
+
+  function toggleSurfaceCondition(surface: ToothSurface, condition: ToothCondition) {
+    const current = entry.surfaces[surface]
+    const next = current.includes(condition)
+      ? current.filter((c) => c !== condition)
+      : [...current, condition]
+    onChange({ ...entry, surfaces: { ...entry.surfaces, [surface]: next } })
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+          {t('patients.od.status')} — {code}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {TOOTH_STATUSES.map((s) => (
+            <Button
+              key={s}
+              size="sm"
+              variant={entry.status === s ? 'primary' : 'secondary'}
+              onClick={() => setStatus(s)}
+            >
+              {t(OD_STATUS_KEY[s])}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+          {t('patients.od.surfaces')}
+        </span>
+        {TOOTH_SURFACES.map((surface) => (
+          <div key={surface} className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-xs text-neutral-500 dark:text-neutral-400">
+              {t(OD_SURFACE_KEY[surface])}
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {TOOTH_CONDITIONS.map((c) => {
+                const active = entry.surfaces[surface].includes(c)
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleSurfaceCondition(surface, c)}
+                    aria-pressed={active}
+                    className={
+                      active
+                        ? 'min-h-11 rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white'
+                        : 'min-h-11 rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-neutral-600 dark:border-neutral-700 dark:text-neutral-300'
+                    }
+                  >
+                    {t(OD_CONDITION_KEY[c])}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         ))}
-        {detail?.notes ? (
-          <div className="flex flex-col gap-1 border-b border-neutral-100 py-1 dark:border-neutral-800">
-            <dt className="text-neutral-500 dark:text-neutral-400">{t('patients.notes')}</dt>
-            <dd className="whitespace-pre-wrap text-neutral-900 dark:text-neutral-100">
-              {detail.notes}
-            </dd>
-          </div>
-        ) : null}
-      </dl>
-    </Modal>
+      </div>
+    </div>
   )
 }
 

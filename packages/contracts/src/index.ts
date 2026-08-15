@@ -86,6 +86,10 @@ export const auditActionSchema = z.enum([
   'PATIENT_UPDATE',
   'PATIENT_ARCHIVED',
   'PATIENT_RESTORE',
+  'PATIENT_MEDICAL_VIEW',
+  'PATIENT_MEDICAL_UPDATE',
+  'PATIENT_ODONTOGRAM_VIEW',
+  'PATIENT_ODONTOGRAM_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -192,3 +196,104 @@ export const patientQuerySchema = z.object({
 export type PatientQuery = z.infer<typeof patientQuerySchema>
 
 export type PatientQueryParams = z.input<typeof patientQuerySchema>
+
+export const versionConflictSchema = z.object({
+  error: z.literal('VERSION_CONFLICT'),
+  version: z.number().int().min(0),
+})
+
+export type VersionConflict = z.infer<typeof versionConflictSchema>
+
+const MAX_FREE_TEXT = 4000
+
+export const medicalHistorySchema = z
+  .object({
+    allergies: z.string().max(MAX_FREE_TEXT).optional(),
+    conditions: z.string().max(MAX_FREE_TEXT).optional(),
+    medications: z.string().max(MAX_FREE_TEXT).optional(),
+    surgeryHistory: z.string().max(MAX_FREE_TEXT).optional(),
+    familyHistory: z.string().max(MAX_FREE_TEXT).optional(),
+    lifestyle: z.string().max(MAX_FREE_TEXT).optional(),
+    otherNotes: z.string().max(MAX_FREE_TEXT).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'medical history must not be empty')
+
+export type MedicalHistory = z.infer<typeof medicalHistorySchema>
+
+export const medicalHistoryWriteSchema = z.object({
+  version: z.number().int().min(0),
+  data: medicalHistorySchema,
+})
+
+export type MedicalHistoryWrite = z.infer<typeof medicalHistoryWriteSchema>
+
+export const medicalHistoryResponseSchema = z.object({
+  version: z.number().int().min(0),
+  data: medicalHistorySchema.nullable(),
+  updatedAt: z.string().nullable(),
+})
+
+export type MedicalHistoryResponse = z.infer<typeof medicalHistoryResponseSchema>
+
+export const toothSurfaceSchema = z.enum(['m', 'd', 'o', 'b', 'l'])
+
+export type ToothSurface = z.infer<typeof toothSurfaceSchema>
+
+export const toothConditionSchema = z.enum([
+  'caries',
+  'filling',
+  'sealant',
+  'fracture',
+  'wear',
+  'stain',
+])
+
+export type ToothCondition = z.infer<typeof toothConditionSchema>
+
+export const toothStatusSchema = z.enum(['present', 'missing', 'implant', 'crown', 'root'])
+
+export type ToothStatus = z.infer<typeof toothStatusSchema>
+
+export const toothSurfacesSchema = z.object({
+  m: z.array(toothConditionSchema),
+  d: z.array(toothConditionSchema),
+  o: z.array(toothConditionSchema),
+  b: z.array(toothConditionSchema),
+  l: z.array(toothConditionSchema),
+})
+
+export type ToothSurfaces = z.infer<typeof toothSurfacesSchema>
+
+export const toothEntrySchema = z.object({
+  status: toothStatusSchema,
+  surfaces: toothSurfacesSchema,
+})
+
+export type ToothEntry = z.infer<typeof toothEntrySchema>
+
+export const odontogramSchema = z
+  .object({
+    teeth: z.record(z.string(), toothEntrySchema),
+  })
+  .refine((v) => Object.keys(v.teeth).length > 0, 'odontogram must have at least one tooth')
+  .refine(
+    (v) => Object.keys(v.teeth).every((k) => /^[1-4][1-8]$/.test(k)),
+    'teeth keys must be valid FDI permanent tooth codes',
+  )
+
+export type Odontogram = z.infer<typeof odontogramSchema>
+
+export const odontogramWriteSchema = z.object({
+  version: z.number().int().min(0),
+  data: odontogramSchema,
+})
+
+export type OdontogramWrite = z.infer<typeof odontogramWriteSchema>
+
+export const odontogramResponseSchema = z.object({
+  version: z.number().int().min(0),
+  data: odontogramSchema.nullable(),
+  updatedAt: z.string().nullable(),
+})
+
+export type OdontogramResponse = z.infer<typeof odontogramResponseSchema>

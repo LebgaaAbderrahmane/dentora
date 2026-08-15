@@ -3,6 +3,10 @@ import {
   type AuditAction,
   type AuditList,
   type AuthResponse,
+  type MedicalHistoryResponse,
+  type MedicalHistoryWrite,
+  type OdontogramResponse,
+  type OdontogramWrite,
   type Patient,
   type PatientDetail,
   type PatientInput,
@@ -103,4 +107,21 @@ export const api = {
 
   restorePatient: (id: string) =>
     request<Patient>(`/api/patients/${id}/restore`, { method: 'POST' }),
+
+  medicalHistory: (id: string) =>
+    request<MedicalHistoryResponse>(`/api/patients/${id}/medical-history`),
+
+  saveMedicalHistory: (id: string, input: MedicalHistoryWrite) =>
+    request<MedicalHistoryResponse>(`/api/patients/${id}/medical-history`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  odontogram: (id: string) => request<OdontogramResponse>(`/api/patients/${id}/odontogram`),
+
+  saveOdontogram: (id: string, input: OdontogramWrite) =>
+    request<OdontogramResponse>(`/api/patients/${id}/odontogram`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
 }

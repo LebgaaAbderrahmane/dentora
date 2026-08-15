@@ -11,26 +11,43 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 
 ## Routes (Phase 0.5–0.6)
 
-| Method | Path                             | Auth    | Description                                             |
-| ------ | -------------------------------- | ------- | ------------------------------------------------------- |
-| POST   | `/api/auth/login`                | —       | Create session, set httpOnly cookie                     |
-| POST   | `/api/auth/logout`               | session | Revoke current session, clear cookie                    |
-| GET    | `/api/auth/me`                   | session | Current user (safe fields)                              |
-| POST   | `/api/auth/revoke-all`           | session | Revoke all other sessions                               |
-| POST   | `/api/auth/change-password`      | session | Verify current + rotate password, revoke others         |
-| GET    | `/api/users`                     | ADMIN   | List staff of the branch                                |
-| PATCH  | `/api/users/:id/role`            | ADMIN   | Change role — **revokes all sessions** of the user      |
-| POST   | `/api/users/:id/revoke-sessions` | ADMIN   | Revoke all sessions of the user                         |
-| GET    | `/api/audit`                     | ADMIN   | Audit trail: paginated + filterable (action/actorEmail) |
-| GET    | `/api/patients`                  | staff*  | Paginated list: `q`, `archived`, `limit`, `offset`      |
-| POST   | `/api/patients`                  | staff*  | Create patient — **notes encrypted** at rest            |
-| GET    | `/api/patients/:id`              | staff*  | Detail — notes **decrypted only here** (audits VIEW)    |
-| PATCH  | `/api/patients/:id`              | staff*  | Update patient (partial), notes encrypted on change     |
-| POST   | `/api/patients/:id/archive`      | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED` |
-| POST   | `/api/patients/:id/restore`      | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`              |
+| Method | Path                                | Auth    | Description                                                          |
+| ------ | ----------------------------------- | ------- | -------------------------------------------------------------------- |
+| POST   | `/api/auth/login`                   | —       | Create session, set httpOnly cookie                                  |
+| POST   | `/api/auth/logout`                  | session | Revoke current session, clear cookie                                 |
+| GET    | `/api/auth/me`                      | session | Current user (safe fields)                                           |
+| POST   | `/api/auth/revoke-all`              | session | Revoke all other sessions                                            |
+| POST   | `/api/auth/change-password`         | session | Verify current + rotate password, revoke others                      |
+| GET    | `/api/users`                        | ADMIN   | List staff of the branch                                             |
+| PATCH  | `/api/users/:id/role`               | ADMIN   | Change role — **revokes all sessions** of the user                   |
+| POST   | `/api/users/:id/revoke-sessions`    | ADMIN   | Revoke all sessions of the user                                      |
+| GET    | `/api/audit`                        | ADMIN   | Audit trail: paginated + filterable (action/actorEmail)              |
+| GET    | `/api/patients`                     | staff*  | Paginated list: `q`, `archived`, `limit`, `offset`                   |
+| POST   | `/api/patients`                     | staff*  | Create patient — **notes encrypted** at rest                         |
+| GET    | `/api/patients/:id`                 | staff*  | Detail — notes **decrypted only here** (audits VIEW)                 |
+| PATCH  | `/api/patients/:id`                 | staff*  | Update patient (partial), notes encrypted on change                  |
+| POST   | `/api/patients/:id/archive`         | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED`              |
+| POST   | `/api/patients/:id/restore`         | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`                           |
+| GET    | `/api/patients/:id/medical-history` | staff*  | Record + `version`; `data: null` until first save (audits VIEW)      |
+| PUT    | `/api/patients/:id/medical-history` | staff*  | Upsert encrypted blob, **optimistic lock** (see below)               |
+| GET    | `/api/patients/:id/odontogram`      | staff*  | Tooth chart + `version`; `data: null` until first save (audits VIEW) |
+| PUT    | `/api/patients/:id/odontogram`      | staff*  | Upsert encrypted blob, **optimistic lock** (see below)               |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
+
+### Versioned blob endpoints (medical history / odontogram)
+
+Both are 1:1 encrypted records per patient. The whole record is one AES-256-GCM blob
+(`data`); a plaintext `version` column gives atomic optimistic concurrency, so two staff
+editing the same patient (e.g. dentist on the odontogram, receptionist on allergies)
+cannot silently clobber each other:
+
+- First save is an **upsert** (no row → created with `version: 1`).
+- `PUT` bodies are `{ version, data }`. If the stored version differs, the API answers
+  `409 {"error":"VERSION_CONFLICT","version":<current>}` and the client should refetch.
+- Every `GET` logs `PATIENT_MEDICAL_VIEW` / `PATIENT_ODONTOGRAM_VIEW`; every `PUT`
+  logs the matching `_UPDATE` audit event.
 
 Sessions are opaque 256-bit tokens; the DB stores only the SHA-256 hash (see `docs/security.md`).
 
@@ -45,5 +62,5 @@ Sessions are opaque 256-bit tokens; the DB stores only the SHA-256 hash (see `do
 Every mutating/auth event writes a row to `audit_logs` via `src/lib/audit.ts`
 (`recordAudit` / `recordAuditFor(req)`): who, what (`action`), on which record
 (`targetType`/`targetId`), `metadata` (before/after snapshots), `ip`, `userAgent`, and `createdAt`.
-Logged today: login success/failure, logout, change-password, revoke-all, role change, revoke sessions.
-Patient events (`PATIENT_VIEW/_CREATE/_UPDATE/_DELETE`) are wired for Phase 1.1.
+Logged today: login success/failure, logout, change-password, revoke-all, role change, revoke sessions,
+patient view/create/update/archive/restore, medical-history view/update, odontogram view/update.

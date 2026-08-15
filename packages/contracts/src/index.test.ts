@@ -4,6 +4,12 @@ import {
   auditEntrySchema,
   auditQuerySchema,
   loginSchema,
+  medicalHistoryResponseSchema,
+  medicalHistorySchema,
+  medicalHistoryWriteSchema,
+  odontogramResponseSchema,
+  odontogramSchema,
+  odontogramWriteSchema,
   patientInputSchema,
   patientQuerySchema,
   patientUpdateSchema,
@@ -90,6 +96,10 @@ describe('auth contracts', () => {
   it('auditActionSchema includes patient archive/restore', () => {
     expect(auditActionSchema.parse('PATIENT_ARCHIVED')).toBe('PATIENT_ARCHIVED')
     expect(auditActionSchema.parse('PATIENT_RESTORE')).toBe('PATIENT_RESTORE')
+    expect(auditActionSchema.parse('PATIENT_MEDICAL_VIEW')).toBe('PATIENT_MEDICAL_VIEW')
+    expect(auditActionSchema.parse('PATIENT_MEDICAL_UPDATE')).toBe('PATIENT_MEDICAL_UPDATE')
+    expect(auditActionSchema.parse('PATIENT_ODONTOGRAM_VIEW')).toBe('PATIENT_ODONTOGRAM_VIEW')
+    expect(auditActionSchema.parse('PATIENT_ODONTOGRAM_UPDATE')).toBe('PATIENT_ODONTOGRAM_UPDATE')
     expect(() => auditActionSchema.parse('PATIENT_DELETE')).toThrow()
   })
 
@@ -129,5 +139,83 @@ describe('auth contracts', () => {
     expect(patientQuerySchema.parse({ offset: '5' }).offset).toBe(5)
     expect(() => patientQuerySchema.parse({ archived: 'all' })).toThrow()
     expect(() => patientQuerySchema.parse({ limit: '500' })).toThrow()
+  })
+
+  it('medicalHistoryWriteSchema requires a version and non-empty history', () => {
+    const ok = medicalHistoryWriteSchema.safeParse({
+      version: 0,
+      data: { allergies: 'Penicillin', medications: 'Metformin' },
+    })
+    expect(ok.success).toBe(true)
+    expect(medicalHistoryWriteSchema.safeParse({ data: {} }).success).toBe(false)
+    expect(medicalHistoryWriteSchema.safeParse({ version: -1, data: {} }).success).toBe(false)
+    expect(medicalHistoryWriteSchema.safeParse({ version: 2 }).success).toBe(false)
+  })
+
+  it('medicalHistorySchema accepts a single optional field and rejects empty', () => {
+    expect(medicalHistorySchema.parse({ conditions: 'Asthma' })).toMatchObject({
+      conditions: 'Asthma',
+    })
+    expect(medicalHistorySchema.safeParse({}).success).toBe(false)
+    expect(medicalHistorySchema.safeParse({ allergies: 'a'.repeat(4001) }).success).toBe(false)
+  })
+
+  it('medicalHistoryResponseSchema validates first-save placeholder and populated reads', () => {
+    const empty = medicalHistoryResponseSchema.safeParse({
+      version: 0,
+      data: null,
+      updatedAt: null,
+    })
+    expect(empty.success).toBe(true)
+    const populated = medicalHistoryResponseSchema.safeParse({
+      version: 1,
+      data: { otherNotes: 'wheelchair' },
+      updatedAt: '2026-08-15T12:00:00.000Z',
+    })
+    expect(populated.success).toBe(true)
+  })
+
+  it('odontogramWriteSchema requires a version and FDI tooth keys', () => {
+    const ok = odontogramWriteSchema.safeParse({
+      version: 0,
+      data: {
+        teeth: {
+          '11': { status: 'present', surfaces: { m: [], d: ['caries'], o: [], b: [], l: [] } },
+        },
+      },
+    })
+    expect(ok.success).toBe(true)
+    expect(
+      odontogramWriteSchema.safeParse({
+        version: 1,
+        data: {
+          teeth: { 99: { status: 'present', surfaces: { m: [], d: [], o: [], b: [], l: [] } } },
+        },
+      }).success,
+    ).toBe(false)
+    expect(odontogramWriteSchema.safeParse({ version: 1, data: { teeth: {} } }).success).toBe(false)
+  })
+
+  it('odontogramSchema bounds conditions and statuses', () => {
+    expect(() =>
+      odontogramSchema.parse({
+        teeth: {
+          '21': { status: 'ghost', surfaces: { m: [], d: [], o: [], b: [], l: [] } },
+        },
+      }),
+    ).toThrow()
+    expect(() =>
+      odontogramSchema.parse({
+        teeth: {
+          '31': { status: 'missing', surfaces: { m: ['bogus'], d: [], o: [], b: [], l: [] } },
+        },
+      }),
+    ).toThrow()
+  })
+
+  it('odontogramResponseSchema validates first-save placeholder', () => {
+    expect(
+      odontogramResponseSchema.safeParse({ version: 0, data: null, updatedAt: null }).success,
+    ).toBe(true)
   })
 })
