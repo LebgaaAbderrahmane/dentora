@@ -9,6 +9,8 @@ import {
   type OdontogramWrite,
   type Patient,
   type PatientDetail,
+  type PatientDocument,
+  type PatientDocumentList,
   type PatientInput,
   type PatientList,
   type PatientQueryParams,
@@ -124,4 +126,49 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
+
+  documents: (id: string, params: { limit?: number; offset?: number } = {}) => {
+    const q = new URLSearchParams()
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<PatientDocumentList>(`/api/patients/${id}/documents?${q.toString()}`)
+  },
+
+  uploadDocument: (
+    id: string,
+    file: File,
+    onProgress?: (fraction: number) => void,
+  ): Promise<PatientDocument> =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `/api/patients/${id}/documents`)
+      xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name))
+      xhr.setRequestHeader('X-File-Mime', file.type || 'application/octet-stream')
+      xhr.withCredentials = true
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total)
+      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText) as PatientDocument)
+          } catch {
+            reject(new ApiError(xhr.status, 'INVALID_RESPONSE'))
+          }
+        } else {
+          let detail = `${xhr.status} ${xhr.statusText}`
+          try {
+            const body = JSON.parse(xhr.responseText) as { error?: string }
+            if (body.error) detail = body.error
+          } catch {
+            // non-JSON body — keep default detail
+          }
+          reject(new ApiError(xhr.status, detail))
+        }
+      }
+      xhr.onerror = () => reject(new ApiError(0, 'NETWORK_ERROR'))
+      xhr.send(file)
+    }),
+
+  documentUrl: (id: string, documentId: string) => `/api/patients/${id}/documents/${documentId}`,
 }

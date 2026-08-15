@@ -16,6 +16,7 @@ import { Button, Field, Input, Modal, useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
+import { DocumentsTab } from './DocumentsTab'
 import { OdontogramChart } from '../components/OdontogramChart'
 import { TOOTH_CONDITIONS, TOOTH_STATUSES, TOOTH_SURFACES } from '../components/odontogram'
 
@@ -296,7 +297,7 @@ function PatientForm({
   )
 }
 
-type DetailTab = 'details' | 'medical' | 'odontogram'
+type DetailTab = 'details' | 'medical' | 'odontogram' | 'documents'
 
 function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => void }) {
   const { t } = useI18n()
@@ -334,6 +335,7 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
     { id: 'details', label: t('patients.tabs.details') },
     { id: 'medical', label: t('patients.tabs.medicalHistory') },
     { id: 'odontogram', label: t('patients.tabs.odontogram') },
+    { id: 'documents', label: t('patients.tabs.documents') },
   ]
 
   return (
@@ -389,6 +391,7 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
       )}
       {tab === 'medical' && <MedicalHistoryTab patientId={patient.id} />}
       {tab === 'odontogram' && <OdontogramTab patientId={patient.id} />}
+      {tab === 'documents' && <DocumentsTab patientId={patient.id} />}
     </Modal>
   )
 }

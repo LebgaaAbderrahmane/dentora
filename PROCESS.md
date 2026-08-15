@@ -31,26 +31,26 @@ Requirements: visually & code professional, fr/ar/en (RTL), DZD currency. Medica
 
 ## 3. Confirmed decisions
 
-| Area           | Decision                                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Deployment     | Self-hosted web app, VPS + Docker Compose; **manual deploy runbook initially** (ADR 011), CI/CD decided in 6.6             |
-| Backend        | Express + TypeScript + Prisma + PostgreSQL                                                                                 |
-| API style      | REST + Zod; schemas shared via `packages/contracts` (ADR 002)                                                              |
-| Frontend       | **Three** Vite SPAs: `web` (public), `admin` (staff), `portal` (patients) — ADR 003                                        |
-| Frontend stack | React Router v7, TanStack Query, React Hook Form + Zod, Zustand, recharts, Tailwind 4                                      |
-| Auth           | httpOnly cookie sessions + server-side session store; revoke-all endpoint; revocation on role change                       |
-| Roles          | `admin` · `dentist` · `receptionist` · `accountant` · `intern` · `patient`                                                 |
-| Scope          | Staff app + patient portal; public marketing site kept separate                                                            |
-| Branches       | Single clinic now, `branchId` everywhere (multi-branch ready)                                                              |
-| Offline        | PWA (Workbox): cache app shell, offline-queue bookings                                                                     |
-| i18n           | fr / ar / en, RTL, DZD (reuse existing i18next system)                                                                     |
-| Monorepo       | pnpm workspaces: `apps/{web,admin,portal,api}`, `packages/{contracts,ui,config}`                                           |
-| Object storage | **MinIO** (S3-compatible, self-hosted) for documents/X-rays; signed-URL delivery; server-side encryption at rest (ADR 005) |
-| Encryption     | Field-level AES-256-GCM for MedicalHistory; app-level key via env (ADR 006)                                                |
-| Audit log      | Basic (view/edit on patient records) from Phase 0; admin UI in Phase 6 (ADR 007)                                           |
-| Observability  | Sentry on api + admin/portal from Phase 0 (ADR 009)                                                                        |
-| Backups        | Nightly pg_dump + WAL archiving/PITR; documented RTO/RPO; restore runbook (ADR 010)                                        |
-| Infra          | postgres + minio + api + SPAs (nginx) + caddy TLS                                                                          |
+| Area           | Decision                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployment     | Self-hosted web app, VPS + Docker Compose; **manual deploy runbook initially** (ADR 011), CI/CD decided in 6.6                                                            |
+| Backend        | Express + TypeScript + Prisma + PostgreSQL                                                                                                                                |
+| API style      | REST + Zod; schemas shared via `packages/contracts` (ADR 002)                                                                                                             |
+| Frontend       | **Three** Vite SPAs: `web` (public), `admin` (staff), `portal` (patients) — ADR 003                                                                                       |
+| Frontend stack | React Router v7, TanStack Query, React Hook Form + Zod, Zustand, recharts, Tailwind 4                                                                                     |
+| Auth           | httpOnly cookie sessions + server-side session store; revoke-all endpoint; revocation on role change                                                                      |
+| Roles          | `admin` · `dentist` · `receptionist` · `accountant` · `intern` · `patient`                                                                                                |
+| Scope          | Staff app + patient portal; public marketing site kept separate                                                                                                           |
+| Branches       | Single clinic now, `branchId` everywhere (multi-branch ready)                                                                                                             |
+| Offline        | PWA (Workbox): cache app shell, offline-queue bookings                                                                                                                    |
+| i18n           | fr / ar / en, RTL, DZD (reuse existing i18next system)                                                                                                                    |
+| Monorepo       | pnpm workspaces: `apps/{web,admin,portal,api}`, `packages/{contracts,ui,config}`                                                                                          |
+| Object storage | **MinIO** (S3-compatible, self-hosted) for documents/X-rays; **proxied download through API** (RBAC + audit per view); client-side envelope encryption (ADR 005, amended) |
+| Encryption     | Field-level AES-256-GCM for MedicalHistory; app-level key via env (ADR 006)                                                                                               |
+| Audit log      | Basic (view/edit on patient records) from Phase 0; admin UI in Phase 6 (ADR 007)                                                                                          |
+| Observability  | Sentry on api + admin/portal from Phase 0 (ADR 009)                                                                                                                       |
+| Backups        | Nightly pg_dump + WAL archiving/PITR; documented RTO/RPO; restore runbook (ADR 010)                                                                                       |
+| Infra          | postgres + minio + api + SPAs (nginx) + caddy TLS                                                                                                                         |
 
 ## 4. Architecture
 
@@ -71,7 +71,7 @@ dentora/
 └─ PROCESS.md       # this file
 ```
 
-Data flow: frontends → api (Zod-validated REST) → PostgreSQL + MinIO. Files are never served directly from the app; clients get short-lived signed URLs.
+Data flow: frontends → api (Zod-validated REST) → PostgreSQL + MinIO. Files are never directly reachable; the API proxies every upload/download through RBAC + audit.
 
 ## 5. Infrastructure (VPS + Docker)
 
@@ -137,7 +137,7 @@ Goal: prove login → authed API → admin dashboard stub end-to-end. No specula
 - [x] **1.1 Patients CRUD + search/pagination** — branch-scoped routes (ADMIN/DENTIST/RECEPTIONIST), create/update/detail/list with ILIKE search (`q`) + `archived` filter, soft-delete via `archivedAt` (+`PATIENT_ARCHIVED`/`PATIENT_RESTORE` audit events), `notes` AES-256-GCM encrypted at rest and decrypted only on detail; API contract tests + live-verified; admin PatientsView (search, table, create/edit/detail modals, archive/restore) ✅
 - [x] **1.2 Medical history (record/edit, encrypted blob)** — `PatientMedicalHistory` 1:1 per patient, whole-record AES-256-GCM blob; `GET/PUT /api/patients/:id/medical-history`; **optimistic-lock** (`version` plaintext column, atomic `updateMany` where patientId+version) returning `VERSION_CONFLICT` 409 with current version; PUT is upsert (first save creates); `PATIENT_MEDICAL_VIEW`/`UPDATE` audit; admin detail tab with 7 free-text fields ✅
 - [x] **1.3 Odontogram (interactive tooth chart)** — `PatientOdontogram` 1:1 encrypted JSON blob (FDI codes 11–48, per-surface condition enums); `GET/PUT /api/patients/:id/odontogram` same version-lock + upsert + audit pattern; hand-rolled SVG chart (32 teeth, 4 quadrants) with ≥44px touch targets in a per-tooth editor, keyboard + aria support; admin detail tab ✅
-- [ ] 1.4 Documents upload/view (MinIO, signed URLs, audit on view)
+      |- [ ] 1.4 Documents upload/view (MinIO, envelope encryption, proxied download, audit on view) |
 - [ ] 1.5 Appointments calendar (day/week/month) + conflict check + statuses
 - [ ] 1.6 Waiting list + no-show handling
 - [ ] 1.7 Dashboard KPIs (today's visits, revenue, no-shows, low-stock alerts)
@@ -216,17 +216,17 @@ Goal: prove login → authed API → admin dashboard stub end-to-end. No specula
 
 ## 13. ADR decision log
 
-| #   | Date       | Decision                                                   | Reason                                        |
-| --- | ---------- | ---------------------------------------------------------- | --------------------------------------------- |
-| 002 | 2026-08-14 | REST + Zod + shared `packages/contracts`                   | Contract safety across TS apps                |
-| 003 | 2026-08-14 | Three frontends: web/admin/portal                          | Auth isolation; web stays SEO marketing site  |
-| 005 | 2026-08-14 | MinIO object storage, signed-URL delivery                  | Self-hosted, S3-compatible, medical documents |
-| 006 | 2026-08-14 | Field-level AES-256-GCM for MedicalHistory                 | Sensitive medical data at rest                |
-| 007 | 2026-08-14 | Basic audit log from Phase 0                               | No blind spot on patient-data access          |
-| 009 | 2026-08-14 | Sentry from Phase 0                                        | Clinic-critical; fail with visibility         |
-| 010 | 2026-08-14 | pg_dump + WAL/PITR, documented RTO/RPO                     | Medical/financial data survivability          |
-| 011 | 2026-08-14 | Manual deploy runbook initially; CD decided in 6.6         | Ship first, automate later                    |
-|     |            | (append as decisions are made; full detail in `docs/adr/`) |                                               |
+| #   | Date       | Decision                                                   | Reason                                                        |
+| --- | ---------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
+| 002 | 2026-08-14 | REST + Zod + shared `packages/contracts`                   | Contract safety across TS apps                                |
+| 003 | 2026-08-14 | Three frontends: web/admin/portal                          | Auth isolation; web stays SEO marketing site                  |
+| 005 | 2026-08-14 | MinIO object storage, proxied delivery + envelope enc.     | Self-hosted, S3-compatible, medical documents (amended 08-15) |
+| 006 | 2026-08-14 | Field-level AES-256-GCM for MedicalHistory                 | Sensitive medical data at rest                                |
+| 007 | 2026-08-14 | Basic audit log from Phase 0                               | No blind spot on patient-data access                          |
+| 009 | 2026-08-14 | Sentry from Phase 0                                        | Clinic-critical; fail with visibility                         |
+| 010 | 2026-08-14 | pg_dump + WAL/PITR, documented RTO/RPO                     | Medical/financial data survivability                          |
+| 011 | 2026-08-14 | Manual deploy runbook initially; CD decided in 6.6         | Ship first, automate later                                    |
+|     |            | (append as decisions are made; full detail in `docs/adr/`) |                                                               |
 
 ## 14. Session log / progress
 

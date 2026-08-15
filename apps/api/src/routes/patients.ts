@@ -1,4 +1,6 @@
 import { Router, type Request as ExpressRequest, type Response as ExpressResponse } from 'express'
+import express from 'express'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import {
   type AuditAction,
@@ -10,6 +12,9 @@ import {
   odontogramSchema,
   odontogramWriteSchema,
   patientDetailSchema,
+  patientDocumentListSchema,
+  patientDocumentQuerySchema,
+  patientDocumentSchema,
   patientInputSchema,
   patientListSchema,
   patientQuerySchema,
@@ -20,7 +25,15 @@ import { Prisma } from '../generated/prisma/client'
 import { assertAuth, requireAuth, requireRole } from '../lib/auth'
 import { prisma } from '../lib/prisma'
 import { recordAuditFor } from '../lib/audit'
-import { encrypt, decrypt } from '../lib/encryption'
+import { decrypt, encrypt } from '../lib/encryption'
+import { decryptDocument, encryptDocument } from '../lib/encryption'
+import {
+  getEncryptedObject,
+  getClient,
+  objectKey,
+  putEncryptedObject,
+  S3_BUCKET,
+} from '../lib/storage'
 
 const router = Router()
 
@@ -207,6 +220,140 @@ async function setArchived(req: ExpressRequest, res: ExpressResponse, archivedAt
 
 router.post('/:id/archive', (req, res) => void setArchived(req, res, new Date()))
 router.post('/:id/restore', (req, res) => void setArchived(req, res, null))
+
+const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024
+
+function toDocument(row: {
+  id: string
+  patientId: string
+  originalName: string
+  mimeType: string
+  size: number
+  createdAt: Date
+}) {
+  return patientDocumentSchema.parse({
+    id: row.id,
+    patientId: row.patientId,
+    originalName: row.originalName,
+    mimeType: row.mimeType,
+    size: row.size,
+    createdAt: row.createdAt.toISOString(),
+  })
+}
+
+router.get('/:id/documents', async (req, res) => {
+  const parsed = patientDocumentQuerySchema.safeParse(req.query)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_QUERY', issues: parsed.error.flatten() })
+    return
+  }
+  const patientId = await findPatientOr404(req, res)
+  if (!patientId) return
+  const { user } = assertAuth(req)
+  const { branchId } = user
+  const { limit, offset } = parsed.data
+
+  const [total, rows] = await prisma.$transaction([
+    prisma.patientDocument.count({ where: { patientId, branchId } }),
+    prisma.patientDocument.findMany({
+      where: { patientId, branchId },
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+    }),
+  ])
+
+  res.json(patientDocumentListSchema.parse({ documents: rows.map(toDocument), total }))
+})
+
+const rawOctetStream = express.raw({ type: '*/*', limit: MAX_DOCUMENT_BYTES })
+
+router.post('/:id/documents', rawOctetStream, async (req, res) => {
+  const patientId = await findPatientOr404(req, res)
+  if (!patientId) return
+  const { user } = assertAuth(req)
+  const { branchId } = user
+  const rawName = String(req.headers['x-file-name'] ?? '').trim()
+  const originalName = decodeURIComponent(rawName).trim().slice(0, 255)
+
+  if (!originalName || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+    res
+      .status(400)
+      .json({ error: 'INVALID_DOCUMENT', issues: { originalName, bytes: req.body?.length ?? 0 } })
+    return
+  }
+
+  const mimeType = String(req.headers['x-file-mime'] ?? 'application/octet-stream')
+    .trim()
+    .slice(0, 200)
+
+  const documentId = randomUUID()
+  const key = objectKey(branchId, patientId, documentId)
+  const { ciphertext, envelope } = encryptDocument(req.body)
+
+  await putEncryptedObject(key, ciphertext, mimeType, envelope)
+
+  let row
+  try {
+    row = await prisma.patientDocument.create({
+      data: {
+        id: documentId,
+        patientId,
+        branchId,
+        objectKey: key,
+        originalName,
+        mimeType,
+        size: req.body.length,
+        uploadedById: user.id,
+      },
+    })
+  } catch (err) {
+    try {
+      await getClient().removeObject(S3_BUCKET, key)
+    } catch {
+      // orphan object is harmless and covered by bucket lifecycle rules
+    }
+    throw err
+  }
+
+  await recordAuditFor(req)({
+    action: 'PATIENT_DOCUMENT_CREATE',
+    targetType: 'PATIENT',
+    targetId: patientId,
+    metadata: { documentId, originalName, size: req.body.length },
+  })
+  res.status(201).json(toDocument(row))
+})
+
+router.get('/:id/documents/:documentId', async (req, res) => {
+  const patientId = await findPatientOr404(req, res)
+  if (!patientId) return
+  const { user } = assertAuth(req)
+  const { branchId } = user
+  const row = await prisma.patientDocument.findFirst({
+    where: { id: req.params.documentId as string, patientId, branchId },
+  })
+  if (!row) {
+    res.status(404).json({ error: 'NOT_FOUND' })
+    return
+  }
+
+  const stored = await getEncryptedObject(row.objectKey)
+  const plaintext = decryptDocument(stored.data, stored.envelope)
+
+  await recordAuditFor(req)({
+    action: 'PATIENT_DOCUMENT_VIEW',
+    targetType: 'PATIENT',
+    targetId: patientId,
+    metadata: { documentId: row.id, originalName: row.originalName, size: row.size },
+  })
+
+  res.status(200)
+  res.setHeader('Content-Type', row.mimeType)
+  res.setHeader('Content-Length', String(plaintext.length))
+  res.setHeader('Content-Disposition', `inline; filename="${row.originalName.replace(/"/g, '')}"`)
+  res.end(plaintext)
+})
 
 type BlobRow = { data: string; version: number; updatedAt: Date }
 
