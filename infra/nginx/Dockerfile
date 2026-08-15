@@ -4,7 +4,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps ./apps
 COPY packages ./packages
-RUN pnpm install --frozen-lockfile --filter @dentora/web --filter @dentora/admin --filter @dentora/portal
+RUN pnpm install --frozen-lockfile --fetch-timeout=300000 --fetch-retries=8 --filter '@dentora/web...' --filter '@dentora/admin...' --filter '@dentora/portal...'
 RUN pnpm --filter @dentora/web --filter @dentora/admin --filter @dentora/portal build
 
 FROM nginx:1.27-alpine

@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   Gender,
   MedicalHistory,
@@ -12,7 +12,7 @@ import type {
   ToothStatus,
   ToothSurface,
 } from '@dentora/contracts'
-import { Button, Input, useToast } from '@dentora/ui'
+import { Button, Field, Input, Modal, useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
@@ -234,7 +234,11 @@ function PatientForm({
   }
 
   return (
-    <Modal onClose={onClose} title={patient ? t('patients.edit') : t('patients.newPatient')}>
+    <Modal
+      onClose={onClose}
+      title={patient ? t('patients.edit') : t('patients.newPatient')}
+      closeLabel={t('common.close')}
+    >
       <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('patients.firstName')} required>
@@ -336,6 +340,7 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
     <Modal
       onClose={onClose}
       title={`${patient.lastName} ${patient.firstName}`}
+      closeLabel={t('common.close')}
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={onClose}>
@@ -656,76 +661,6 @@ function ToothEditor({
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  )
-}
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string
-  required?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-        {label}
-        {required ? ' *' : ''}
-      </span>
-      {children}
-    </label>
-  )
-}
-
-function Modal({
-  title,
-  onClose,
-  children,
-  footer,
-}: {
-  title: string
-  onClose: () => void
-  children: React.ReactNode
-  footer?: React.ReactNode
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = ref.current?.querySelector<HTMLElement>('input,select,textarea')
-    el?.focus()
-  }, [])
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900"
-      >
-        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3 dark:border-neutral-800">
-          <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
-          <button
-            onClick={onClose}
-            aria-label="close"
-            className="rounded-lg px-2 py-1 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            ×
-          </button>
-        </div>
-        <div className="overflow-y-auto p-5">{children}</div>
-        {footer && (
-          <div className="border-t border-neutral-200 px-5 py-3 dark:border-neutral-800">
-            {footer}
-          </div>
-        )}
       </div>
     </div>
   )
