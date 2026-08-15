@@ -11,30 +11,30 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 
 ## Routes (Phase 0.5–0.6)
 
-| Method | Path                                | Auth    | Description                                                          |
-| ------ | ----------------------------------- | ------- | -------------------------------------------------------------------- |
-| POST   | `/api/auth/login`                   | —       | Create session, set httpOnly cookie                                  |
-| POST   | `/api/auth/logout`                  | session | Revoke current session, clear cookie                                 |
-| GET    | `/api/auth/me`                      | session | Current user (safe fields)                                           |
-| POST   | `/api/auth/revoke-all`              | session | Revoke all other sessions                                            |
-| POST   | `/api/auth/change-password`         | session | Verify current + rotate password, revoke others                      |
-| GET    | `/api/users`                        | ADMIN   | List staff of the branch                                             |
-| PATCH  | `/api/users/:id/role`               | ADMIN   | Change role — **revokes all sessions** of the user                   |
-| POST   | `/api/users/:id/revoke-sessions`    | ADMIN   | Revoke all sessions of the user                                      |
-| GET    | `/api/audit`                        | ADMIN   | Audit trail: paginated + filterable (action/actorEmail)              |
-| GET    | `/api/patients`                     | staff*  | Paginated list: `q`, `archived`, `limit`, `offset`                   |
-| POST   | `/api/patients`                     | staff*  | Create patient — **notes encrypted** at rest                         |
-| GET    | `/api/patients/:id`                 | staff*  | Detail — notes **decrypted only here** (audits VIEW)                 |
-| PATCH  | `/api/patients/:id`                 | staff*  | Update patient (partial), notes encrypted on change                  |
-| POST   | `/api/patients/:id/archive`         | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED`              |
-| POST   | `/api/patients/:id/restore`         | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`                           |
-| GET    | `/api/patients/:id/medical-history` | staff*  | Record + `version`; `data: null` until first save (audits VIEW)      |
-| PUT    | `/api/patients/:id/medical-history` | staff*  | Upsert encrypted blob, **optimistic lock** (see below)               |
-| GET    | `/api/patients/:id/odontogram`      | staff*  | Tooth chart + `version`; `data: null` until first save (audits VIEW) |
-| PUT    | `/api/patients/:id/odontogram`      | staff*  | Upsert encrypted blob, **optimistic lock** (see below)               |
-| GET    | `/api/patients/:id/documents`       | staff*  | List document metadata (`originalName`, `mimeType`, `size`)           |
-| POST   | `/api/patients/:id/documents`       | staff*  | Upload: raw body (`application/octet-stream`, ≤50 MB), headers `X-File-Name` (URI-encoded), `X-File-Mime` |
-| GET    | `/api/patients/:id/documents/:docId`| staff*  | **Proxied download**: RBAC + branch scope, decrypts, streams, audits `PATIENT_DOCUMENT_VIEW` |
+| Method | Path                                 | Auth    | Description                                                                                               |
+| ------ | ------------------------------------ | ------- | --------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/auth/login`                    | —       | Create session, set httpOnly cookie                                                                       |
+| POST   | `/api/auth/logout`                   | session | Revoke current session, clear cookie                                                                      |
+| GET    | `/api/auth/me`                       | session | Current user (safe fields)                                                                                |
+| POST   | `/api/auth/revoke-all`               | session | Revoke all other sessions                                                                                 |
+| POST   | `/api/auth/change-password`          | session | Verify current + rotate password, revoke others                                                           |
+| GET    | `/api/users`                         | ADMIN   | List staff of the branch                                                                                  |
+| PATCH  | `/api/users/:id/role`                | ADMIN   | Change role — **revokes all sessions** of the user                                                        |
+| POST   | `/api/users/:id/revoke-sessions`     | ADMIN   | Revoke all sessions of the user                                                                           |
+| GET    | `/api/audit`                         | ADMIN   | Audit trail: paginated + filterable (action/actorEmail)                                                   |
+| GET    | `/api/patients`                      | staff*  | Paginated list: `q`, `archived`, `limit`, `offset`                                                        |
+| POST   | `/api/patients`                      | staff*  | Create patient — **notes encrypted** at rest                                                              |
+| GET    | `/api/patients/:id`                  | staff*  | Detail — notes **decrypted only here** (audits VIEW)                                                      |
+| PATCH  | `/api/patients/:id`                  | staff*  | Update patient (partial), notes encrypted on change                                                       |
+| POST   | `/api/patients/:id/archive`          | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED`                                                   |
+| POST   | `/api/patients/:id/restore`          | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`                                                                |
+| GET    | `/api/patients/:id/medical-history`  | staff*  | Record + `version`; `data: null` until first save (audits VIEW)                                           |
+| PUT    | `/api/patients/:id/medical-history`  | staff*  | Upsert encrypted blob, **optimistic lock** (see below)                                                    |
+| GET    | `/api/patients/:id/odontogram`       | staff*  | Tooth chart + `version`; `data: null` until first save (audits VIEW)                                      |
+| PUT    | `/api/patients/:id/odontogram`       | staff*  | Upsert encrypted blob, **optimistic lock** (see below)                                                    |
+| GET    | `/api/patients/:id/documents`        | staff*  | List document metadata (`originalName`, `mimeType`, `size`)                                               |
+| POST   | `/api/patients/:id/documents`        | staff*  | Upload: raw body (`application/octet-stream`, ≤50 MB), headers `X-File-Name` (URI-encoded), `X-File-Mime` |
+| GET    | `/api/patients/:id/documents/:docId` | staff*  | **Proxied download**: RBAC + branch scope, decrypts, streams, audits `PATIENT_DOCUMENT_VIEW`              |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
