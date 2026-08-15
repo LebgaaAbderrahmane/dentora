@@ -84,7 +84,8 @@ export const auditActionSchema = z.enum([
   'PATIENT_VIEW',
   'PATIENT_CREATE',
   'PATIENT_UPDATE',
-  'PATIENT_DELETE',
+  'PATIENT_ARCHIVED',
+  'PATIENT_RESTORE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -124,3 +125,70 @@ export const auditQuerySchema = z.object({
 })
 
 export type AuditQuery = z.infer<typeof auditQuerySchema>
+
+export const genderSchema = z.enum(['M', 'F', 'UNSPECIFIED'])
+
+export type Gender = z.infer<typeof genderSchema>
+
+export const patientInputSchema = z.object({
+  firstName: z.string().trim().min(1),
+  lastName: z.string().trim().min(1),
+  gender: genderSchema.optional(),
+  birthDate: z
+    .string()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'birthDate must be a valid date')
+    .optional(),
+  phone: z.string().trim().max(32).optional(),
+  email: z.string().trim().email().optional().or(z.literal('')),
+  address: z.string().trim().max(200).optional(),
+  notes: z.string().max(4000).optional(),
+})
+
+export type PatientInput = z.infer<typeof patientInputSchema>
+
+export const patientUpdateSchema = patientInputSchema
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, 'at least one field to update')
+
+export type PatientUpdate = z.infer<typeof patientUpdateSchema>
+
+export const patientSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  gender: genderSchema.nullable(),
+  birthDate: z.string().nullable(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  address: z.string().nullable(),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type Patient = z.infer<typeof patientSchema>
+
+export const patientDetailSchema = patientSchema.extend({
+  notes: z.string().nullable(),
+})
+
+export type PatientDetail = z.infer<typeof patientDetailSchema>
+
+export const patientListSchema = z.object({
+  patients: z.array(patientSchema),
+  total: z.number(),
+})
+
+export type PatientList = z.infer<typeof patientListSchema>
+
+export const patientQuerySchema = z.object({
+  q: z.string().trim().max(80).optional(),
+  archived: z.enum(['exclude', 'include', 'only']).default('exclude'),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type PatientQuery = z.infer<typeof patientQuerySchema>
+
+export type PatientQueryParams = z.input<typeof patientQuerySchema>

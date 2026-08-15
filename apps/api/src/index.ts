@@ -10,6 +10,7 @@ import { logger } from './lib/logger'
 import { initSentry, captureError } from './lib/sentry'
 import authRouter from './routes/auth'
 import auditRouter from './routes/audit'
+import patientsRouter from './routes/patients'
 import usersRouter from './routes/users'
 
 initSentry()
@@ -66,6 +67,7 @@ api.get('/system/status', async (_req, res) => {
 api.use('/auth', authRouter)
 api.use('/users', usersRouter)
 api.use('/audit', auditRouter)
+api.use('/patients', patientsRouter)
 
 app.use('/api', api)
 

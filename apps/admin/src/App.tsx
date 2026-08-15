@@ -8,6 +8,7 @@ import { api, ApiError } from './lib/api'
 import { DashboardView } from './views/DashboardView'
 import { UsersView } from './views/UsersView'
 import { AuditView } from './views/AuditView'
+import { PatientsView } from './views/PatientsView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -18,7 +19,7 @@ const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   PATIENT: 'role.patient',
 }
 
-type View = 'dashboard' | 'users' | 'audit'
+type View = 'dashboard' | 'users' | 'audit' | 'patients'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -126,8 +127,12 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const [view, setView] = useState<View>('dashboard')
 
   const isAdmin = user.role === 'ADMIN'
+  const canManagePatients = ['ADMIN', 'DENTIST', 'RECEPTIONIST'].includes(user.role)
   const views: Array<{ id: View; label: MessageKey }> = [
     { id: 'dashboard', label: 'nav.dashboard' },
+    ...(canManagePatients
+      ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey }]
+      : []),
     ...(isAdmin ? [{ id: 'users' as const, label: 'nav.users' as MessageKey }] : []),
     ...(isAdmin ? [{ id: 'audit' as const, label: 'nav.audit' as MessageKey }] : []),
   ]
@@ -179,12 +184,19 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
             {t(
-              view === 'dashboard' ? 'nav.dashboard' : view === 'users' ? 'nav.users' : 'nav.audit',
+              view === 'dashboard'
+                ? 'nav.dashboard'
+                : view === 'patients'
+                  ? 'nav.patients'
+                  : view === 'users'
+                    ? 'nav.users'
+                    : 'nav.audit',
             )}
           </h1>
           <Controls />
         </header>
         {view === 'dashboard' && <DashboardView />}
+        {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}
       </main>
