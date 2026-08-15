@@ -18,6 +18,10 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   PATIENT_UPDATE: 'audit.actions.patientUpdate',
   PATIENT_ARCHIVED: 'audit.actions.patientArchived',
   PATIENT_RESTORE: 'audit.actions.patientRestore',
+  PATIENT_MEDICAL_VIEW: 'audit.actions.patientMedicalView',
+  PATIENT_MEDICAL_UPDATE: 'audit.actions.patientMedicalUpdate',
+  PATIENT_ODONTOGRAM_VIEW: 'audit.actions.patientOdontogramView',
+  PATIENT_ODONTOGRAM_UPDATE: 'audit.actions.patientOdontogramUpdate',
 }
 
 export function AuditView() {

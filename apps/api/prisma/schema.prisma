@@ -29,6 +29,10 @@ enum AuditAction {
   PATIENT_UPDATE
   PATIENT_ARCHIVED
   PATIENT_RESTORE
+  PATIENT_MEDICAL_VIEW
+  PATIENT_MEDICAL_UPDATE
+  PATIENT_ODONTOGRAM_VIEW
+  PATIENT_ODONTOGRAM_UPDATE
 }
 
 enum AuditTarget {
@@ -99,10 +103,36 @@ model Patient {
   archivedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  medicalHistory PatientMedicalHistory?
+  odontogram     PatientOdontogram?
 
   @@index([branchId])
   @@index([firstName, lastName])
   @@map("patients")
+}
+
+model PatientMedicalHistory {
+  id        String   @id @default(cuid())
+  patientId String   @unique
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  data      String
+  version   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("patient_medical_histories")
+}
+
+model PatientOdontogram {
+  id        String   @id @default(cuid())
+  patientId String   @unique
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  data      String
+  version   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("patient_odontograms")
 }
 
 model Setting {
@@ -130,6 +160,7 @@ model AuditLog {
   createdAt  DateTime    @default(now())
 
   @@index([branchId, createdAt])
+  @@index([branchId, action, createdAt])
   @@index([action])
   @@index([actorId])
   @@map("audit_logs")
