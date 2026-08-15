@@ -55,16 +55,16 @@ migration entrypoint is an option; not done yet — the container stays unprivil
 - Tag images for the ability to roll back cleanly:
   `docker compose build`, `docker tag dentora-api:latest dentora-api:git-<sha>` (repeat
   for nginx/caddy); on revert, retag the previous sha and `up -d`.
-- **Database:** apply the *new* migration's inverse first (write a down-migration) or
+- **Database:** apply the _new_ migration's inverse first (write a down-migration) or
   restore from backup — `restore.sh --logical <daily dump>` (destructive) / PITR per
   `docs/backup-restore.md`. Never roll an app back past its DB schema.
 
 ## Incident quick-reference
 
-| Symptom | Action |
-| --- | --- |
-| data loss / bad write up to time T | PITR fork to T on 55432, inspect, then promote or logical-restore (backup runbook) |
-| ENCRYPTION_KEY lost | undecryptable fields; restore from backup before key rotation |
+| Symptom                                  | Action                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
+| data loss / bad write up to time T       | PITR fork to T on 55432, inspect, then promote or logical-restore (backup runbook)          |
+| ENCRYPTION_KEY lost                      | undecryptable fields; restore from backup before key rotation                               |
 | `pg_stat_archiver.failed_count` climbing | archiving broken — check volume ownership (chown in postgres-entrypoint.sh), re-sync `wal/` |
-| api down/misbehaving | `docker compose logs api`, Sentry; restart container |
-| TLS issuance | check caddy logs (`docker compose logs caddy`) — DNS/ports 80/443 must reach the host |
+| api down/misbehaving                     | `docker compose logs api`, Sentry; restart container                                        |
+| TLS issuance                             | check caddy logs (`docker compose logs caddy`) — DNS/ports 80/443 must reach the host       |

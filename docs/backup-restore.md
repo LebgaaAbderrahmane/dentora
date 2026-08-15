@@ -10,13 +10,13 @@ they locate `infra/` themselves and read `infra/.env`).
 
 Everything lives under `BACKUP_DIR` (default `<repo>/infra/backups`, gitignored).
 
-| Path                | Purpose                                                            | Retention |
-| ------------------- | ------------------------------------------------------------------ | --------- |
-| `daily/dentora-<ts>.sql.gz` | portable logical dump (`pg_dump -Fp -Z6`) — survives corrupted/PG-version drifts | 14 |
-| `wal/`              | continuous copy of archived WAL segments (`dentora_wal_archive` volume) | manual |
-| `base/<ts>/base.tar.gz` | physical base backup (`pg_basebackup -Ft -z -X stream`) | 3 |
-| `base/<ts>/pg_wal.tar.gz`  | redo/"streamed" WAL shipped with the base (`-X stream`) — must be restored alongside | (with base) |
-| `restore/`          | throwaway recovery-instance PGDATA (created by `restore.sh`)       | manual |
+| Path                        | Purpose                                                                              | Retention   |
+| --------------------------- | ------------------------------------------------------------------------------------ | ----------- |
+| `daily/dentora-<ts>.sql.gz` | portable logical dump (`pg_dump -Fp -Z6`) — survives corrupted/PG-version drifts     | 14          |
+| `wal/`                      | continuous copy of archived WAL segments (`dentora_wal_archive` volume)              | manual      |
+| `base/<ts>/base.tar.gz`     | physical base backup (`pg_basebackup -Ft -z -X stream`)                              | 3           |
+| `base/<ts>/pg_wal.tar.gz`   | redo/"streamed" WAL shipped with the base (`-X stream`) — must be restored alongside | (with base) |
+| `restore/`                  | throwaway recovery-instance PGDATA (created by `restore.sh`)                         | manual      |
 
 **RPO ≤ 5 min** (`archive_timeout=300` in compose). Reduce it or tighten `wal/` off-host
 copying if the clinic needs less data loss. **RTO measured 2026-08-15 drill: ~2 s**
@@ -96,7 +96,7 @@ Same shape, but you're committing to the recovered data. Concrete flow:
 - **Target must be after the base's redo point** (`Start-LSN` in
   `base/…/backup_manifest`). Restoring `0/41020028` from a base whose redo was
   `0/44000028` fails with `FATAL: requested recovery stop point is before consistent
-  recovery point`. Pick the newest base whose redo ≤ target.
+recovery point`. Pick the newest base whose redo ≤ target.
 - **The archive must already contain the segments up to the target.** Missing segment
   → recovery ends at `cp: can't stat '/wal_archive/…': No such file or directory`
   (end of available WAL, silent under-promise). Always `pg_switch_wal()` + re-run
