@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Button, Input, useTheme } from '@dentora/ui'
+import { useTheme } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { Locale, MessageKey } from '@dentora/i18n'
 import type { SafeUser } from '@dentora/contracts'
 import { api, ApiError } from './lib/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { DashboardView } from './views/DashboardView'
 import { UsersView } from './views/UsersView'
 import { AuditView } from './views/AuditView'
@@ -35,7 +44,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
+      <main className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         …
       </main>
     )
@@ -174,7 +183,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
               {t(ROLE_KEY[user.role])}
             </span>
           </div>
-          <Button variant="secondary" size="sm" onClick={onLoggedOut}>
+          <Button variant="outline" size="sm" onClick={onLoggedOut}>
             {t('auth.logout')}
           </Button>
         </div>
@@ -210,26 +219,26 @@ function Controls() {
 
   return (
     <div className="flex items-center gap-3">
-      <select
-        value={theme}
-        onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
-        className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-        aria-label={t('locale.label')}
-      >
-        <option value="system">{t('theme.system')}</option>
-        <option value="light">{t('theme.light')}</option>
-        <option value="dark">{t('theme.dark')}</option>
-      </select>
-      <select
-        value={locale}
-        onChange={(e) => setLocale(e.target.value as Locale)}
-        className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-        aria-label={t('locale.label')}
-      >
-        <option value="fr">{t('locale.fr')}</option>
-        <option value="ar">{t('locale.ar')}</option>
-        <option value="en">{t('locale.en')}</option>
-      </select>
+      <Select value={theme} onValueChange={(v) => setTheme(v as 'light' | 'dark' | 'system')}>
+        <SelectTrigger className="w-[110px]" aria-label={t('locale.label')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="system">{t('theme.system')}</SelectItem>
+          <SelectItem value="light">{t('theme.light')}</SelectItem>
+          <SelectItem value="dark">{t('theme.dark')}</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={locale} onValueChange={(v) => setLocale(v as Locale)}>
+        <SelectTrigger className="w-[90px]" aria-label={t('locale.label')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="fr">{t('locale.fr')}</SelectItem>
+          <SelectItem value="ar">{t('locale.ar')}</SelectItem>
+          <SelectItem value="en">{t('locale.en')}</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 }
