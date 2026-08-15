@@ -4,7 +4,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api ./apps/api
 COPY packages ./packages
-RUN pnpm install --frozen-lockfile --filter '@dentora/api...'
+RUN pnpm install --frozen-lockfile --fetch-timeout=300000 --fetch-retries=8 --filter '@dentora/api...'
 RUN pnpm --filter @dentora/api exec prisma generate
 RUN pnpm --filter @dentora/api build
 
@@ -15,7 +15,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY packages ./packages
-RUN pnpm install --frozen-lockfile --prod --filter '@dentora/api...'
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --fetch-timeout=300000 --fetch-retries=8 --filter '@dentora/api...'
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 USER node
 EXPOSE 4000

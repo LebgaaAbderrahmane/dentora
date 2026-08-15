@@ -22,6 +22,15 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 | PATCH  | `/api/users/:id/role`            | ADMIN   | Change role — **revokes all sessions** of the user      |
 | POST   | `/api/users/:id/revoke-sessions` | ADMIN   | Revoke all sessions of the user                         |
 | GET    | `/api/audit`                     | ADMIN   | Audit trail: paginated + filterable (action/actorEmail) |
+| GET    | `/api/patients`                  | staff*  | Paginated list: `q`, `archived`, `limit`, `offset`      |
+| POST   | `/api/patients`                  | staff*  | Create patient — **notes encrypted** at rest            |
+| GET    | `/api/patients/:id`              | staff*  | Detail — notes **decrypted only here** (audits VIEW)    |
+| PATCH  | `/api/patients/:id`              | staff*  | Update patient (partial), notes encrypted on change     |
+| POST   | `/api/patients/:id/archive`      | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED` |
+| POST   | `/api/patients/:id/restore`      | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`              |
+
+`*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
+`notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
 
 Sessions are opaque 256-bit tokens; the DB stores only the SHA-256 hash (see `docs/security.md`).
 

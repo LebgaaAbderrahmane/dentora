@@ -3,6 +3,11 @@ import {
   type AuditAction,
   type AuditList,
   type AuthResponse,
+  type Patient,
+  type PatientDetail,
+  type PatientInput,
+  type PatientList,
+  type PatientQueryParams,
   type Role,
   type SystemStatus,
   type UserList,
@@ -69,4 +74,33 @@ export const api = {
   },
 
   systemStatus: () => request<SystemStatus>('/api/system/status'),
+
+  patients: (params: PatientQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.archived) q.set('archived', params.archived)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<PatientList>(`/api/patients?${q.toString()}`)
+  },
+
+  patient: (id: string) => request<PatientDetail>(`/api/patients/${id}`),
+
+  createPatient: (input: PatientInput) =>
+    request<PatientDetail>('/api/patients', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updatePatient: (id: string, input: Partial<PatientInput>) =>
+    request<PatientDetail>(`/api/patients/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  archivePatient: (id: string) =>
+    request<Patient>(`/api/patients/${id}/archive`, { method: 'POST' }),
+
+  restorePatient: (id: string) =>
+    request<Patient>(`/api/patients/${id}/restore`, { method: 'POST' }),
 }
