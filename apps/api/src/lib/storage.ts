@@ -21,8 +21,13 @@ const ENV_TAG = 'x-amz-meta-dentora-envelope-tag'
 let client: Client | null = null
 
 function lookupMeta(meta: Record<string, string>, key: string): string | undefined {
-  const lower = key.toLowerCase()
-  return meta[key] ?? Object.entries(meta).find(([k]) => k.toLowerCase() === lower)?.[1]
+  const keyLc = key.toLowerCase()
+  const stripped = key.replace(/^x-amz-meta-(.*)/i, '$1').toLowerCase()
+  const entry = Object.entries(meta).find(([k]) => {
+    const lc = k.toLowerCase()
+    return lc === keyLc || lc === stripped
+  })
+  return entry?.[1]
 }
 
 export function getClient(): Client {
