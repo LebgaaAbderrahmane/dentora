@@ -90,6 +90,8 @@ export const auditActionSchema = z.enum([
   'PATIENT_MEDICAL_UPDATE',
   'PATIENT_ODONTOGRAM_VIEW',
   'PATIENT_ODONTOGRAM_UPDATE',
+  'PATIENT_DOCUMENT_CREATE',
+  'PATIENT_DOCUMENT_VIEW',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -297,3 +299,30 @@ export const odontogramResponseSchema = z.object({
 })
 
 export type OdontogramResponse = z.infer<typeof odontogramResponseSchema>
+
+export const FILE_NAME_MAX = 255
+
+export const patientDocumentSchema = z.object({
+  id: z.string(),
+  patientId: z.string(),
+  originalName: z.string().max(FILE_NAME_MAX),
+  mimeType: z.string().max(200),
+  size: z.number().int().min(0),
+  createdAt: z.string(),
+})
+
+export type PatientDocument = z.infer<typeof patientDocumentSchema>
+
+export const patientDocumentListSchema = z.object({
+  documents: z.array(patientDocumentSchema),
+  total: z.number().int().min(0),
+})
+
+export type PatientDocumentList = z.infer<typeof patientDocumentListSchema>
+
+export const patientDocumentQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type PatientDocumentQuery = z.infer<typeof patientDocumentQuerySchema>

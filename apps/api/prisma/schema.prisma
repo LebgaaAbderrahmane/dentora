@@ -33,6 +33,8 @@ enum AuditAction {
   PATIENT_MEDICAL_UPDATE
   PATIENT_ODONTOGRAM_VIEW
   PATIENT_ODONTOGRAM_UPDATE
+  PATIENT_DOCUMENT_CREATE
+  PATIENT_DOCUMENT_VIEW
 }
 
 enum AuditTarget {
@@ -54,6 +56,7 @@ model Branch {
   users     User[]
   patients  Patient[]
   settings  Setting[]
+  documents PatientDocument[]
 
   @@map("branches")
 }
@@ -70,6 +73,7 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   sessions     Session[]
+  documents    PatientDocument[]
 
   @@index([branchId])
   @@map("users")
@@ -105,10 +109,30 @@ model Patient {
   updatedAt  DateTime @updatedAt
   medicalHistory PatientMedicalHistory?
   odontogram     PatientOdontogram?
+  documents      PatientDocument[]
 
   @@index([branchId])
   @@index([firstName, lastName])
   @@map("patients")
+}
+
+model PatientDocument {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  objectKey    String   @unique
+  originalName String
+  mimeType     String
+  size         Int // original plaintext byte length (NOT the encrypted blob size)
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([patientId])
+  @@index([branchId])
+  @@map("patient_documents")
 }
 
 model PatientMedicalHistory {

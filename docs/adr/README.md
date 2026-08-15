@@ -7,7 +7,7 @@ Format follows [Michael Nygard's template](https://cognitect.com/blog/2011/11/15
 | -------------------------------------- | -------- | ------------------------------------------------------ |
 | [0002](0002-rest-zod-contracts.md)     | Accepted | REST + Zod + shared `packages/contracts`               |
 | [0003](0003-three-frontends.md)        | Accepted | Three frontends: web / admin / portal                  |
-| [0005](0005-minio-object-storage.md)   | Accepted | MinIO object storage, signed-URL delivery              |
+| [0005](0005-minio-object-storage.md)   | Accepted | MinIO object storage, proxied delivery + envelope enc. |
 | [0006](0006-field-level-encryption.md) | Accepted | Field-level AES-256-GCM for MedicalHistory             |
 | [0007](0007-audit-log.md)              | Accepted | Basic audit log from Phase 0                           |
 | [0009](0009-sentry.md)                 | Accepted | Sentry from Phase 0                                    |

@@ -10,6 +10,9 @@ import {
   odontogramResponseSchema,
   odontogramSchema,
   odontogramWriteSchema,
+  patientDocumentListSchema,
+  patientDocumentQuerySchema,
+  patientDocumentSchema,
   patientInputSchema,
   patientQuerySchema,
   patientUpdateSchema,
@@ -217,5 +220,75 @@ describe('auth contracts', () => {
     expect(
       odontogramResponseSchema.safeParse({ version: 0, data: null, updatedAt: null }).success,
     ).toBe(true)
+  })
+})
+
+describe('document contracts', () => {
+  it('patientDocumentSchema validates a stored document', () => {
+    const doc = patientDocumentSchema.parse({
+      id: 'doc_1',
+      patientId: 'patient_1',
+      originalName: 'pano-xray.jpg',
+      mimeType: 'image/jpeg',
+      size: 1024,
+      createdAt: '2026-08-15T10:00:00.000Z',
+    })
+    expect(doc.size).toBe(1024)
+  })
+
+  it('patientDocumentSchema rejects negative sizes and oversized names', () => {
+    expect(
+      patientDocumentSchema.safeParse({
+        id: 'doc_1',
+        patientId: 'p',
+        originalName: 'x',
+        mimeType: 'image/jpeg',
+        size: -1,
+        createdAt: '2026-08-15T10:00:00.000Z',
+      }).success,
+    ).toBe(false)
+    expect(
+      patientDocumentSchema.safeParse({
+        id: 'doc_1',
+        patientId: 'p',
+        originalName: 'y'.repeat(256),
+        mimeType: 'image/jpeg',
+        size: 0,
+        createdAt: '2026-08-15T10:00:00.000Z',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('patientDocumentListSchema validates paginated list', () => {
+    const list = patientDocumentListSchema.parse({ documents: [], total: 0 })
+    expect(list.total).toBe(0)
+    expect(
+      patientDocumentListSchema.safeParse({
+        documents: [
+          {
+            id: 'a',
+            patientId: 'p',
+            originalName: 'x',
+            mimeType: 'application/pdf',
+            size: 1,
+            createdAt: '2026-08-15T10:00:00.000Z',
+          },
+        ],
+        total: 1,
+      }).success,
+    ).toBe(true)
+  })
+
+  it('patientDocumentQuerySchema coerces query params', () => {
+    expect(patientDocumentQuerySchema.parse({}).limit).toBe(100)
+    expect(patientDocumentQuerySchema.parse({ limit: '5', offset: '10' })).toMatchObject({
+      limit: 5,
+      offset: 10,
+    })
+  })
+
+  it('auditActionSchema includes document actions', () => {
+    expect(auditActionSchema.options).toContain('PATIENT_DOCUMENT_CREATE')
+    expect(auditActionSchema.options).toContain('PATIENT_DOCUMENT_VIEW')
   })
 })
