@@ -27,6 +27,7 @@ import { prisma } from '../lib/prisma'
 import { recordAuditFor } from '../lib/audit'
 import { decrypt, encrypt } from '../lib/encryption'
 import { decryptDocument, encryptDocument } from '../lib/encryption'
+import { noShowStats } from '../lib/noShow'
 import {
   getEncryptedObject,
   getClient,
@@ -159,7 +160,19 @@ router.get('/:id', async (req, res) => {
     targetType: 'PATIENT',
     targetId: row.id,
   })
-  res.json(toDetail(row))
+
+  const [noShowCount, completedCount] = await Promise.all([
+    prisma.appointment.count({ where: { patientId: row.id, branchId, status: 'NOSHOW' } }),
+    prisma.appointment.count({ where: { patientId: row.id, branchId, status: 'COMPLETED' } }),
+  ])
+  const stats = noShowStats({ noShowCount, completedCount })
+  res.json(
+    patientDetailSchema.parse({
+      ...toSafe(row),
+      notes: row.notes ? decrypt(row.notes) : null,
+      ...stats,
+    }),
+  )
 })
 
 router.patch('/:id', async (req, res) => {

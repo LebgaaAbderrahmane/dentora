@@ -13,6 +13,8 @@ import auditRouter from './routes/audit'
 import patientsRouter from './routes/patients'
 import usersRouter from './routes/users'
 import appointmentsRouter from './routes/appointments'
+import staffRouter from './routes/staff'
+import waitlistRouter from './routes/waitlist'
 
 initSentry()
 
@@ -70,6 +72,8 @@ api.use('/users', usersRouter)
 api.use('/audit', auditRouter)
 api.use('/patients', patientsRouter)
 api.use('/appointments', appointmentsRouter)
+api.use('/waitlist', waitlistRouter)
+api.use('/staff', staffRouter)
 
 app.use('/api', api)
 

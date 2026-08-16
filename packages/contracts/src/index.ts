@@ -98,6 +98,10 @@ export const auditActionSchema = z.enum([
   'APPOINTMENT_RESCHEDULE',
   'APPOINTMENT_VIEW',
   'APPOINTMENT_NOSHOW',
+  'WAITLIST_CREATE',
+  'WAITLIST_UPDATE',
+  'WAITLIST_BOOK',
+  'WAITLIST_CANCEL',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -183,6 +187,8 @@ export type Patient = z.infer<typeof patientSchema>
 
 export const patientDetailSchema = patientSchema.extend({
   notes: z.string().nullable(),
+  noShowCount: z.number().int().min(0),
+  noShowRate: z.number().min(0).max(1),
 })
 
 export type PatientDetail = z.infer<typeof patientDetailSchema>
@@ -451,3 +457,115 @@ export const appointmentConflictSchema = z.object({
 })
 
 export type AppointmentConflict = z.infer<typeof appointmentConflictSchema>
+
+export const waitlistStatusSchema = z.enum([
+  'PENDING',
+  'CONTACTED',
+  'BOOKED',
+  'CANCELLED',
+  'EXPIRED',
+])
+
+export type WaitlistStatus = z.infer<typeof waitlistStatusSchema>
+
+export const WAITLIST_STATUSES = waitlistStatusSchema.options
+
+export const waitlistActiveStatuses: readonly WaitlistStatus[] = ['PENDING', 'CONTACTED']
+
+export const waitlistTerminalStatuses: readonly WaitlistStatus[] = [
+  'BOOKED',
+  'CANCELLED',
+  'EXPIRED',
+]
+
+export const waitlistInputSchema = z.object({
+  patientId: z.string().min(1),
+  dentistId: z.string().min(1).nullable().optional(),
+  preferredDate: z
+    .string()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'preferredDate must be a valid date-time')
+    .optional()
+    .nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+})
+
+export type WaitlistInput = z.infer<typeof waitlistInputSchema>
+
+export const waitlistUpdateSchema = z
+  .object({
+    dentistId: z.string().min(1).nullable().optional(),
+    preferredDate: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'preferredDate must be a valid date-time')
+      .optional()
+      .nullable(),
+    notes: z.string().max(1000).optional().nullable(),
+    status: waitlistStatusSchema.optional(),
+    appointmentId: z.string().min(1).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'at least one field to update')
+
+export type WaitlistUpdate = z.infer<typeof waitlistUpdateSchema>
+
+export const waitlistSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  patientId: z.string(),
+  patientName: z.string(),
+  dentistId: z.string().nullable(),
+  dentistName: z.string().nullable(),
+  preferredDate: z.string().nullable(),
+  status: waitlistStatusSchema,
+  appointmentId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type WaitlistEntry = z.infer<typeof waitlistSchema>
+
+export const waitlistDetailSchema = waitlistSchema.extend({
+  notes: z.string().nullable(),
+})
+
+export type WaitlistEntryDetail = z.infer<typeof waitlistDetailSchema>
+
+export const waitlistListSchema = z.object({
+  items: z.array(waitlistSchema),
+  total: z.number(),
+})
+
+export type WaitlistList = z.infer<typeof waitlistListSchema>
+
+export const waitlistQuerySchema = z.object({
+  status: waitlistStatusSchema.optional(),
+  dentistId: z.string().optional(),
+  patientId: z.string().optional(),
+  q: z.string().trim().max(80).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type WaitlistQuery = z.infer<typeof waitlistQuerySchema>
+
+export type WaitlistQueryParams = z.input<typeof waitlistQuerySchema>
+
+export const waitlistDuplicateErrorSchema = z.object({
+  error: z.literal('WAITLIST_ALREADY_ACTIVE'),
+  duplicateId: z.string(),
+})
+
+export type WaitlistDuplicateError = z.infer<typeof waitlistDuplicateErrorSchema>
+
+export const staffDentistSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+})
+
+export type StaffDentist = z.infer<typeof staffDentistSchema>
+
+export const staffDentistListSchema = z.object({
+  dentists: z.array(staffDentistSchema),
+})
+
+export type StaffDentistList = z.infer<typeof staffDentistListSchema>

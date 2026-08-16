@@ -5,7 +5,7 @@ import { useTheme } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { Locale, MessageKey } from '@dentora/i18n'
 import type { SafeUser } from '@dentora/contracts'
-import { LayoutDashboard, Users, UserCog, ScrollText, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, Users, UserCog, ScrollText, CalendarDays, ListTodo } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import { UsersView } from './views/UsersView'
 import { AuditView } from './views/AuditView'
 import { PatientsView } from './views/PatientsView'
 import { AppointmentsView } from './views/AppointmentsView'
+import { WaitlistView } from './views/WaitlistView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -31,7 +32,7 @@ const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   PATIENT: 'role.patient',
 }
 
-type View = 'dashboard' | 'users' | 'audit' | 'patients' | 'appointments'
+type View = 'dashboard' | 'users' | 'audit' | 'patients' | 'appointments' | 'waitlist'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -153,6 +154,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           ]
         : []),
       ...(canManagePatients
+        ? [{ id: 'waitlist' as const, label: 'nav.waitlist' as MessageKey, icon: ListTodo }]
+        : []),
+      ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
         : []),
       ...(isAdmin
@@ -215,17 +219,20 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                 ? 'nav.dashboard'
                 : view === 'appointments'
                   ? 'nav.appointments'
-                  : view === 'patients'
-                    ? 'nav.patients'
-                    : view === 'users'
-                      ? 'nav.users'
-                      : 'nav.audit',
+                  : view === 'waitlist'
+                    ? 'nav.waitlist'
+                    : view === 'patients'
+                      ? 'nav.patients'
+                      : view === 'users'
+                        ? 'nav.users'
+                        : 'nav.audit',
             )}
           </h1>
           <Controls />
         </header>
         {view === 'dashboard' && <DashboardView />}
         {view === 'appointments' && canManagePatients && <AppointmentsView />}
+        {view === 'waitlist' && canManagePatients && <WaitlistView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}

@@ -17,7 +17,7 @@ import { useI18n } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError, parseConflict } from '../lib/api'
-import type { Patient, SafeUser } from '@dentora/contracts'
+import type { Patient, StaffDentist } from '@dentora/contracts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -77,13 +77,13 @@ export function AppointmentsView() {
   const [viewMode, setViewMode] = useState<ViewMode>('timeGridWeek')
   const [editing, setEditing] = useState<Editing>(null)
   const [patients, setPatients] = useState<Patient[]>([])
-  const [dentists, setDentists] = useState<SafeUser[]>([])
+  const [dentists, setDentists] = useState<StaffDentist[]>([])
 
   useEffect(() => {
-    Promise.all([api.patients({ limit: 200 }), api.users()])
-      .then(([pr, users]) => {
+    Promise.all([api.patients({ limit: 200 }), api.dentists()])
+      .then(([pr, dentists]) => {
         setPatients(pr.patients)
-        setDentists(users.filter((u) => u.role === 'DENTIST'))
+        setDentists(dentists)
       })
       .catch(() => toast(t('auth.serverError'), 'error'))
   }, [t, toast])
@@ -275,7 +275,7 @@ function AppointmentDialog({
   defaultStart?: Date
   defaultEnd?: Date
   patients: Patient[]
-  dentists: SafeUser[]
+  dentists: StaffDentist[]
   onClose: () => void
   onSaved: () => void
 }) {

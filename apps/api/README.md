@@ -39,6 +39,11 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 | POST   | `/api/appointments`                  | staff*  | Create (PENDING/CONFIRMED/COMPLETED/CANCELLED/NOSHOW); notes encrypted; **409 CONFLICT** on double-book   |
 | GET    | `/api/appointments/:id`              | staff*  | Detail — notes **decrypted only here** (audits `APPOINTMENT_VIEW`)                                        |
 | PATCH  | `/api/appointments/:id`              | staff*  | Update/reschedule/cancel/no-show; re-checks conflict unless becoming terminal (audits per action)         |
+| GET    | `/api/waitlist`                      | staff*  | List `{items,total}`: filter `status`/`dentistId`/`patientId`/`q` (patient name), `limit` (≤200)/`offset` |
+| POST   | `/api/waitlist`                      | staff*  | Add patient to waiting list (`preferredDate`/`notes` encrypted); **409 WAITLIST_ALREADY_ACTIVE** on dup   |
+| GET    | `/api/waitlist/:id`                  | staff*  | Entry detail — notes **decrypted only here**                                                              |
+| PATCH  | `/api/waitlist/:id`                  | staff*  | Update/status transition; `BOOKED` requires a matching `appointmentId` (audits per action)                |
+| GET    | `/api/staff/dentists`                | staff*  | Branch-scoped dentist roster (`{id,name,email}`) for scheduling UIs                                       |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
@@ -88,6 +93,29 @@ Terminal statuses (`CANCELLED`/`NOSHOW`) never block rebooking a slot.
   never conflict. The merged window must satisfy `endAt > startAt` (a single-field PATCH cannot
   invert the schedule). Audit actions: `APPOINTMENT_UPDATE` / `_CANCEL` / `_NOSHOW` / `_RESCHEDULE`.
 - Notes are AES-256-GCM encrypted at rest; `GET /:id` decrypts, the range list never includes them.
+
+## Waiting list (Phase 1.6, ADR 014)
+
+Patients waiting for a slot. Lifecycle is **status-driven** — no hard delete:
+
+- `PENDING` → `CONTACTED` (receptionist called) → `BOOKED` (a real appointment was made), or
+  `CANCELLED`/`EXPIRED` as terminal removal states.
+- Only one `PENDING`/`CONTACTED` entry per patient: a second add answers
+  `409 {"error":"WAITLIST_ALREADY_ACTIVE","duplicateId":...}`.
+- `BOOKED` requires an `appointmentId` that must exist, be in the same branch, and belong to the
+  same patient (`400 UNKNOWN_APPOINTMENT` otherwise). The appointment itself is created through
+  `/api/appointments` (conflict checks apply there); the waitlist entry just links to it.
+- `notes` are AES-256-GCM encrypted at rest; the list rows never include them (ADR 006).
+- Audit: `WAITLIST_CREATE` / `WAITLIST_UPDATE` / `WAITLIST_BOOK` / `WAITLIST_CANCEL`, always
+  targeting the patient with `metadata.waitlistEntryId`.
+
+## No-show stats (Phase 1.6)
+
+`GET /api/patients/:id` additionally returns derived, never-stored fields:
+
+- `noShowCount` — appointments with status `NOSHOW` in the branch.
+- `noShowRate` — `noShow / (noShow + completed)` (0–1, 4-decimal precision). Pending and
+  cancelled visits never count as a resolved visit.
 
 ## Error tracking (ADR 009, Phase 0.7)
 
