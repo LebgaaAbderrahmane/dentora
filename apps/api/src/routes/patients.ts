@@ -75,10 +75,22 @@ function toSafe(row: {
   })
 }
 
-function toDetail(row: Parameters<typeof toSafe>[0] & { notes: string | null }) {
+// detail responses carry derived no-show stats (ADR 014). Every creation, update
+// and detail-read build on this so the two required fields are never missing.
+async function toDetailWithStats(row: Parameters<typeof toSafe>[0] & { notes: string | null }) {
+  const [noShowCount, completedCount] = await Promise.all([
+    prisma.appointment.count({
+      where: { patientId: row.id, branchId: row.branchId, status: 'NOSHOW' },
+    }),
+    prisma.appointment.count({
+      where: { patientId: row.id, branchId: row.branchId, status: 'COMPLETED' },
+    }),
+  ])
+  const stats = noShowStats({ noShowCount, completedCount })
   return patientDetailSchema.parse({
     ...toSafe(row),
     notes: row.notes ? decrypt(row.notes) : null,
+    ...stats,
   })
 }
 
@@ -145,7 +157,7 @@ router.post('/', async (req, res) => {
     targetId: created.id,
     metadata: { firstName: created.firstName, lastName: created.lastName },
   })
-  res.status(201).json(toDetail(created))
+  res.status(201).json(await toDetailWithStats(created))
 })
 
 router.get('/:id', async (req, res) => {
@@ -161,18 +173,7 @@ router.get('/:id', async (req, res) => {
     targetId: row.id,
   })
 
-  const [noShowCount, completedCount] = await Promise.all([
-    prisma.appointment.count({ where: { patientId: row.id, branchId, status: 'NOSHOW' } }),
-    prisma.appointment.count({ where: { patientId: row.id, branchId, status: 'COMPLETED' } }),
-  ])
-  const stats = noShowStats({ noShowCount, completedCount })
-  res.json(
-    patientDetailSchema.parse({
-      ...toSafe(row),
-      notes: row.notes ? decrypt(row.notes) : null,
-      ...stats,
-    }),
-  )
+  res.json(await toDetailWithStats(row))
 })
 
 router.patch('/:id', async (req, res) => {
@@ -208,7 +209,7 @@ router.patch('/:id', async (req, res) => {
     targetType: 'PATIENT',
     targetId: updated.id,
   })
-  res.json(toDetail(updated))
+  res.json(await toDetailWithStats(updated))
 })
 
 async function setArchived(req: ExpressRequest, res: ExpressResponse, archivedAt: Date | null) {

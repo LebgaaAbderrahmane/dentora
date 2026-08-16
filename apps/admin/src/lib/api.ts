@@ -9,6 +9,8 @@ import {
   type AuditAction,
   type AuditList,
   type AuthResponse,
+  type DashboardKpis,
+  type DashboardKpisQueryParams,
   type MedicalHistoryResponse,
   type MedicalHistoryWrite,
   type OdontogramResponse,
@@ -96,6 +98,14 @@ export const api = {
   },
 
   systemStatus: () => request<SystemStatus>('/api/system/status'),
+
+  dashboard: (params: DashboardKpisQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.windowStart) q.set('windowStart', params.windowStart)
+    return request<DashboardKpis>(`/api/dashboard/kpis?${q.toString()}`)
+  },
 
   patients: (params: PatientQueryParams = {}) => {
     const q = new URLSearchParams()

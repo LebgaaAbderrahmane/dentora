@@ -117,6 +117,28 @@ Patients waiting for a slot. Lifecycle is **status-driven** — no hard delete:
 - `noShowRate` — `noShow / (noShow + completed)` (0–1, 4-decimal precision). Pending and
   cancelled visits never count as a resolved visit.
 
+## Dashboard KPIs (Phase 1.7, ADR 015)
+
+`GET /api/dashboard/kpis` (ADMIN/DENTIST/RECEPTIONIST, branch-scoped). All figures are **derived
+on read** — nothing is stored or denormalized. The query takes optional absolute-instant windows
+(built by the client as its own local boundaries, mirroring the calendar range calls):
+
+- `from` (start of "today"), `to` (end of "today"), `windowStart` (start of the 30-day lookback).
+  Defaults: server-local today and a 30-day lookback.
+
+Response shape:
+
+- `visits.today` — `total` + `byStatus` counts for the window; `visits.upcoming` — today's
+  PENDING/CONFIRMED/COMPLETED appointments from now on, sorted, max 10 (list rows never carry
+  decrypted notes).
+- `noShow` — `today` (NOSHOW count in the window) + `rate30d` (same `noShow/(noShow+completed)`
+  formula as the patient detail stat, over the 30-day window).
+- `waitlist.active` — PENDING + CONTACTED entries.
+- `patients.total` (non-archived) + `patients.new30d` (created in the window).
+
+`revenue` and low-stock alerts are **intentionally absent**: invoicing (Phase 2) and inventory
+(Phase 3) do not exist yet — see ADR 015 for the deferral.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware
