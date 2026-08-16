@@ -31,6 +31,12 @@ import {
   roleSchema,
   safeUserSchema,
   staffDentistListSchema,
+  SERVICE_CATEGORIES,
+  serviceInputSchema,
+  serviceListResponseSchema,
+  serviceQuerySchema,
+  serviceSchema,
+  serviceUpdateSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -761,5 +767,61 @@ describe('public booking contracts', () => {
     const res = publicBookingResponseSchema.parse({ waitlistEntryId: 'w1' })
     expect(res.waitlistEntryId).toBe('w1')
     expect(publicBookingResponseSchema.safeParse({}).success).toBe(false)
+  })
+})
+
+describe('service catalog contracts', () => {
+  const valid = {
+    name: 'Détartrage',
+    category: 'HYGIENE' as const,
+    priceDZD: 2500,
+    durationMinutes: 30,
+  }
+
+  it('serviceSchema parses a full row and rejects a fractional price', () => {
+    const row = serviceSchema.parse({
+      ...valid,
+      id: 's1',
+      branchId: 'b1',
+      archivedAt: null,
+      reimbursablePct: 80,
+      createdAt: '2026-08-16T00:00:00.000Z',
+      updatedAt: '2026-08-16T00:00:00.000Z',
+    })
+    expect(row.priceDZD).toBe(2500)
+    expect(SERVICE_CATEGORIES).toContain('HYGIENE')
+    expect(serviceInputSchema.safeParse({ ...valid, priceDZD: 25.5 }).success).toBe(false)
+  })
+
+  it('serviceInputSchema defaults reimbursablePct to 0 and bounds it to 0-100', () => {
+    const parsed = serviceInputSchema.parse(valid)
+    expect(parsed.reimbursablePct).toBe(0)
+    expect(serviceInputSchema.safeParse({ ...valid, reimbursablePct: 120 }).success).toBe(false)
+    expect(serviceInputSchema.safeParse({ ...valid, reimbursablePct: -1 }).success).toBe(false)
+  })
+
+  it('serviceInputSchema rejects a missing name or an invalid duration', () => {
+    expect(serviceInputSchema.safeParse({ ...valid, name: '  ' }).success).toBe(false)
+    expect(serviceInputSchema.safeParse({ ...valid, durationMinutes: 0 }).success).toBe(false)
+  })
+
+  it('serviceUpdateSchema allows a partial patch', () => {
+    const parsed = serviceUpdateSchema.parse({ priceDZD: 3000 })
+    expect(parsed.priceDZD).toBe(3000)
+    expect(parsed.name).toBeUndefined()
+  })
+
+  it('serviceQuerySchema coerces limit/offset and rejects a bad archived value', () => {
+    expect(serviceQuerySchema.parse({ limit: '10' }).limit).toBe(10)
+    expect(serviceQuerySchema.parse({ archived: 'exclude' }).archived).toBe('exclude')
+    expect(serviceQuerySchema.safeParse({ archived: 'sometimes' }).success).toBe(false)
+  })
+
+  it('serviceListResponseSchema validates a list payload', () => {
+    const list = serviceListResponseSchema.parse({ items: [], total: 0 })
+    expect(list.total).toBe(0)
+    expect(serviceListResponseSchema.safeParse({ items: [{ id: 'x' }], total: 1 }).success).toBe(
+      false,
+    )
   })
 })

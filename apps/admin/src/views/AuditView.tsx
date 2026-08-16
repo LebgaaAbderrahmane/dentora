@@ -41,6 +41,10 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   WAITLIST_UPDATE: 'audit.actions.waitlistUpdate',
   WAITLIST_BOOK: 'audit.actions.waitlistBook',
   WAITLIST_CANCEL: 'audit.actions.waitlistCancel',
+  SERVICE_CREATE: 'audit.actions.serviceCreate',
+  SERVICE_UPDATE: 'audit.actions.serviceUpdate',
+  SERVICE_ARCHIVE: 'audit.actions.serviceArchive',
+  SERVICE_RESTORE: 'audit.actions.serviceRestore',
 }
 
 export function AuditView() {

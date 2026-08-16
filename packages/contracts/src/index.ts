@@ -102,11 +102,22 @@ export const auditActionSchema = z.enum([
   'WAITLIST_UPDATE',
   'WAITLIST_BOOK',
   'WAITLIST_CANCEL',
+  'SERVICE_CREATE',
+  'SERVICE_UPDATE',
+  'SERVICE_ARCHIVE',
+  'SERVICE_RESTORE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
 
-export const auditTargetSchema = z.enum(['USER', 'SESSION', 'PATIENT', 'BRANCH', 'SYSTEM'])
+export const auditTargetSchema = z.enum([
+  'USER',
+  'SESSION',
+  'PATIENT',
+  'BRANCH',
+  'SYSTEM',
+  'SERVICE',
+])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
 
@@ -680,3 +691,64 @@ export const publicBookingResponseSchema = z.object({
 })
 
 export type PublicBookingResponse = z.infer<typeof publicBookingResponseSchema>
+
+export const serviceCategorySchema = z.enum([
+  'CONSULTATION',
+  'SURGERY',
+  'CARE',
+  'HYGIENE',
+  'PROSTHETIC_ORTHO',
+  'IMAGING',
+])
+
+export type ServiceCategory = z.infer<typeof serviceCategorySchema>
+
+export const SERVICE_CATEGORIES = serviceCategorySchema.options
+
+export const serviceSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  name: z.string(),
+  category: serviceCategorySchema,
+  priceDZD: z.number().int().min(0),
+  durationMinutes: z.number().int().min(1),
+  reimbursablePct: z.number().int().min(0).max(100),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type Service = z.infer<typeof serviceSchema>
+
+export const serviceInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  category: serviceCategorySchema,
+  priceDZD: z.number().int().min(0).max(100_000_000),
+  durationMinutes: z.number().int().min(1).max(14_400),
+  reimbursablePct: z.number().int().min(0).max(100).default(0),
+})
+
+export type ServiceInput = z.infer<typeof serviceInputSchema>
+
+export const serviceUpdateSchema = serviceInputSchema.partial()
+
+export type ServiceUpdate = z.infer<typeof serviceUpdateSchema>
+
+export const serviceListResponseSchema = z.object({
+  items: z.array(serviceSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type ServiceList = z.infer<typeof serviceListResponseSchema>
+
+export const serviceQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  category: serviceCategorySchema.optional(),
+  archived: z.enum(['exclude', 'only']).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type ServiceQuery = z.infer<typeof serviceQuerySchema>
+
+export type ServiceQueryParams = z.input<typeof serviceQuerySchema>

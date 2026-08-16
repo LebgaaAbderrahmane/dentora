@@ -17,6 +17,7 @@ import staffRouter from './routes/staff'
 import waitlistRouter from './routes/waitlist'
 import dashboardRouter from './routes/dashboard'
 import publicRouter from './routes/public'
+import servicesRouter from './routes/services'
 
 initSentry()
 
@@ -78,6 +79,7 @@ api.use('/waitlist', waitlistRouter)
 api.use('/staff', staffRouter)
 api.use('/dashboard', dashboardRouter)
 api.use('/public', publicRouter)
+api.use('/services', servicesRouter)
 
 app.use('/api', api)
 
