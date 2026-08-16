@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  appointmentConflictSchema,
+  appointmentDetailSchema,
+  appointmentInputSchema,
+  appointmentListSchema,
+  appointmentQuerySchema,
+  appointmentSchema,
+  appointmentUpdateSchema,
   auditActionSchema,
   auditEntrySchema,
   auditQuerySchema,
@@ -290,5 +297,156 @@ describe('document contracts', () => {
   it('auditActionSchema includes document actions', () => {
     expect(auditActionSchema.options).toContain('PATIENT_DOCUMENT_CREATE')
     expect(auditActionSchema.options).toContain('PATIENT_DOCUMENT_VIEW')
+  })
+})
+
+describe('appointment contracts', () => {
+  const baseInput = {
+    patientId: 'p1',
+    dentistId: 'd1',
+    startAt: '2026-08-20T09:00:00.000Z',
+    endAt: '2026-08-20T09:30:00.000Z',
+  }
+
+  it('appointmentInputSchema accepts valid booking', () => {
+    const parsed = appointmentInputSchema.parse(baseInput)
+    expect(parsed.patientId).toBe('p1')
+    expect(parsed.status).toBeUndefined()
+  })
+
+  it('appointmentInputSchema rejects endAt before startAt and invalid dates', () => {
+    expect(
+      appointmentInputSchema.safeParse({ ...baseInput, endAt: '2026-08-20T08:00:00.000Z' }).success,
+    ).toBe(false)
+    expect(appointmentInputSchema.safeParse({ ...baseInput, startAt: 'nope' }).success).toBe(false)
+    expect(
+      appointmentInputSchema.safeParse({ ...baseInput, endAt: '2026-08-20T09:00:00.000Z' }).success,
+    ).toBe(false)
+  })
+
+  it('appointmentInputSchema allows absent dentist (unscheduled) and optional status/notes', () => {
+    const ok = appointmentInputSchema.safeParse({
+      patientId: 'p1',
+      startAt: '2026-08-20T09:00:00.000Z',
+      endAt: '2026-08-20T09:30:00.000Z',
+      status: 'CONFIRMED',
+      notes: 'recall check',
+    })
+    expect(ok.success).toBe(true)
+    expect(() => appointmentInputSchema.parse({ ...baseInput, status: 'BOGUS' })).toThrow()
+    expect(() => appointmentInputSchema.parse({ ...baseInput, notes: 'x'.repeat(4001) })).toThrow()
+  })
+
+  it('appointmentUpdateSchema requires a field and re-validates schedule', () => {
+    expect(appointmentUpdateSchema.safeParse({ status: 'CANCELLED' }).success).toBe(true)
+    expect(appointmentUpdateSchema.safeParse({}).success).toBe(false)
+    expect(
+      appointmentUpdateSchema.safeParse({
+        startAt: '2026-08-20T10:00:00.000Z',
+        endAt: '2026-08-20T09:30:00.000Z',
+      }).success,
+    ).toBe(false)
+    expect(appointmentUpdateSchema.safeParse({ notes: null }).success).toBe(false)
+  })
+
+  it('appointmentSchema validates list row shape without nullable notes leak', () => {
+    const row = appointmentSchema.safeParse({
+      id: 'a1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Kayla Benosman',
+      dentistId: 'd1',
+      dentistName: 'Dr Ali',
+      startAt: '2026-08-20T09:00:00.000Z',
+      endAt: '2026-08-20T09:30:00.000Z',
+      status: 'CONFIRMED',
+      createdAt: '2026-08-17T08:00:00.000Z',
+      updatedAt: '2026-08-17T08:00:00.000Z',
+    })
+    expect(row.success).toBe(true)
+    expect(row.success && 'notes' in row.data).toBe(false)
+  })
+
+  it('appointmentDetailSchema extends row with nullable notes', () => {
+    const detail = appointmentDetailSchema.safeParse({
+      id: 'a1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Kayla Benosman',
+      dentistId: 'd1',
+      dentistName: 'Dr Ali',
+      startAt: '2026-08-20T09:00:00.000Z',
+      endAt: '2026-08-20T09:30:00.000Z',
+      status: 'COMPLETED',
+      notes: 'prefers mornings',
+      createdAt: '2026-08-17T08:00:00.000Z',
+      updatedAt: '2026-08-17T08:00:00.000Z',
+    })
+    expect(detail.success).toBe(true)
+    expect(detail.success && detail.data.notes).toBe('prefers mornings')
+  })
+
+  it('appointmentListSchema validates a range list', () => {
+    expect(appointmentListSchema.safeParse({ items: [] }).success).toBe(true)
+    expect(
+      appointmentListSchema.safeParse({ items: [{ id: 'a1', status: 'NOSHOW' }] }).success,
+    ).toBe(false)
+  })
+
+  it('appointmentQuerySchema requires a bounded range', () => {
+    expect(
+      appointmentQuerySchema.parse({
+        start: '2026-08-20T00:00:00.000Z',
+        end: '2026-08-27T00:00:00.000Z',
+      }),
+    ).toMatchObject({
+      start: '2026-08-20T00:00:00.000Z',
+      end: '2026-08-27T00:00:00.000Z',
+    })
+    expect(
+      appointmentQuerySchema.safeParse({ start: 'bad', end: '2026-08-27T00:00:00.000Z' }).success,
+    ).toBe(false)
+    expect(appointmentQuerySchema.safeParse({}).success).toBe(false)
+    expect(
+      appointmentQuerySchema.parse({
+        start: '2026-08-20T00:00:00.000Z',
+        end: '2026-08-27T00:00:00.000Z',
+        dentistId: 'd1',
+        status: 'PENDING',
+        patientId: 'p1',
+      }).dentistId,
+    ).toBe('d1')
+  })
+
+  it('appointmentConflictSchema validates a conflict payload', () => {
+    const conflict = appointmentConflictSchema.safeParse({
+      error: 'CONFLICT',
+      overlaps: [
+        {
+          id: 'a1',
+          startAt: '2026-08-20T09:00:00.000Z',
+          endAt: '2026-08-20T09:30:00.000Z',
+          kind: 'dentist',
+          patientName: 'Kayla Benosman',
+        },
+      ],
+    })
+    expect(conflict.success).toBe(true)
+    expect(
+      appointmentConflictSchema.safeParse({ error: 'VERSION_CONFLICT', overlaps: [] }).success,
+    ).toBe(false)
+  })
+
+  it('auditActionSchema includes appointment actions', () => {
+    for (const action of [
+      'APPOINTMENT_CREATE',
+      'APPOINTMENT_UPDATE',
+      'APPOINTMENT_CANCEL',
+      'APPOINTMENT_RESCHEDULE',
+      'APPOINTMENT_NOSHOW',
+      'APPOINTMENT_VIEW',
+    ]) {
+      expect(auditActionSchema.options).toContain(action)
+    }
   })
 })

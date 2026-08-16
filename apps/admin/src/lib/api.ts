@@ -1,5 +1,11 @@
 import {
   revokeSessionsSchema,
+  type AppointmentConflict,
+  type AppointmentDetail,
+  type AppointmentInput,
+  type AppointmentList,
+  type AppointmentQueryParams,
+  type AppointmentUpdate,
   type AuditAction,
   type AuditList,
   type AuthResponse,
@@ -21,10 +27,12 @@ import {
 
 export class ApiError extends Error {
   status: number
+  body: unknown
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, body?: unknown) {
     super(message)
     this.status = status
+    this.body = body
   }
 }
 
@@ -36,13 +44,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     let detail = `${res.status} ${res.statusText}`
+    let body: unknown
     try {
-      const body = (await res.json()) as { error?: string }
-      if (body.error) detail = body.error
+      body = await res.json()
+      const parsed = body as { error?: string }
+      if (parsed.error) detail = parsed.error
     } catch {
       // non-JSON error body — keep default detail
     }
-    throw new ApiError(res.status, detail)
+    throw new ApiError(res.status, detail, body)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -171,4 +181,35 @@ export const api = {
     }),
 
   documentUrl: (id: string, documentId: string) => `/api/patients/${id}/documents/${documentId}`,
+
+  appointments: (params: AppointmentQueryParams) => {
+    const q = new URLSearchParams()
+    if (params.start) q.set('start', params.start)
+    if (params.end) q.set('end', params.end)
+    if (params.status) q.set('status', params.status)
+    if (params.dentistId) q.set('dentistId', params.dentistId)
+    if (params.patientId) q.set('patientId', params.patientId)
+    return request<AppointmentList>(`/api/appointments?${q.toString()}`)
+  },
+
+  appointment: (id: string) => request<AppointmentDetail>(`/api/appointments/${id}`),
+
+  createAppointment: (input: AppointmentInput) =>
+    request<AppointmentDetail>('/api/appointments', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateAppointment: (id: string, input: AppointmentUpdate) =>
+    request<AppointmentDetail>(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+}
+
+export function parseConflict(e: ApiError): AppointmentConflict | null {
+  if (e instanceof ApiError && e.message === 'CONFLICT' && e.body) {
+    return e.body as AppointmentConflict
+  }
+  return null
 }
