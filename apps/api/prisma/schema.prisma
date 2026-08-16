@@ -41,6 +41,10 @@ enum AuditAction {
   APPOINTMENT_RESCHEDULE
   APPOINTMENT_VIEW
   APPOINTMENT_NOSHOW
+  WAITLIST_CREATE
+  WAITLIST_UPDATE
+  WAITLIST_BOOK
+  WAITLIST_CANCEL
 }
 
 enum AuditTarget {
@@ -59,6 +63,14 @@ enum AppointmentStatus {
   NOSHOW
 }
 
+enum WaitlistStatus {
+  PENDING
+  CONTACTED
+  BOOKED
+  CANCELLED
+  EXPIRED
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -72,6 +84,7 @@ model Branch {
   settings     Setting[]
   documents    PatientDocument[]
   appointments Appointment[]
+  waitlist     WaitlistEntry[]
 
   @@map("branches")
 }
@@ -91,6 +104,8 @@ model User {
   documents            PatientDocument[]
   assignedAppointments Appointment[]     @relation("AssignedDentist")
   createdAppointments  Appointment[]     @relation("AppointmentCreator")
+  waitlistDentist      WaitlistEntry[]   @relation("WaitlistDentist")
+  createdWaitlist      WaitlistEntry[]   @relation("WaitlistCreator")
 
   @@index([branchId])
   @@map("users")
@@ -128,6 +143,7 @@ model Patient {
   odontogram     PatientOdontogram?
   documents      PatientDocument[]
   appointments   Appointment[]
+  waitlist       WaitlistEntry[]
 
   @@index([branchId])
   @@index([firstName, lastName])
@@ -193,12 +209,37 @@ model Appointment {
   createdBy   User?             @relation("AppointmentCreator", fields: [createdById], references: [id])
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+  waitlistEntry WaitlistEntry?  @relation("WaitlistAppointment")
 
   @@index([branchId, startAt])
   @@index([branchId, status, startAt])
   @@index([branchId, dentistId, startAt])
   @@index([patientId, startAt])
   @@map("appointments")
+}
+
+model WaitlistEntry {
+  id            String         @id @default(cuid())
+  branchId      String
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  patientId     String
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dentistId     String?
+  dentist       User?          @relation("WaitlistDentist", fields: [dentistId], references: [id])
+  preferredDate DateTime?
+  notes         String?
+  status        WaitlistStatus @default(PENDING)
+  appointmentId String?        @unique
+  appointment   Appointment?   @relation("WaitlistAppointment", fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdById   String?
+  createdBy     User?          @relation("WaitlistCreator", fields: [createdById], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([branchId, status, createdAt])
+  @@index([branchId, dentistId, status])
+  @@index([patientId])
+  @@map("waitlist_entries")
 }
 
 model Setting {

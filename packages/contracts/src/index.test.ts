@@ -17,6 +17,7 @@ import {
   odontogramResponseSchema,
   odontogramSchema,
   odontogramWriteSchema,
+  patientDetailSchema,
   patientDocumentListSchema,
   patientDocumentQuerySchema,
   patientDocumentSchema,
@@ -25,7 +26,16 @@ import {
   patientUpdateSchema,
   roleSchema,
   safeUserSchema,
+  staffDentistListSchema,
   updateUserRoleSchema,
+  waitlistActiveStatuses,
+  waitlistDetailSchema,
+  waitlistDuplicateErrorSchema,
+  waitlistInputSchema,
+  waitlistQuerySchema,
+  waitlistSchema,
+  waitlistStatusSchema,
+  waitlistUpdateSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -448,5 +458,164 @@ describe('appointment contracts', () => {
     ]) {
       expect(auditActionSchema.options).toContain(action)
     }
+  })
+})
+
+describe('waitlist contracts', () => {
+  const baseInput = { patientId: 'p1', dentistId: 'd1' }
+
+  it('waitlistInputSchema accepts a minimal entry and optional fields', () => {
+    const parsed = waitlistInputSchema.parse(baseInput)
+    expect(parsed.patientId).toBe('p1')
+
+    const full = waitlistInputSchema.parse({
+      ...baseInput,
+      dentistId: null,
+      preferredDate: '2026-08-20T00:00:00.000Z',
+      notes: 'after 3pm',
+    })
+    expect(full.preferredDate).toBe('2026-08-20T00:00:00.000Z')
+    expect(full.dentistId).toBeNull()
+  })
+
+  it('waitlistInputSchema rejects an empty patient and an invalid preferred date', () => {
+    expect(waitlistInputSchema.safeParse({ patientId: '' }).success).toBe(false)
+    expect(waitlistInputSchema.safeParse({ patientId: 'p1', preferredDate: 'nope' }).success).toBe(
+      false,
+    )
+    expect(waitlistInputSchema.safeParse({ ...baseInput, notes: 'x'.repeat(1001) }).success).toBe(
+      false,
+    )
+  })
+
+  it('waitlistUpdateSchema requires at least one field', () => {
+    expect(waitlistUpdateSchema.safeParse({}).success).toBe(false)
+    const ok = waitlistUpdateSchema.parse({ status: 'CONTACTED' })
+    expect(ok.status).toBe('CONTACTED')
+  })
+
+  it('waitlistUpdateSchema accepts status transitions and booking links', () => {
+    const parsed = waitlistUpdateSchema.parse({ status: 'BOOKED', appointmentId: 'a1' })
+    expect(parsed.appointmentId).toBe('a1')
+    expect(waitlistUpdateSchema.safeParse({ status: 'UNKNOWN' }).success).toBe(false)
+  })
+
+  it('waitlistStatusSchema covers the full lifecycle', () => {
+    expect(waitlistStatusSchema.options).toEqual([
+      'PENDING',
+      'CONTACTED',
+      'BOOKED',
+      'CANCELLED',
+      'EXPIRED',
+    ])
+    expect(waitlistActiveStatuses).toEqual(['PENDING', 'CONTACTED'])
+  })
+
+  it('waitlistSchema is a list row without notes; detail adds them', () => {
+    const row = waitlistSchema.parse({
+      id: 'w1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Kayla Benosman',
+      dentistId: null,
+      dentistName: null,
+      preferredDate: null,
+      status: 'PENDING',
+      appointmentId: null,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      updatedAt: '2026-08-20T00:00:00.000Z',
+    })
+    expect(row.patientName).toBe('Kayla Benosman')
+    // list rows must never carry notes
+    expect('notes' in row).toBe(false)
+
+    const detail = waitlistDetailSchema.parse({ ...row, notes: null })
+    expect(detail.notes).toBeNull()
+  })
+
+  it('waitlistQuerySchema coerces and caps the limit', () => {
+    const q = waitlistQuerySchema.parse({ limit: '200' })
+    expect(q.limit).toBe(200)
+    expect(waitlistQuerySchema.safeParse({ limit: '201' }).success).toBe(false)
+    const filtered = waitlistQuerySchema.parse({ status: 'CONTACTED', dentistId: 'd1', q: 'Kayla' })
+    expect(filtered.q).toBe('Kayla')
+  })
+
+  it('waitlistDuplicateErrorSchema validates the 409 shape', () => {
+    const dup = waitlistDuplicateErrorSchema.parse({
+      error: 'WAITLIST_ALREADY_ACTIVE',
+      duplicateId: 'w2',
+    })
+    expect(dup.duplicateId).toBe('w2')
+    expect(
+      waitlistDuplicateErrorSchema.safeParse({ error: 'NOPE', duplicateId: 'w2' }).success,
+    ).toBe(false)
+  })
+
+  it('auditActionSchema includes waitlist actions', () => {
+    for (const action of [
+      'WAITLIST_CREATE',
+      'WAITLIST_UPDATE',
+      'WAITLIST_BOOK',
+      'WAITLIST_CANCEL',
+    ]) {
+      expect(auditActionSchema.options).toContain(action)
+    }
+  })
+
+  it('staffDentistListSchema validates the dentist roster', () => {
+    const list = staffDentistListSchema.parse({
+      dentists: [{ id: 'd1', name: 'Dr. Test', email: 'dr@test.dz' }],
+    })
+    expect(list.dentists[0].name).toBe('Dr. Test')
+    expect(staffDentistListSchema.safeParse({ dentists: [{ id: 'd1', name: 'x' }] }).success).toBe(
+      false,
+    )
+  })
+})
+
+describe('patient no-show stats', () => {
+  it('patientDetailSchema carries derived no-show fields', () => {
+    const parsed = patientDetailSchema.parse({
+      id: 'p1',
+      branchId: 'b1',
+      firstName: 'Kayla',
+      lastName: 'Benosman',
+      gender: 'F',
+      birthDate: null,
+      phone: null,
+      email: null,
+      address: null,
+      archivedAt: null,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      updatedAt: '2026-08-20T00:00:00.000Z',
+      notes: null,
+      noShowCount: 2,
+      noShowRate: 0.5,
+    })
+    expect(parsed.noShowCount).toBe(2)
+    expect(parsed.noShowRate).toBe(0.5)
+  })
+
+  it('patientDetailSchema rejects out-of-range rates', () => {
+    expect(
+      patientDetailSchema.safeParse({
+        id: 'p1',
+        branchId: 'b1',
+        firstName: 'Kayla',
+        lastName: 'Benosman',
+        gender: 'F',
+        birthDate: null,
+        phone: null,
+        email: null,
+        address: null,
+        archivedAt: null,
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+        notes: null,
+        noShowCount: -1,
+        noShowRate: 1.5,
+      }).success,
+    ).toBe(false)
   })
 })

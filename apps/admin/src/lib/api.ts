@@ -21,8 +21,14 @@ import {
   type PatientList,
   type PatientQueryParams,
   type Role,
+  type StaffDentistList,
   type SystemStatus,
   type UserList,
+  type WaitlistEntryDetail,
+  type WaitlistInput,
+  type WaitlistList,
+  type WaitlistQueryParams,
+  type WaitlistUpdate,
 } from '@dentora/contracts'
 
 export class ApiError extends Error {
@@ -202,6 +208,33 @@ export const api = {
 
   updateAppointment: (id: string, input: AppointmentUpdate) =>
     request<AppointmentDetail>(`/api/appointments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  dentists: () => request<StaffDentistList>('/api/staff/dentists').then((r) => r.dentists),
+
+  waitlist: (params: WaitlistQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.status) q.set('status', params.status)
+    if (params.dentistId) q.set('dentistId', params.dentistId)
+    if (params.patientId) q.set('patientId', params.patientId)
+    if (params.q) q.set('q', params.q)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<WaitlistList>(`/api/waitlist?${q.toString()}`)
+  },
+
+  waitlistEntry: (id: string) => request<WaitlistEntryDetail>(`/api/waitlist/${id}`),
+
+  createWaitlistEntry: (input: WaitlistInput) =>
+    request<WaitlistEntryDetail>('/api/waitlist', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateWaitlistEntry: (id: string, input: WaitlistUpdate) =>
+    request<WaitlistEntryDetail>(`/api/waitlist/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),

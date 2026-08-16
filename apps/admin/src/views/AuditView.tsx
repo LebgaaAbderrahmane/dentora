@@ -37,6 +37,10 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   APPOINTMENT_RESCHEDULE: 'audit.actions.appointmentReschedule',
   APPOINTMENT_VIEW: 'audit.actions.appointmentView',
   APPOINTMENT_NOSHOW: 'audit.actions.appointmentNoShow',
+  WAITLIST_CREATE: 'audit.actions.waitlistCreate',
+  WAITLIST_UPDATE: 'audit.actions.waitlistUpdate',
+  WAITLIST_BOOK: 'audit.actions.waitlistBook',
+  WAITLIST_CANCEL: 'audit.actions.waitlistCancel',
 }
 
 export function AuditView() {

@@ -355,6 +355,15 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
         detail?.phone ? { label: t('patients.phone'), value: detail.phone } : null,
         detail?.email ? { label: t('patients.email'), value: detail.email } : null,
         detail?.address ? { label: t('patients.address'), value: detail.address } : null,
+        detail
+          ? {
+              label: t('appointments.status.noshow'),
+              value: t('patients.noShowStat', {
+                count: String(detail.noShowCount),
+                rate: String(Math.round(detail.noShowRate * 100)),
+              }),
+            }
+          : null,
       ].filter((f): f is { label: string; value: string } => f !== null),
     [detail, t],
   )
