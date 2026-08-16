@@ -66,7 +66,7 @@ function fromLocalInputValue(value: string): string {
   return new Date(value).toISOString()
 }
 
-type Editing = { detail: AppointmentDetail } | { new: Date } | null
+type Editing = { detail: AppointmentDetail } | { new: { start: Date; end: Date } } | null
 
 export function AppointmentsView() {
   const { t, locale } = useI18n()
@@ -80,13 +80,17 @@ export function AppointmentsView() {
   const [dentists, setDentists] = useState<SafeUser[]>([])
 
   useEffect(() => {
-    Promise.all([api.patients({ limit: 500 }), api.users()])
+    Promise.all([api.patients({ limit: 200 }), api.users()])
       .then(([pr, users]) => {
         setPatients(pr.patients)
         setDentists(users.filter((u) => u.role === 'DENTIST'))
       })
       .catch(() => toast(t('auth.serverError'), 'error'))
   }, [t, toast])
+
+  useEffect(() => {
+    calendarRef.current?.getApi().changeView(viewMode)
+  }, [viewMode])
 
   useEffect(() => {
     if (!range) return
@@ -113,8 +117,18 @@ export function AppointmentsView() {
   const allDaySlot = viewMode !== 'dayGridMonth'
 
   function openCreateFromSelect(sel: DateSelectArg) {
-    if (sel.allDay || !sel.start) return
-    setEditing({ new: new Date(sel.start.getTime()) })
+    if (!sel.start) return
+    if (sel.allDay) {
+      // a whole-day (or all-day gutter) selection — create a 9:00–9:30 slot for that day
+      const start = new Date(sel.start)
+      start.setHours(9, 0, 0, 0)
+      setEditing({ new: { start, end: new Date(start.getTime() + 30 * 60 * 1000) } })
+      return
+    }
+    const end = sel.end
+      ? new Date(sel.end.getTime())
+      : new Date(sel.start.getTime() + 30 * 60 * 1000)
+    setEditing({ new: { start: new Date(sel.start.getTime()), end } })
   }
 
   function handleEventClick(info: EventClickArg) {
@@ -183,13 +197,13 @@ export function AppointmentsView() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" onClick={goPrev} aria-label="previous">
+          <Button variant="outline" size="sm" onClick={goPrev} aria-label={t('appointments.prev')}>
             ‹
           </Button>
           <Button variant="outline" size="sm" onClick={goToday}>
-            {t('appointments.reschedule')}
+            {t('appointments.today')}
           </Button>
-          <Button variant="outline" size="sm" onClick={goNext} aria-label="next">
+          <Button variant="outline" size="sm" onClick={goNext} aria-label={t('appointments.next')}>
             ›
           </Button>
         </div>
@@ -199,23 +213,25 @@ export function AppointmentsView() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="dayGridMonth">Month</SelectItem>
-              <SelectItem value="timeGridWeek">Week</SelectItem>
-              <SelectItem value="timeGridDay">Day</SelectItem>
+              <SelectItem value="dayGridMonth">{t('appointments.viewMonth')}</SelectItem>
+              <SelectItem value="timeGridWeek">{t('appointments.viewWeek')}</SelectItem>
+              <SelectItem value="timeGridDay">{t('appointments.viewDay')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView={viewMode}
           headerToolbar={false}
+          height="100%"
           allDaySlot={allDaySlot}
           selectable
           selectMirror
+          unselectAuto={false}
           editable
           eventDurationEditable
           events={fcEvents}
@@ -230,7 +246,9 @@ export function AppointmentsView() {
 
       {editing && (
         <AppointmentDialog
-          {...('detail' in editing ? { detail: editing.detail } : { defaultStart: editing.new })}
+          {...('detail' in editing
+            ? { detail: editing.detail }
+            : { defaultStart: editing.new.start, defaultEnd: editing.new.end })}
           patients={patients}
           dentists={dentists}
           onClose={() => setEditing(null)}
@@ -247,6 +265,7 @@ export function AppointmentsView() {
 function AppointmentDialog({
   detail,
   defaultStart,
+  defaultEnd,
   patients,
   dentists,
   onClose,
@@ -254,6 +273,7 @@ function AppointmentDialog({
 }: {
   detail?: AppointmentDetail
   defaultStart?: Date
+  defaultEnd?: Date
   patients: Patient[]
   dentists: SafeUser[]
   onClose: () => void
@@ -261,20 +281,17 @@ function AppointmentDialog({
 }) {
   const { t } = useI18n()
   const { toast } = useToast()
-  const now = useMemo(() => {
-    const d = defaultStart ?? new Date()
-    return d
-  }, [defaultStart])
+  const initialStart = useMemo(() => defaultStart ?? new Date(), [defaultStart])
   const [saving, setSaving] = useState(false)
   const [patientId, setPatientId] = useState(detail?.patientId ?? '')
   const [dentistId, setDentistId] = useState(detail?.dentistId ?? '')
   const [startAt, setStartAt] = useState<string>(() =>
-    detail ? toLocalInputValue(new Date(detail.startAt)) : toLocalInputValue(now),
+    detail ? toLocalInputValue(new Date(detail.startAt)) : toLocalInputValue(initialStart),
   )
   const [endAt, setEndAt] = useState<string>(() =>
     detail
       ? toLocalInputValue(new Date(detail.endAt))
-      : toLocalInputValue(new Date(now.getTime() + 30 * 60 * 1000)),
+      : toLocalInputValue(defaultEnd ?? new Date(initialStart.getTime() + 30 * 60 * 1000)),
   )
   const [status, setStatus] = useState<AppointmentStatus>(detail?.status ?? 'PENDING')
   const [notes, setNotes] = useState<string>('')

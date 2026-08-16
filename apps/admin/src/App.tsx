@@ -251,7 +251,7 @@ function Controls() {
         </SelectContent>
       </Select>
       <Select value={locale} onValueChange={(v) => setLocale(v as Locale)}>
-        <SelectTrigger className="w-[90px]" aria-label={t('locale.label')}>
+        <SelectTrigger className="w-fit" aria-label={t('locale.label')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
