@@ -22,7 +22,7 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 | PATCH  | `/api/users/:id/role`                | ADMIN   | Change role — **revokes all sessions** of the user                                                        |
 | POST   | `/api/users/:id/revoke-sessions`     | ADMIN   | Revoke all sessions of the user                                                                           |
 | GET    | `/api/audit`                         | ADMIN   | Audit trail: paginated + filterable (action/actorEmail)                                                   |
-| GET    | `/api/patients`                      | staff*  | Paginated list: `q`, `archived`, `limit`, `offset`                                                        |
+| GET    | `/api/patients`                      | staff*  | Paginated list: `q`, `archived`, `limit` (≤200), `offset`                                                 |
 | POST   | `/api/patients`                      | staff*  | Create patient — **notes encrypted** at rest                                                              |
 | GET    | `/api/patients/:id`                  | staff*  | Detail — notes **decrypted only here** (audits VIEW)                                                      |
 | PATCH  | `/api/patients/:id`                  | staff*  | Update patient (partial), notes encrypted on change                                                       |
@@ -35,6 +35,10 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 | GET    | `/api/patients/:id/documents`        | staff*  | List document metadata (`originalName`, `mimeType`, `size`)                                               |
 | POST   | `/api/patients/:id/documents`        | staff*  | Upload: raw body (`application/octet-stream`, ≤50 MB), headers `X-File-Name` (URI-encoded), `X-File-Mime` |
 | GET    | `/api/patients/:id/documents/:docId` | staff*  | **Proxied download**: RBAC + branch scope, decrypts, streams, audits `PATIENT_DOCUMENT_VIEW`              |
+| GET    | `/api/appointments`                  | staff*  | Range list: `start`+`end` ISO required; optional `status`/`dentistId`/`patientId`. **No notes**           |
+| POST   | `/api/appointments`                  | staff*  | Create (PENDING/CONFIRMED/COMPLETED/CANCELLED/NOSHOW); notes encrypted; **409 CONFLICT** on double-book   |
+| GET    | `/api/appointments/:id`              | staff*  | Detail — notes **decrypted only here** (audits `APPOINTMENT_VIEW`)                                        |
+| PATCH  | `/api/appointments/:id`              | staff*  | Update/reschedule/cancel/no-show; re-checks conflict unless becoming terminal (audits per action)         |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
@@ -69,6 +73,21 @@ cannot silently clobber each other:
   logs the matching `_UPDATE` audit event.
 
 Sessions are opaque 256-bit tokens; the DB stores only the SHA-256 hash (see `docs/security.md`).
+
+## Appointments (Phase 1.5)
+
+Calendar windows are `[startAt, endAt)`. Double-booking is checked against **both** the assigned
+dentist and the patient — any overlap with a `PENDING`/`CONFIRMED`/`COMPLETED` appointment
+answers `409 {"error":"CONFLICT","overlaps":[{id,startAt,endAt,kind:"dentist"|"patient",patientName}]}`.
+Terminal statuses (`CANCELLED`/`NOSHOW`) never block rebooking a slot.
+
+- `POST`: validates the patient is in the caller's branch (`400 UNKNOWN_PATIENT`) and that the
+  dentist exists in the same branch with `role = DENTIST` (`400 UNKNOWN_DENTIST`).
+- `PATCH`: only the fields sent change. Schedule/assignment changes re-run the conflict check
+  (excluding the appointment itself); a transition to `CANCELLED`/`NOSHOW` skips it so cancels
+  never conflict. The merged window must satisfy `endAt > startAt` (a single-field PATCH cannot
+  invert the schedule). Audit actions: `APPOINTMENT_UPDATE` / `_CANCEL` / `_NOSHOW` / `_RESCHEDULE`.
+- Notes are AES-256-GCM encrypted at rest; `GET /:id` decrypts, the range list never includes them.
 
 ## Error tracking (ADR 009, Phase 0.7)
 

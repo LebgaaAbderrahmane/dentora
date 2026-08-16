@@ -5,12 +5,12 @@
 
 ## Data classification
 
-| Class     | Examples                            | Protection                                                          |
-| --------- | ----------------------------------- | ------------------------------------------------------------------- |
-| Public    | clinic info, services list          | none                                                                |
-| Internal  | staff, schedule, expenses           | RBAC                                                                |
-| Sensitive | patients, medical history, invoices | RBAC + **field-level encryption** (AES-256-GCM)                     |
-| Documents | X-rays, consents                    | RBAC + MinIO **server-side encryption** at rest + signed-URL access |
+| Class     | Examples                                               | Protection                                                          |
+| --------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| Public    | clinic info, services list                             | none                                                                |
+| Internal  | staff, schedule, expenses                              | RBAC                                                                |
+| Sensitive | patients, medical history, appointment notes, invoices | RBAC + **field-level encryption** (AES-256-GCM)                     |
+| Documents | X-rays, consents                                       | RBAC + MinIO **server-side encryption** at rest + signed-URL access |
 
 ## Authentication & sessions
 
@@ -41,8 +41,10 @@
 
 ## Encryption at rest (ADR 006)
 
-- MedicalHistory and other sensitive fields encrypted field-level with AES-256-GCM.
+- MedicalHistory, Odontogram, Patient.notes and Appointment.notes encrypted field-level with AES-256-GCM.
 - App-level key supplied via environment variable (not in DB).
+- Appointment notes are decrypted **only** on `GET /api/appointments/:id`; range lists never
+  include them. Calendar conflict checks query only unencrypted fields (start/end/dentist/patient).
 - MinIO buckets encrypted server-side; objects never delivered directly — short-lived signed URLs.
 
 ## Network & infra

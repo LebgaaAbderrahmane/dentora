@@ -26,7 +26,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     locale,
     setLocale: setLocaleState,
     dir: locale === 'ar' ? 'rtl' : 'ltr',
-    t: (key) => dictionaries[locale][key] ?? key,
+    t: (key, vars) => {
+      let message = dictionaries[locale][key] ?? key
+      if (vars) {
+        for (const [name, val] of Object.entries(vars)) {
+          message = message.replaceAll(`{${name}}`, String(val))
+        }
+      }
+      return message
+    },
   }
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>

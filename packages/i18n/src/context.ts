@@ -4,7 +4,7 @@ import type { Locale, MessageKey } from './messages'
 export interface I18nContextValue {
   locale: Locale
   setLocale: (locale: Locale) => void
-  t: (key: MessageKey) => string
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string
   dir: 'ltr' | 'rtl'
 }
 

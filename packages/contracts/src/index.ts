@@ -92,6 +92,12 @@ export const auditActionSchema = z.enum([
   'PATIENT_ODONTOGRAM_UPDATE',
   'PATIENT_DOCUMENT_CREATE',
   'PATIENT_DOCUMENT_VIEW',
+  'APPOINTMENT_CREATE',
+  'APPOINTMENT_UPDATE',
+  'APPOINTMENT_CANCEL',
+  'APPOINTMENT_RESCHEDULE',
+  'APPOINTMENT_VIEW',
+  'APPOINTMENT_NOSHOW',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -326,3 +332,122 @@ export const patientDocumentQuerySchema = z.object({
 })
 
 export type PatientDocumentQuery = z.infer<typeof patientDocumentQuerySchema>
+
+export const appointmentStatusSchema = z.enum([
+  'PENDING',
+  'CONFIRMED',
+  'COMPLETED',
+  'CANCELLED',
+  'NOSHOW',
+])
+
+export type AppointmentStatus = z.infer<typeof appointmentStatusSchema>
+
+export const APPOINTMENT_STATUSES = appointmentStatusSchema.options
+
+// statuses that permanently release their time-slot and never participate in
+// double-booking conflict checks
+export const APPOINTMENT_TERMINAL_STATUSES: readonly AppointmentStatus[] = ['CANCELLED', 'NOSHOW']
+
+const APPOINTMENT_NOTES_MAX = 4000
+
+export const appointmentInputSchema = z
+  .object({
+    patientId: z.string().min(1),
+    dentistId: z.string().min(1).nullable().optional(),
+    startAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'startAt must be a valid date-time'),
+    endAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'endAt must be a valid date-time'),
+    status: appointmentStatusSchema.optional(),
+    notes: z.string().max(APPOINTMENT_NOTES_MAX).optional(),
+  })
+  .refine((v) => Date.parse(v.endAt) > Date.parse(v.startAt), 'endAt must be after startAt')
+
+export type AppointmentInput = z.infer<typeof appointmentInputSchema>
+
+export const appointmentUpdateSchema = z
+  .object({
+    patientId: z.string().min(1).optional(),
+    dentistId: z.string().min(1).nullable().optional(),
+    startAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'startAt must be a valid date-time')
+      .optional(),
+    endAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'endAt must be a valid date-time')
+      .optional(),
+    status: appointmentStatusSchema.optional(),
+    notes: z.string().max(APPOINTMENT_NOTES_MAX).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'at least one field to update')
+  .refine(
+    (v) => !v.startAt || !v.endAt || Date.parse(v.endAt) > Date.parse(v.startAt),
+    'endAt must be after startAt',
+  )
+
+export type AppointmentUpdate = z.infer<typeof appointmentUpdateSchema>
+
+export const appointmentSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  patientId: z.string(),
+  patientName: z.string(),
+  dentistId: z.string().nullable(),
+  dentistName: z.string().nullable(),
+  startAt: z.string(),
+  endAt: z.string(),
+  status: appointmentStatusSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type Appointment = z.infer<typeof appointmentSchema>
+
+export const appointmentDetailSchema = appointmentSchema.extend({
+  notes: z.string().nullable(),
+})
+
+export type AppointmentDetail = z.infer<typeof appointmentDetailSchema>
+
+export const appointmentListSchema = z.object({
+  items: z.array(appointmentSchema),
+})
+
+export type AppointmentList = z.infer<typeof appointmentListSchema>
+
+export const appointmentQuerySchema = z.object({
+  start: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'start must be a valid date-time'),
+  end: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'end must be a valid date-time'),
+  status: appointmentStatusSchema.optional(),
+  dentistId: z.string().optional(),
+  patientId: z.string().optional(),
+})
+
+export type AppointmentQuery = z.infer<typeof appointmentQuerySchema>
+
+export type AppointmentQueryParams = z.input<typeof appointmentQuerySchema>
+
+export const appointmentConflictSchema = z.object({
+  error: z.literal('CONFLICT'),
+  overlaps: z.array(
+    z.object({
+      id: z.string(),
+      startAt: z.string(),
+      endAt: z.string(),
+      kind: z.enum(['dentist', 'patient']),
+      patientName: z.string(),
+    }),
+  ),
+})
+
+export type AppointmentConflict = z.infer<typeof appointmentConflictSchema>

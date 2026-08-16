@@ -35,6 +35,12 @@ enum AuditAction {
   PATIENT_ODONTOGRAM_UPDATE
   PATIENT_DOCUMENT_CREATE
   PATIENT_DOCUMENT_VIEW
+  APPOINTMENT_CREATE
+  APPOINTMENT_UPDATE
+  APPOINTMENT_CANCEL
+  APPOINTMENT_RESCHEDULE
+  APPOINTMENT_VIEW
+  APPOINTMENT_NOSHOW
 }
 
 enum AuditTarget {
@@ -45,35 +51,46 @@ enum AuditTarget {
   SYSTEM
 }
 
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NOSHOW
+}
+
 model Branch {
-  id        String    @id @default(cuid())
-  name      String
-  address   String?
-  phone     String?
-  email     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  users     User[]
-  patients  Patient[]
-  settings  Setting[]
-  documents PatientDocument[]
+  id           String            @id @default(cuid())
+  name         String
+  address      String?
+  phone        String?
+  email        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  users        User[]
+  patients     Patient[]
+  settings     Setting[]
+  documents    PatientDocument[]
+  appointments Appointment[]
 
   @@map("branches")
 }
 
 model User {
-  id           String     @id @default(cuid())
-  branchId     String
-  branch       Branch     @relation(fields: [branchId], references: [id])
-  email        String     @unique
-  passwordHash String
-  name         String
-  role         Role       @default(RECEPTIONIST)
-  active       Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  sessions     Session[]
-  documents    PatientDocument[]
+  id                   String            @id @default(cuid())
+  branchId             String
+  branch               Branch            @relation(fields: [branchId], references: [id])
+  email                String            @unique
+  passwordHash         String
+  name                 String
+  role                 Role              @default(RECEPTIONIST)
+  active               Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  sessions             Session[]
+  documents            PatientDocument[]
+  assignedAppointments Appointment[]     @relation("AssignedDentist")
+  createdAppointments  Appointment[]     @relation("AppointmentCreator")
 
   @@index([branchId])
   @@map("users")
@@ -93,23 +110,24 @@ model Session {
 }
 
 model Patient {
-  id        String   @id @default(cuid())
-  branchId  String
-  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  firstName String
-  lastName  String
-  gender    String?
-  birthDate DateTime?
-  phone     String?
-  email     String?
-  address   String?
-  notes      String?
-  archivedAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String                 @id @default(cuid())
+  branchId       String
+  branch         Branch                 @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  firstName      String
+  lastName       String
+  gender         String?
+  birthDate      DateTime?
+  phone          String?
+  email          String?
+  address        String?
+  notes          String?
+  archivedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
   medicalHistory PatientMedicalHistory?
   odontogram     PatientOdontogram?
   documents      PatientDocument[]
+  appointments   Appointment[]
 
   @@index([branchId])
   @@index([firstName, lastName])
@@ -157,6 +175,30 @@ model PatientOdontogram {
   updatedAt DateTime @updatedAt
 
   @@map("patient_odontograms")
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  branchId    String
+  branch      Branch            @relation(fields: [branchId], references: [id])
+  patientId   String
+  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dentistId   String?
+  dentist     User?             @relation("AssignedDentist", fields: [dentistId], references: [id])
+  startAt     DateTime
+  endAt       DateTime
+  status      AppointmentStatus @default(PENDING)
+  notes       String? // encrypted at rest
+  createdById String?
+  createdBy   User?             @relation("AppointmentCreator", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([branchId, startAt])
+  @@index([branchId, status, startAt])
+  @@index([branchId, dentistId, startAt])
+  @@index([patientId, startAt])
+  @@map("appointments")
 }
 
 model Setting {

@@ -31,6 +31,12 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   PATIENT_ODONTOGRAM_UPDATE: 'audit.actions.patientOdontogramUpdate',
   PATIENT_DOCUMENT_CREATE: 'audit.actions.patientDocumentCreate',
   PATIENT_DOCUMENT_VIEW: 'audit.actions.patientDocumentView',
+  APPOINTMENT_CREATE: 'audit.actions.appointmentCreate',
+  APPOINTMENT_UPDATE: 'audit.actions.appointmentUpdate',
+  APPOINTMENT_CANCEL: 'audit.actions.appointmentCancel',
+  APPOINTMENT_RESCHEDULE: 'audit.actions.appointmentReschedule',
+  APPOINTMENT_VIEW: 'audit.actions.appointmentView',
+  APPOINTMENT_NOSHOW: 'audit.actions.appointmentNoShow',
 }
 
 export function AuditView() {

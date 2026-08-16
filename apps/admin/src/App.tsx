@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import type { ComponentType } from 'react'
 import { useTheme } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { Locale, MessageKey } from '@dentora/i18n'
 import type { SafeUser } from '@dentora/contracts'
+import { LayoutDashboard, Users, UserCog, ScrollText, CalendarDays } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +20,7 @@ import { DashboardView } from './views/DashboardView'
 import { UsersView } from './views/UsersView'
 import { AuditView } from './views/AuditView'
 import { PatientsView } from './views/PatientsView'
+import { AppointmentsView } from './views/AppointmentsView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -28,7 +31,7 @@ const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   PATIENT: 'role.patient',
 }
 
-type View = 'dashboard' | 'users' | 'audit' | 'patients'
+type View = 'dashboard' | 'users' | 'audit' | 'patients' | 'appointments'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -137,14 +140,28 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
 
   const isAdmin = user.role === 'ADMIN'
   const canManagePatients = ['ADMIN', 'DENTIST', 'RECEPTIONIST'].includes(user.role)
-  const views: Array<{ id: View; label: MessageKey }> = [
-    { id: 'dashboard', label: 'nav.dashboard' },
-    ...(canManagePatients
-      ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey }]
-      : []),
-    ...(isAdmin ? [{ id: 'users' as const, label: 'nav.users' as MessageKey }] : []),
-    ...(isAdmin ? [{ id: 'audit' as const, label: 'nav.audit' as MessageKey }] : []),
-  ]
+  const views: Array<{ id: View; label: MessageKey; icon: ComponentType<{ className?: string }> }> =
+    [
+      { id: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard },
+      ...(canManagePatients
+        ? [
+            {
+              id: 'appointments' as const,
+              label: 'nav.appointments' as MessageKey,
+              icon: CalendarDays,
+            },
+          ]
+        : []),
+      ...(canManagePatients
+        ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
+        : []),
+      ...(isAdmin
+        ? [{ id: 'users' as const, label: 'nav.users' as MessageKey, icon: UserCog }]
+        : []),
+      ...(isAdmin
+        ? [{ id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText }]
+        : []),
+    ]
 
   return (
     <div className="flex min-h-screen">
@@ -161,11 +178,12 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
               onClick={() => setView(v.id)}
               className={
                 view === v.id
-                  ? 'rounded-lg bg-neutral-100 px-3 py-2 text-start text-sm font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
-                  : 'rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
+                  ? 'flex items-center gap-3 rounded-lg bg-neutral-100 px-3 py-2 text-start text-sm font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
+                  : 'flex items-center gap-3 rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
               }
             >
-              {v.label}
+              <v.icon className="size-4 shrink-0" aria-hidden="true" />
+              {t(v.label)}
             </button>
           ))}
         </nav>
@@ -195,16 +213,19 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
             {t(
               view === 'dashboard'
                 ? 'nav.dashboard'
-                : view === 'patients'
-                  ? 'nav.patients'
-                  : view === 'users'
-                    ? 'nav.users'
-                    : 'nav.audit',
+                : view === 'appointments'
+                  ? 'nav.appointments'
+                  : view === 'patients'
+                    ? 'nav.patients'
+                    : view === 'users'
+                      ? 'nav.users'
+                      : 'nav.audit',
             )}
           </h1>
           <Controls />
         </header>
         {view === 'dashboard' && <DashboardView />}
+        {view === 'appointments' && canManagePatients && <AppointmentsView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}
@@ -230,7 +251,7 @@ function Controls() {
         </SelectContent>
       </Select>
       <Select value={locale} onValueChange={(v) => setLocale(v as Locale)}>
-        <SelectTrigger className="w-[90px]" aria-label={t('locale.label')}>
+        <SelectTrigger className="w-fit" aria-label={t('locale.label')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
