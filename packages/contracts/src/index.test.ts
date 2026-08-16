@@ -40,6 +40,8 @@ import {
   waitlistSchema,
   waitlistStatusSchema,
   waitlistUpdateSchema,
+  publicBookingSchema,
+  publicBookingResponseSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -526,10 +528,12 @@ describe('waitlist contracts', () => {
       preferredDate: null,
       status: 'PENDING',
       appointmentId: null,
+      source: 'staff',
       createdAt: '2026-08-20T00:00:00.000Z',
       updatedAt: '2026-08-20T00:00:00.000Z',
     })
     expect(row.patientName).toBe('Kayla Benosman')
+    expect(row.source).toBe('staff')
     // list rows must never carry notes
     expect('notes' in row).toBe(false)
 
@@ -717,5 +721,45 @@ describe('dashboard contracts', () => {
 
   it('dashboardKpisQuerySchema rejects malformed dates', () => {
     expect(dashboardKpisQuerySchema.safeParse({ from: 'not-a-date' }).success).toBe(false)
+  })
+})
+
+describe('public booking contracts', () => {
+  const valid = {
+    firstName: 'Amine',
+    lastName: 'Hadji',
+    phone: '+213 555 000 000',
+    preferredDate: '2026-08-20T00:00:00.000Z',
+  }
+
+  it('publicBookingSchema parses a full request', () => {
+    const parsed = publicBookingSchema.parse({
+      ...valid,
+      service: 'Implantologie',
+      message: 'Coût?',
+    })
+    expect(parsed.firstName).toBe('Amine')
+    expect(parsed.service).toBe('Implantologie')
+  })
+
+  it('publicBookingSchema rejects a missing name or empty phone', () => {
+    expect(publicBookingSchema.safeParse({ ...valid, firstName: '  ' }).success).toBe(false)
+    expect(publicBookingSchema.safeParse({ ...valid, phone: '' }).success).toBe(false)
+  })
+
+  it('publicBookingSchema rejects non-digit phones', () => {
+    expect(publicBookingSchema.safeParse({ ...valid, phone: 'not-a-phone' }).success).toBe(false)
+  })
+
+  it('publicBookingSchema rejects a malformed preferred date', () => {
+    expect(
+      publicBookingSchema.safeParse({ ...valid, preferredDate: 'yesterday-ish' }).success,
+    ).toBe(false)
+  })
+
+  it('publicBookingResponseSchema carries the new waitlist entry id', () => {
+    const res = publicBookingResponseSchema.parse({ waitlistEntryId: 'w1' })
+    expect(res.waitlistEntryId).toBe('w1')
+    expect(publicBookingResponseSchema.safeParse({}).success).toBe(false)
   })
 })

@@ -188,6 +188,11 @@ export function WaitlistView() {
                     >
                       {t(STATUS_KEY[e.status])}
                     </span>
+                    {e.source === 'web' && (
+                      <span className="ms-2 inline-flex rounded-full border border-brand-500/30 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                        {t('waitlist.fromWeb')}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">

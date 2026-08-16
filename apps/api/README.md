@@ -139,6 +139,24 @@ Response shape:
 `revenue` and low-stock alerts are **intentionally absent**: invoicing (Phase 2) and inventory
 (Phase 3) do not exist yet — see ADR 015 for the deferral.
 
+## Public booking (Phase 1.8, ADR 016)
+
+`POST /api/public/bookings` is the **only unauthenticated** endpoint — the marketing site's
+booking form calls it and it produces a **PENDING waitlist entry** (never an appointment):
+
+- Body: `firstName`, `lastName`, `phone` (required), `service`, `preferredDate`, `message`
+  (optional; service + message are folded into the encrypted waitlist `notes`).
+- The visitor is **find-or-created as a patient** by `phone` in the resolved branch, so
+  repeat requests for the same person collapse onto one patient.
+- Reuses the staff rule: an already-active entry answers `409 WAITLIST_ALREADY_ACTIVE`
+  (`duplicateId`).
+- Branch is `PUBLIC_BRANCH_ID` if set, else the clinic's first branch (single-clinic model).
+- A tiny in-memory per-IP limiter (5/hour, fixed window) returns `429 TOO_MANY_REQUESTS`.
+- Audited as `WAITLIST_CREATE` targeting the patient with `metadata.source: 'web'`; the entry
+  row itself is created with `createdById = null`, which the waitlist list exposes as
+  `source: 'web'` (staff-created entries are `source: 'staff'`).
+- 201 answers `{ "waitlistEntryId": "<cuid>" }`.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

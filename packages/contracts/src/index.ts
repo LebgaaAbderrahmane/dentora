@@ -517,6 +517,7 @@ export const waitlistSchema = z.object({
   preferredDate: z.string().nullable(),
   status: waitlistStatusSchema,
   appointmentId: z.string().nullable(),
+  source: z.enum(['staff', 'web']),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
@@ -651,3 +652,31 @@ export const dashboardKpisQuerySchema = z.object({
 export type DashboardKpisQuery = z.infer<typeof dashboardKpisQuerySchema>
 
 export type DashboardKpisQueryParams = z.input<typeof dashboardKpisQuerySchema>
+
+const PUBLIC_MESSAGE_MAX = 1000
+
+export const publicBookingSchema = z.object({
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  phone: z
+    .string()
+    .trim()
+    .min(6)
+    .max(20)
+    .regex(/^\+?[0-9\s-]+$/, 'phone must contain only digits'),
+  service: z.string().trim().max(120).optional(),
+  preferredDate: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'preferredDate must be a valid date')
+    .optional(),
+  message: z.string().trim().max(PUBLIC_MESSAGE_MAX).optional(),
+})
+
+export type PublicBooking = z.infer<typeof publicBookingSchema>
+
+export const publicBookingResponseSchema = z.object({
+  waitlistEntryId: z.string(),
+})
+
+export type PublicBookingResponse = z.infer<typeof publicBookingResponseSchema>
