@@ -14,3 +14,4 @@ Format follows [Michael Nygard's template](https://cognitect.com/blog/2011/11/15
 | [0010](0010-backups.md)                | Accepted | pg_dump + WAL/PITR, documented RTO/RPO                 |
 | [0011](0011-manual-deploy.md)          | Accepted | Manual deploy runbook initially; CI/CD decided in 6.6  |
 | [0012](0012-design-foundations.md)     | Accepted | Two intentional design identities, tokens per identity |
+| [0013](0013-fullcalendar.md)           | Accepted | FullCalendar 6 for the appointments calendar           |
