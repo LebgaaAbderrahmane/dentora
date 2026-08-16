@@ -27,6 +27,7 @@ type WaitlistRow = {
   preferredDate: Date | null
   status: WaitlistStatus
   appointmentId: string | null
+  source: 'staff' | 'web'
   createdAt: Date
   updatedAt: Date
 }
@@ -42,6 +43,7 @@ function toEntry(row: WaitlistRow) {
     preferredDate: row.preferredDate ? row.preferredDate.toISOString() : null,
     status: row.status,
     appointmentId: row.appointmentId,
+    source: row.source,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   })
@@ -60,6 +62,7 @@ type WaitlistWithNames = {
   status: WaitlistStatus
   notes: string | null
   appointmentId: string | null
+  createdById: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -75,6 +78,7 @@ const WAITLIST_SELECT = {
   status: true,
   notes: true,
   appointmentId: true,
+  createdById: true,
   createdAt: true,
   updatedAt: true,
 } as const
@@ -90,6 +94,9 @@ function mapNames(row: WaitlistWithNames): WaitlistRow {
     preferredDate: row.preferredDate,
     status: row.status,
     appointmentId: row.appointmentId,
+    // a null creator means the entry came from the public website (ADR 016);
+    // staff-created entries always carry their author
+    source: row.createdById ? 'staff' : 'web',
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }

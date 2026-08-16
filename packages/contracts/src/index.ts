@@ -517,6 +517,7 @@ export const waitlistSchema = z.object({
   preferredDate: z.string().nullable(),
   status: waitlistStatusSchema,
   appointmentId: z.string().nullable(),
+  source: z.enum(['staff', 'web']),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
@@ -569,3 +570,113 @@ export const staffDentistListSchema = z.object({
 })
 
 export type StaffDentistList = z.infer<typeof staffDentistListSchema>
+
+export const appointmentStatusCountsSchema = z.object({
+  PENDING: z.number().int().min(0),
+  CONFIRMED: z.number().int().min(0),
+  COMPLETED: z.number().int().min(0),
+  CANCELLED: z.number().int().min(0),
+  NOSHOW: z.number().int().min(0),
+})
+
+export type AppointmentStatusCounts = z.infer<typeof appointmentStatusCountsSchema>
+
+export const dashboardUpcomingVisitSchema = z.object({
+  id: z.string(),
+  patientName: z.string(),
+  dentistName: z.string().nullable(),
+  startAt: z.string(),
+  endAt: z.string(),
+  status: appointmentStatusSchema,
+})
+
+export type DashboardUpcomingVisit = z.infer<typeof dashboardUpcomingVisitSchema>
+
+export const dashboardVisitsSchema = z.object({
+  today: z.object({
+    total: z.number().int().min(0),
+    byStatus: appointmentStatusCountsSchema,
+  }),
+  upcoming: z.array(dashboardUpcomingVisitSchema),
+})
+
+export type DashboardVisits = z.infer<typeof dashboardVisitsSchema>
+
+export const dashboardNoShowSchema = z.object({
+  today: z.number().int().min(0),
+  rate30d: z.number().min(0).max(1),
+})
+
+export type DashboardNoShow = z.infer<typeof dashboardNoShowSchema>
+
+export const dashboardWaitlistSchema = z.object({
+  active: z.number().int().min(0),
+})
+
+export type DashboardWaitlist = z.infer<typeof dashboardWaitlistSchema>
+
+export const dashboardPatientsSchema = z.object({
+  total: z.number().int().min(0),
+  new30d: z.number().int().min(0),
+})
+
+export type DashboardPatients = z.infer<typeof dashboardPatientsSchema>
+
+export const dashboardKpisSchema = z.object({
+  visits: dashboardVisitsSchema,
+  noShow: dashboardNoShowSchema,
+  waitlist: dashboardWaitlistSchema,
+  patients: dashboardPatientsSchema,
+})
+
+export type DashboardKpis = z.infer<typeof dashboardKpisSchema>
+
+export const dashboardKpisQuerySchema = z.object({
+  from: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'from must be a valid date-time')
+    .optional(),
+  to: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'to must be a valid date-time')
+    .optional(),
+  windowStart: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'windowStart must be a valid date-time')
+    .optional(),
+})
+
+export type DashboardKpisQuery = z.infer<typeof dashboardKpisQuerySchema>
+
+export type DashboardKpisQueryParams = z.input<typeof dashboardKpisQuerySchema>
+
+const PUBLIC_MESSAGE_MAX = 1000
+
+export const publicBookingSchema = z.object({
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  phone: z
+    .string()
+    .trim()
+    .min(6)
+    .max(20)
+    .regex(/^\+?[0-9\s-]+$/, 'phone must contain only digits'),
+  service: z.string().trim().max(120).optional(),
+  preferredDate: z
+    .string()
+    .trim()
+    .refine((s) => !Number.isNaN(Date.parse(s)), 'preferredDate must be a valid date')
+    .optional(),
+  message: z.string().trim().max(PUBLIC_MESSAGE_MAX).optional(),
+})
+
+export type PublicBooking = z.infer<typeof publicBookingSchema>
+
+export const publicBookingResponseSchema = z.object({
+  waitlistEntryId: z.string(),
+})
+
+export type PublicBookingResponse = z.infer<typeof publicBookingResponseSchema>

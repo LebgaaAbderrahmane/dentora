@@ -117,6 +117,46 @@ Patients waiting for a slot. Lifecycle is **status-driven** — no hard delete:
 - `noShowRate` — `noShow / (noShow + completed)` (0–1, 4-decimal precision). Pending and
   cancelled visits never count as a resolved visit.
 
+## Dashboard KPIs (Phase 1.7, ADR 015)
+
+`GET /api/dashboard/kpis` (ADMIN/DENTIST/RECEPTIONIST, branch-scoped). All figures are **derived
+on read** — nothing is stored or denormalized. The query takes optional absolute-instant windows
+(built by the client as its own local boundaries, mirroring the calendar range calls):
+
+- `from` (start of "today"), `to` (end of "today"), `windowStart` (start of the 30-day lookback).
+  Defaults: server-local today and a 30-day lookback.
+
+Response shape:
+
+- `visits.today` — `total` + `byStatus` counts for the window; `visits.upcoming` — today's
+  PENDING/CONFIRMED/COMPLETED appointments from now on, sorted, max 10 (list rows never carry
+  decrypted notes).
+- `noShow` — `today` (NOSHOW count in the window) + `rate30d` (same `noShow/(noShow+completed)`
+  formula as the patient detail stat, over the 30-day window).
+- `waitlist.active` — PENDING + CONTACTED entries.
+- `patients.total` (non-archived) + `patients.new30d` (created in the window).
+
+`revenue` and low-stock alerts are **intentionally absent**: invoicing (Phase 2) and inventory
+(Phase 3) do not exist yet — see ADR 015 for the deferral.
+
+## Public booking (Phase 1.8, ADR 016)
+
+`POST /api/public/bookings` is the **only unauthenticated** endpoint — the marketing site's
+booking form calls it and it produces a **PENDING waitlist entry** (never an appointment):
+
+- Body: `firstName`, `lastName`, `phone` (required), `service`, `preferredDate`, `message`
+  (optional; service + message are folded into the encrypted waitlist `notes`).
+- The visitor is **find-or-created as a patient** by `phone` in the resolved branch, so
+  repeat requests for the same person collapse onto one patient.
+- Reuses the staff rule: an already-active entry answers `409 WAITLIST_ALREADY_ACTIVE`
+  (`duplicateId`).
+- Branch is `PUBLIC_BRANCH_ID` if set, else the clinic's first branch (single-clinic model).
+- A tiny in-memory per-IP limiter (5/hour, fixed window) returns `429 TOO_MANY_REQUESTS`.
+- Audited as `WAITLIST_CREATE` targeting the patient with `metadata.source: 'web'`; the entry
+  row itself is created with `createdById = null`, which the waitlist list exposes as
+  `source: 'web'` (staff-created entries are `source: 'staff'`).
+- 201 answers `{ "waitlistEntryId": "<cuid>" }`.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

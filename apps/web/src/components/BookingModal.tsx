@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { Check, Send, X } from 'lucide-react'
+import { Check, Info, Send, X } from 'lucide-react'
+import { publicBookingResponseSchema, type PublicBooking } from '@dentora/contracts'
 import { useBooking } from '@/providers/booking'
 import { EMERGENCY_PHONE } from '@/data/content'
 
-type View = 'form' | 'done'
+type View = 'form' | 'done' | 'already'
 
 export function BookingModal() {
   const { t } = useTranslation()
@@ -16,6 +17,8 @@ export function BookingModal() {
   const [picked, setPicked] = useState(service)
   const [date, setDate] = useState('')
   const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const services = t('services.list', { returnObjects: true }) as { title: string }[]
 
@@ -23,6 +26,7 @@ export function BookingModal() {
     if (open) {
       setPicked(service)
       setView('form')
+      setError(null)
     }
   }, [open, service])
 
@@ -45,9 +49,44 @@ export function BookingModal() {
     return `https://wa.me/${EMERGENCY_PHONE.replace(/\D/g, '')}?text=${encodeURIComponent(lines.join('\n'))}`
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setView('done')
+    setSubmitting(true)
+    setError(null)
+
+    const parts = name.trim().split(/\s+/).filter(Boolean)
+    const firstName = parts[0] ?? ''
+    const lastName = parts.slice(1).join(' ') || firstName
+    const body: PublicBooking = {
+      firstName,
+      lastName,
+      phone: phone.trim(),
+      ...(picked ? { service: picked } : {}),
+      ...(date ? { preferredDate: new Date(date).toISOString() } : {}),
+      ...(message.trim() ? { message: message.trim() } : {}),
+    }
+
+    try {
+      const res = await fetch('/api/public/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        publicBookingResponseSchema.parse(await res.json())
+        setView('done')
+        return
+      }
+      if (res.status === 409) {
+        setView('already')
+        return
+      }
+      setError(t('booking.error'))
+    } catch {
+      setError(t('booking.error'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -93,7 +132,7 @@ export function BookingModal() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onSubmit={handleSubmit}
+                    onSubmit={(e) => void handleSubmit(e)}
                     className="space-y-4"
                   >
                     <label className="block">
@@ -172,29 +211,40 @@ export function BookingModal() {
                       />
                     </label>
 
+                    {error && <p className="text-[0.8rem] font-medium text-red-500">{error}</p>}
+
                     <button
                       type="submit"
-                      className="mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[hsl(var(--primary))] font-semibold text-white transition-colors hover:bg-[hsl(180,91%,34%)]"
+                      disabled={submitting}
+                      className="mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[hsl(var(--primary))] font-semibold text-white transition-colors hover:bg-[hsl(180,91%,34%)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Check className="h-4 w-4" />
-                      {t('booking.submit')}
+                      {submitting ? t('booking.submitting') : t('booking.submit')}
                     </button>
                   </motion.form>
                 ) : (
                   <motion.div
-                    key="done"
+                    key={view}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="py-4 text-center"
                   >
-                    <span className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[hsl(var(--primary-soft))]">
-                      <Check className="h-8 w-8 text-[hsl(var(--primary))]" />
+                    <span
+                      className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${
+                        view === 'done' ? 'bg-[hsl(var(--primary-soft))]' : 'bg-amber-100'
+                      }`}
+                    >
+                      {view === 'done' ? (
+                        <Check className="h-8 w-8 text-[hsl(var(--primary))]" />
+                      ) : (
+                        <Info className="h-8 w-8 text-amber-600" />
+                      )}
                     </span>
                     <h3 className="text-[1.1rem] font-bold text-[hsl(var(--heading))]">
-                      {t('booking.success')}
+                      {t(view === 'done' ? 'booking.success' : 'booking.already')}
                     </h3>
                     <p className="mt-2 text-[0.85rem] font-light leading-relaxed text-[hsl(var(--muted-foreground))]">
-                      {t('booking.successNote')}
+                      {t(view === 'done' ? 'booking.successNote' : 'booking.alreadyNote')}
                     </p>
                     <a
                       href={whatsappHref()}

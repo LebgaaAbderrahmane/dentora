@@ -6,7 +6,11 @@ import {
   appointmentListSchema,
   appointmentQuerySchema,
   appointmentSchema,
+  appointmentStatusCountsSchema,
   appointmentUpdateSchema,
+  dashboardKpisQuerySchema,
+  dashboardKpisSchema,
+  dashboardUpcomingVisitSchema,
   auditActionSchema,
   auditEntrySchema,
   auditQuerySchema,
@@ -36,6 +40,8 @@ import {
   waitlistSchema,
   waitlistStatusSchema,
   waitlistUpdateSchema,
+  publicBookingSchema,
+  publicBookingResponseSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -522,10 +528,12 @@ describe('waitlist contracts', () => {
       preferredDate: null,
       status: 'PENDING',
       appointmentId: null,
+      source: 'staff',
       createdAt: '2026-08-20T00:00:00.000Z',
       updatedAt: '2026-08-20T00:00:00.000Z',
     })
     expect(row.patientName).toBe('Kayla Benosman')
+    expect(row.source).toBe('staff')
     // list rows must never carry notes
     expect('notes' in row).toBe(false)
 
@@ -617,5 +625,141 @@ describe('patient no-show stats', () => {
         noShowRate: 1.5,
       }).success,
     ).toBe(false)
+  })
+})
+
+describe('dashboard contracts', () => {
+  const fullKpis = {
+    visits: {
+      today: {
+        total: 3,
+        byStatus: {
+          PENDING: 1,
+          CONFIRMED: 1,
+          COMPLETED: 0,
+          CANCELLED: 0,
+          NOSHOW: 1,
+        },
+      },
+      upcoming: [
+        {
+          id: 'a1',
+          patientName: 'Kayla Benosman',
+          dentistName: 'Dr. Meziane',
+          startAt: '2026-08-16T09:00:00.000Z',
+          endAt: '2026-08-16T09:30:00.000Z',
+          status: 'CONFIRMED',
+        },
+      ],
+    },
+    noShow: { today: 1, rate30d: 0.25 },
+    waitlist: { active: 2 },
+    patients: { total: 120, new30d: 7 },
+  }
+
+  it('dashboardKpisSchema parses the full payload', () => {
+    const parsed = dashboardKpisSchema.parse(fullKpis)
+    expect(parsed.visits.today.total).toBe(3)
+    expect(parsed.visits.today.byStatus.NOSHOW).toBe(1)
+    expect(parsed.visits.upcoming[0].patientName).toBe('Kayla Benosman')
+    expect(parsed.noShow.rate30d).toBe(0.25)
+    expect(parsed.waitlist.active).toBe(2)
+    expect(parsed.patients.new30d).toBe(7)
+  })
+
+  it('dashboardKpisSchema rejects a negative or out-of-range value', () => {
+    expect(
+      dashboardKpisSchema.safeParse({ ...fullKpis, noShow: { today: 1, rate30d: 1.5 } }).success,
+    ).toBe(false)
+    expect(
+      dashboardKpisSchema.safeParse({
+        ...fullKpis,
+        visits: { today: { ...fullKpis.visits.today, total: -1 } },
+      }).success,
+    ).toBe(false)
+  })
+
+  it('dashboardKpisSchema rejects an unknown appointment status', () => {
+    expect(
+      dashboardKpisSchema.safeParse({
+        ...fullKpis,
+        visits: {
+          today: {
+            ...fullKpis.visits.today,
+            byStatus: { ...fullKpis.visits.today.byStatus, DONE: 1 },
+          },
+        },
+      }).success,
+    ).toBe(false)
+  })
+
+  it('appointmentStatusCountsSchema requires every status key', () => {
+    expect(appointmentStatusCountsSchema.safeParse({ PENDING: 1 }).success).toBe(false)
+    const counts = appointmentStatusCountsSchema.parse(fullKpis.visits.today.byStatus)
+    expect(counts.COMPLETED).toBe(0)
+  })
+
+  it('dashboardUpcomingVisitSchema validates list rows', () => {
+    expect(dashboardUpcomingVisitSchema.parse(fullKpis.visits.upcoming[0]).patientName).toBe(
+      'Kayla Benosman',
+    )
+    expect(
+      dashboardUpcomingVisitSchema.safeParse({ ...fullKpis.visits.upcoming[0], status: 'X' })
+        .success,
+    ).toBe(false)
+  })
+
+  it('dashboardKpisQuerySchema accepts optional valid windows', () => {
+    expect(dashboardKpisQuerySchema.safeParse({}).success).toBe(true)
+    const q = dashboardKpisQuerySchema.parse({
+      from: '2026-08-16T00:00:00.000Z',
+      to: '2026-08-17T00:00:00.000Z',
+      windowStart: '2026-07-17T00:00:00.000Z',
+    })
+    expect(q.to).toBe('2026-08-17T00:00:00.000Z')
+  })
+
+  it('dashboardKpisQuerySchema rejects malformed dates', () => {
+    expect(dashboardKpisQuerySchema.safeParse({ from: 'not-a-date' }).success).toBe(false)
+  })
+})
+
+describe('public booking contracts', () => {
+  const valid = {
+    firstName: 'Amine',
+    lastName: 'Hadji',
+    phone: '+213 555 000 000',
+    preferredDate: '2026-08-20T00:00:00.000Z',
+  }
+
+  it('publicBookingSchema parses a full request', () => {
+    const parsed = publicBookingSchema.parse({
+      ...valid,
+      service: 'Implantologie',
+      message: 'Coût?',
+    })
+    expect(parsed.firstName).toBe('Amine')
+    expect(parsed.service).toBe('Implantologie')
+  })
+
+  it('publicBookingSchema rejects a missing name or empty phone', () => {
+    expect(publicBookingSchema.safeParse({ ...valid, firstName: '  ' }).success).toBe(false)
+    expect(publicBookingSchema.safeParse({ ...valid, phone: '' }).success).toBe(false)
+  })
+
+  it('publicBookingSchema rejects non-digit phones', () => {
+    expect(publicBookingSchema.safeParse({ ...valid, phone: 'not-a-phone' }).success).toBe(false)
+  })
+
+  it('publicBookingSchema rejects a malformed preferred date', () => {
+    expect(
+      publicBookingSchema.safeParse({ ...valid, preferredDate: 'yesterday-ish' }).success,
+    ).toBe(false)
+  })
+
+  it('publicBookingResponseSchema carries the new waitlist entry id', () => {
+    const res = publicBookingResponseSchema.parse({ waitlistEntryId: 'w1' })
+    expect(res.waitlistEntryId).toBe('w1')
+    expect(publicBookingResponseSchema.safeParse({}).success).toBe(false)
   })
 })
