@@ -5,7 +5,15 @@ import { useTheme } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { Locale, MessageKey } from '@dentora/i18n'
 import type { SafeUser } from '@dentora/contracts'
-import { LayoutDashboard, Users, UserCog, ScrollText, CalendarDays, ListTodo } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  UserCog,
+  ScrollText,
+  CalendarDays,
+  ListTodo,
+  Tags,
+} from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +30,7 @@ import { AuditView } from './views/AuditView'
 import { PatientsView } from './views/PatientsView'
 import { AppointmentsView } from './views/AppointmentsView'
 import { WaitlistView } from './views/WaitlistView'
+import { CatalogView } from './views/CatalogView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -32,7 +41,7 @@ const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   PATIENT: 'role.patient',
 }
 
-type View = 'dashboard' | 'users' | 'audit' | 'patients' | 'appointments' | 'waitlist'
+type View = 'dashboard' | 'users' | 'audit' | 'patients' | 'appointments' | 'waitlist' | 'catalog'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -157,6 +166,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         ? [{ id: 'waitlist' as const, label: 'nav.waitlist' as MessageKey, icon: ListTodo }]
         : []),
       ...(canManagePatients
+        ? [{ id: 'catalog' as const, label: 'nav.catalog' as MessageKey, icon: Tags }]
+        : []),
+      ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
         : []),
       ...(isAdmin
@@ -221,11 +233,13 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                   ? 'nav.appointments'
                   : view === 'waitlist'
                     ? 'nav.waitlist'
-                    : view === 'patients'
-                      ? 'nav.patients'
-                      : view === 'users'
-                        ? 'nav.users'
-                        : 'nav.audit',
+                    : view === 'catalog'
+                      ? 'nav.catalog'
+                      : view === 'patients'
+                        ? 'nav.patients'
+                        : view === 'users'
+                          ? 'nav.users'
+                          : 'nav.audit',
             )}
           </h1>
           <Controls />
@@ -233,6 +247,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'dashboard' && <DashboardView />}
         {view === 'appointments' && canManagePatients && <AppointmentsView />}
         {view === 'waitlist' && canManagePatients && <WaitlistView />}
+        {view === 'catalog' && canManagePatients && <CatalogView canEdit={isAdmin} />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}

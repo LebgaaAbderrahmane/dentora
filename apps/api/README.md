@@ -157,6 +157,22 @@ booking form calls it and it produces a **PENDING waitlist entry** (never an app
   `source: 'web'` (staff-created entries are `source: 'staff'`).
 - 201 answers `{ "waitlistEntryId": "<cuid>" }`.
 
+## Service catalog (Phase 2.1, ADR 017)
+
+`/api/services` — branch-scoped, **read for the clinical trio, write ADMIN-only**
+(create/update/archive/restore stack `requireRole('ADMIN')`; pricing is
+management-sensitive):
+
+- `GET /` — list: `q` (name ILIKE), `category` (enum), `archived` (`exclude` default | `only`),
+  `limit` ≤200, `offset`. Archive is soft via `archivedAt`.
+- `GET /:id` — one row. `POST /` — create. `PATCH /:id` — update (partial).
+  `POST /:id/archive` | `POST /:id/restore`.
+- Prices are **whole-dinar `priceDZD` integers — no sub-unit precision**; `durationMinutes`
+  is estimated and reserved for scheduling later; `reimbursablePct` is 0–100 convention
+  coverage. No per-read audit (not PHI); every write is `SERVICE_*` audited.
+- **2.2 contract:** once invoices exist, invoice lines must **snapshot the price at booking
+  time** — changing the catalog must never rewrite historical invoices/payments.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

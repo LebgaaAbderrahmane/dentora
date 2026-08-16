@@ -23,6 +23,11 @@ import {
   type PatientList,
   type PatientQueryParams,
   type Role,
+  type Service,
+  type ServiceInput,
+  type ServiceList,
+  type ServiceQueryParams,
+  type ServiceUpdate,
   type StaffDentistList,
   type SystemStatus,
   type UserList,
@@ -248,6 +253,34 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),
+
+  services: (params: ServiceQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.category) q.set('category', params.category)
+    if (params.archived) q.set('archived', params.archived)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<ServiceList>(`/api/services?${q.toString()}`)
+  },
+
+  createService: (input: ServiceInput) =>
+    request<Service>(`/api/services`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateService: (id: string, input: ServiceUpdate) =>
+    request<Service>(`/api/services/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  archiveService: (id: string) =>
+    request<Service>(`/api/services/${id}/archive`, { method: 'POST' }),
+
+  restoreService: (id: string) =>
+    request<Service>(`/api/services/${id}/restore`, { method: 'POST' }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

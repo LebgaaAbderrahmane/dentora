@@ -45,6 +45,10 @@ enum AuditAction {
   WAITLIST_UPDATE
   WAITLIST_BOOK
   WAITLIST_CANCEL
+  SERVICE_CREATE
+  SERVICE_UPDATE
+  SERVICE_ARCHIVE
+  SERVICE_RESTORE
 }
 
 enum AuditTarget {
@@ -53,6 +57,7 @@ enum AuditTarget {
   PATIENT
   BRANCH
   SYSTEM
+  SERVICE
 }
 
 enum AppointmentStatus {
@@ -71,6 +76,15 @@ enum WaitlistStatus {
   EXPIRED
 }
 
+enum ServiceCategory {
+  CONSULTATION
+  SURGERY
+  CARE
+  HYGIENE
+  PROSTHETIC_ORTHO
+  IMAGING
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -85,6 +99,7 @@ model Branch {
   documents    PatientDocument[]
   appointments Appointment[]
   waitlist     WaitlistEntry[]
+  services     Service[]
 
   @@map("branches")
 }
@@ -240,6 +255,24 @@ model WaitlistEntry {
   @@index([branchId, dentistId, status])
   @@index([patientId])
   @@map("waitlist_entries")
+}
+
+model Service {
+  id              String          @id @default(cuid())
+  branchId        String
+  branch          Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  name            String
+  category        ServiceCategory
+  priceDZD        Int // whole dinars only, no sub-unit precision (ADR 017)
+  durationMinutes Int // estimated minutes; reserved for scheduling/availability later
+  reimbursablePct Int             @default(0) // 0–100, convention coverage (CNAS/CASNOS style)
+  archivedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([branchId, category])
+  @@index([branchId, archivedAt])
+  @@map("services")
 }
 
 model Setting {
