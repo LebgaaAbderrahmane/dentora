@@ -51,3 +51,8 @@ patient + total), matching ADR 007.
   list endpoint (`UNPAID`/`VOID`) uses `voidedAt` today and will switch to a paid-vs-total
   join in 2.3.
 - Only whole dinars everywhere; `Int` from catalog through lines to totals.
+
+> **Update (2026-08-17, Phase 2.3):** payments landed and the "will switch to a paid-vs-total
+> join in 2.3" bullets are now realized — `paidDZD` is supplied by the `payments` table, the
+> list endpoint derives `UNPAID | PARTIAL | PAID` from paid-vs-total (see ADR 019), and voiding
+> is blocked while money is collected (`INVOICE_HAS_PAYMENTS`, refund first).

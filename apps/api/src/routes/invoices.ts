@@ -6,13 +6,14 @@ import {
   invoiceListSchema,
   invoiceQuerySchema,
   invoiceSchema,
-  type InvoiceStatus,
 } from '@dentora/contracts'
 import { requireAuth, requireRole, assertAuth } from '../lib/auth'
 import { prisma } from '../lib/prisma'
 import { recordAuditFor } from '../lib/audit'
 import { invoiceStatus } from '../lib/invoiceStatus'
 import { nextInvoiceNumber } from '../lib/invoice'
+import { balanceDue, netPaid } from '../lib/paymentMath'
+import { paidForInvoices, paymentNetFor, toPayment } from '../lib/payments'
 
 const router = Router()
 
@@ -73,15 +74,9 @@ function toInvoice(row: InvoiceRow, lines: LineRow[], paidDZD = 0) {
   })
 }
 
-// PAID/PARTIAL cannot be matched until payments exist (Phase 2.3); with no payments,
-// every issued, non-voided invoice is UNPAID — so voidedAt is a faithful proxy.
-function statusWhere(status: InvoiceStatus | undefined): Record<string, unknown> {
-  if (status === 'VOID') return { voidedAt: { not: null } }
-  if (status === 'UNPAID') return { voidedAt: null }
-  if (status === 'PARTIAL' || status === 'PAID') return { id: '__no_payments_yet__' }
-  return {}
-}
-
+// Paid-dependent statuses (UNPAID/PARTIAL/PAID) are derived from paid-vs-total, so they
+// are matched in memory over a branch-scoped candidate set (single-clinic volume, ADR 019);
+// VOID stays a pure voidedAt scan. The summary rows always carry their derived status.
 router.get('/', async (req, res) => {
   const parsed = invoiceQuerySchema.safeParse(req.query)
   if (!parsed.success) {
@@ -91,11 +86,11 @@ router.get('/', async (req, res) => {
   const { branchId } = assertAuth(req).user
   const { q, status, patientId, limit, offset } = parsed.data
 
-  const where: Record<string, unknown> = { branchId, ...statusWhere(status) }
-  if (patientId) where.patientId = patientId
+  const baseWhere: Record<string, unknown> = { branchId }
+  if (patientId) baseWhere.patientId = patientId
   if (q) {
     const needle = Number(q)
-    where.OR = [
+    baseWhere.OR = [
       {
         patient: {
           OR: [
@@ -108,21 +103,54 @@ router.get('/', async (req, res) => {
     ]
   }
 
-  const [total, rows] = await prisma.$transaction([
-    prisma.invoice.count({ where: where as never }),
-    prisma.invoice.findMany({
-      where: where as never,
-      include: { patient: { select: { firstName: true, lastName: true } }, lines: true },
-      orderBy: { issuedAt: 'desc' },
-      skip: offset,
-      take: limit,
-    }),
-  ])
+  const include = {
+    patient: { select: { firstName: true, lastName: true } },
+    lines: true,
+  } as const
 
+  // No paid-dependency: paginate in SQL, then attach paid for the status badges.
+  if (!status || status === 'VOID') {
+    const where: Record<string, unknown> = { ...baseWhere }
+    if (status === 'VOID') where.voidedAt = { not: null }
+    const [total, rows] = await prisma.$transaction([
+      prisma.invoice.count({ where: where as never }),
+      prisma.invoice.findMany({
+        where: where as never,
+        include,
+        orderBy: { issuedAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+    ])
+    const paid = await paidForInvoices(rows.map((r) => r.id))
+    res.json(
+      invoiceListSchema.parse({
+        items: rows.map((r) => toInvoice(r, r.lines ?? [], paid.get(r.id) ?? 0)),
+        total,
+      }),
+    )
+    return
+  }
+
+  // Paid-dependent filter: derive status for every candidate, filter, then paginate.
+  const candidates = await prisma.invoice.findMany({
+    where: baseWhere as never,
+    include,
+    orderBy: { issuedAt: 'desc' },
+  })
+  const paid = await paidForInvoices(candidates.map((r) => r.id))
+  const filtered = candidates.filter((r) => {
+    const { subtotalDZD } = totals(r.lines ?? [])
+    return (
+      invoiceStatus({ paidDZD: paid.get(r.id) ?? 0, subtotalDZD, voidedAt: r.voidedAt }) === status
+    )
+  })
   res.json(
     invoiceListSchema.parse({
-      items: rows.map((r) => toInvoice(r, r.lines ?? [])),
-      total,
+      items: filtered
+        .slice(offset, offset + limit)
+        .map((r) => toInvoice(r, r.lines ?? [], paid.get(r.id) ?? 0)),
+      total: filtered.length,
     }),
   )
 })
@@ -131,7 +159,11 @@ router.get('/:id', async (req, res) => {
   const { branchId } = assertAuth(req).user
   const row = await prisma.invoice.findFirst({
     where: { id: req.params.id as string, branchId },
-    include: { patient: { select: { firstName: true, lastName: true } }, lines: true },
+    include: {
+      patient: { select: { firstName: true, lastName: true } },
+      lines: true,
+      payments: { orderBy: [{ receivedAt: 'desc' }, { createdAt: 'desc' }] },
+    },
   })
   if (!row) {
     res.status(404).json({ error: 'NOT_FOUND' })
@@ -146,7 +178,28 @@ router.get('/:id', async (req, res) => {
       quantity: l.quantity,
     }),
   )
-  res.json(invoiceDetailSchema.parse({ ...toInvoice(row, lines), lines }))
+  const paidDZD = netPaid(row.payments)
+  const { totalDZD } = totals(lines)
+  res.json(
+    invoiceDetailSchema.parse({
+      ...toInvoice(row, lines, paidDZD),
+      lines,
+      paidDZD,
+      balanceDZD: balanceDue(totalDZD, paidDZD),
+      payments: row.payments.map((p) =>
+        toPayment({
+          ...p,
+          method: p.method as never,
+          receivedAt: p.receivedAt,
+          createdAt: p.createdAt,
+          reference: p.reference,
+          notes: p.notes,
+          refundsId: p.refundsId,
+          createdById: p.createdById,
+        }),
+      ),
+    }),
+  )
 })
 
 router.post('/', canWrite, async (req, res) => {
@@ -215,7 +268,15 @@ router.post('/', canWrite, async (req, res) => {
       totalDZD,
     },
   })
-  res.status(201).json(invoiceDetailSchema.parse({ ...toInvoice(created, lines), lines }))
+  res.status(201).json(
+    invoiceDetailSchema.parse({
+      ...toInvoice(created, lines),
+      lines,
+      paidDZD: 0,
+      balanceDZD: totals(lines).totalDZD,
+      payments: [],
+    }),
+  )
 })
 
 router.post('/:id/void', canWrite, async (req, res) => {
@@ -231,6 +292,12 @@ router.post('/:id/void', canWrite, async (req, res) => {
   }
   if (existing.voidedAt) {
     res.status(400).json({ error: 'ALREADY_VOID' })
+    return
+  }
+  // Money already collected cannot be voided away: refund first, then re-issue (ADR 019).
+  const paidDZD = await paymentNetFor(existing.id)
+  if (paidDZD > 0) {
+    res.status(400).json({ error: 'INVOICE_HAS_PAYMENTS' })
     return
   }
   const updated = await prisma.invoice.update({
@@ -253,7 +320,15 @@ router.post('/:id/void', canWrite, async (req, res) => {
       quantity: l.quantity,
     }),
   )
-  res.json(invoiceDetailSchema.parse({ ...toInvoice(updated, lines), lines }))
+  res.json(
+    invoiceDetailSchema.parse({
+      ...toInvoice(updated, lines),
+      lines,
+      paidDZD,
+      balanceDZD: totals(lines).totalDZD,
+      payments: [],
+    }),
+  )
 })
 
 export default router

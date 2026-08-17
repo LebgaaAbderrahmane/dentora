@@ -178,18 +178,37 @@ management-sensitive):
 `/api/invoices` — read for the clinical trio + ACCOUNTANT, **create/void ADMIN+RECEPTIONIST**:
 
 - `GET /` — list: `q` (patient name, or the invoice number when numeric), `status`
-  (`UNPAID`, `VOID` fully, `PARTIAL`/`PAID` resolve once payments arrive in 2.3), `patientId`,
-  `limit` ≤200. `GET /:id` — with its line items.
+  (`UNPAID`, `PARTIAL`, `PAID`, `VOID`), `patientId`, `limit` ≤200. Statuses are derived
+  (`paidDZD` vs `subtotalDZD`), so paid-dependent filters are matched in memory over the
+  branch's invoices (single-clinic volume, ADR 019); `VOID` is a `voidedAt` scan.
 - `POST /` — create from `{ patientId, lines: [{ serviceId?, serviceName, priceDZD, quantity }] }`.
   Lines **snapshot** name + price; the catalog is never re-read for billing (ADR 017). Numbers
   are whole-dinar `Int` and `invoiceNumber` is allocated **atomically per branch** (ADR 018).
 - `POST /:id/void` — the only status mutation (`voidedAt`); there is **no edit route** —
-  corrections are void + re-issue (ADR 018). `400 ALREADY_VOID` on a second void.
+  corrections are void + re-issue (ADR 018). `400 ALREADY_VOID` on a second void;
+  `400 INVOICE_HAS_PAYMENTS` while money is still collected (refund first).
+- `GET /:id` — line items + `paidDZD`/`balanceDZD` and the full `payments` ledger.
 - Totals (`subtotalDZD`, `totalDZD`) and the contract `status`
   (`UNPAID | PARTIAL | PAID | VOID`) are **derived on read** (`lib/invoiceStatus.ts`, with
-  `lib/invoice.ts` owning the atomic per-branch number); until
-  payments exist every issued, non-voided invoice is `UNPAID`.
+  `lib/invoice.ts` owning the atomic per-branch number); payments feed `paidDZD` (ADR 019).
 - Every create/void is audited (`AuditTarget.INVOICE`, metadata number + patient + total).
+
+## Payments & refunds (Phase 2.3, ADR 019)
+
+`/api/payments` — receipts (money in) and refunds (money out) in **one table** discriminated
+by `kind` (`RECEIPT` | `REFUND`); `paidDZD` is always derived = Σ(RECEIPT) − Σ(REFUND), a
+single `groupBy` in `lib/payments.ts`, never stored. Methods `CASH | CHEQUE | CARD | TRANSFER`.
+
+- Read for clinical trio + ACCOUNTANT, **write ADMIN+RECEPTIONIST** (same desk as invoice
+  create/void). Pure money math lives in `lib/paymentMath.ts` (no prisma import, CI-testable).
+- `POST /` — record a receipt `{ invoiceId, method, amountDZD, reference?, notes?, receivedAt? }`.
+  No payment on a voided invoice (`400 INVOICE_VOIDED`), never overpays the invoice total
+  (`400 PAYMENT_EXCEEDS_BALANCE`); `201` + `PAYMENT_CREATE` audit.
+- `POST /:id/refund` — `{ amountDZD, notes?, receivedAt? }` against a receipt, bounded by the
+  receipt's remaining net (`400 REFUND_EXCEEDS_RECEIPT`); `201` + `PAYMENT_REFUND` audit with
+  the reversed payment id. Refunds never edit money — an immutable reversal row (ADR 019).
+- `GET /` — ledger, filter `invoiceId` or `invoiceNumber`, `limit` ≤200.
+- A "receipt" is a `RECEIPT` payment row; printing it is a client concern.
 
 ## Error tracking (ADR 009, Phase 0.7)
 
