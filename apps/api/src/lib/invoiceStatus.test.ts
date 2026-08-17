@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { invoiceStatus } from './invoice'
+import { invoiceStatus } from './invoiceStatus'
 
 describe('invoiceStatus', () => {
   it('an issued, unpaid invoice is UNPAID', () => {

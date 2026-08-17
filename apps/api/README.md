@@ -186,7 +186,8 @@ management-sensitive):
 - `POST /:id/void` — the only status mutation (`voidedAt`); there is **no edit route** —
   corrections are void + re-issue (ADR 018). `400 ALREADY_VOID` on a second void.
 - Totals (`subtotalDZD`, `totalDZD`) and the contract `status`
-  (`UNPAID | PARTIAL | PAID | VOID`) are **derived on read** (`lib/invoice.ts`); until
+  (`UNPAID | PARTIAL | PAID | VOID`) are **derived on read** (`lib/invoiceStatus.ts`, with
+  `lib/invoice.ts` owning the atomic per-branch number); until
   payments exist every issued, non-voided invoice is `UNPAID`.
 - Every create/void is audited (`AuditTarget.INVOICE`, metadata number + patient + total).
 

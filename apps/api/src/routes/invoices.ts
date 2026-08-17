@@ -11,7 +11,8 @@ import {
 import { requireAuth, requireRole, assertAuth } from '../lib/auth'
 import { prisma } from '../lib/prisma'
 import { recordAuditFor } from '../lib/audit'
-import { invoiceStatus, nextInvoiceNumber } from '../lib/invoice'
+import { invoiceStatus } from '../lib/invoiceStatus'
+import { nextInvoiceNumber } from '../lib/invoice'
 
 const router = Router()
 
