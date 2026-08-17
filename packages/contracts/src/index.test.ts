@@ -56,6 +56,10 @@ import {
   expenseQuerySchema,
   expenseSchema,
   expenseUpdateSchema,
+  financeByMethodSchema,
+  financeDaySchema,
+  financeReportQuerySchema,
+  financeReportSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -1055,5 +1059,69 @@ describe('expense contracts', () => {
     const parsed = expenseListSchema.parse({ items: [expense], total: 1 })
     expect(parsed.total).toBe(1)
     expect(parsed.items[0].category).toBe('UTILITIES')
+  })
+
+  it('financeByMethodSchema requires all four methods', () => {
+    const parsed = financeByMethodSchema.parse({ CASH: 100, CHEQUE: 0, CARD: 250, TRANSFER: 0 })
+    expect(parsed.CASH).toBe(100)
+    expect(financeByMethodSchema.safeParse({ CASH: 10 }).success).toBe(false)
+    expect(
+      financeByMethodSchema.safeParse({ CASH: -1, CHEQUE: 0, CARD: 0, TRANSFER: 0 }).success,
+    ).toBe(false)
+  })
+
+  it('financeReportSchema validates a full derived report', () => {
+    const report = financeReportSchema.parse({
+      from: '2026-08-17T00:00:00.000Z',
+      to: '2026-08-18T00:00:00.000Z',
+      revenue: {
+        receiptsDZD: 5000,
+        refundsDZD: 200,
+        netDZD: 4800,
+        byMethod: { CASH: 4800, CHEQUE: 0, CARD: 0, TRANSFER: 0 },
+      },
+      expenses: {
+        totalDZD: 120000,
+        count: 1,
+        byCategory: {
+          SALARY: 0,
+          RENT: 120000,
+          SUPPLIES: 0,
+          EQUIPMENT: 0,
+          UTILITIES: 0,
+          MAINTENANCE: 0,
+          MARKETING: 0,
+          TAXES: 0,
+          OTHER: 0,
+        },
+      },
+      netDZD: -115200,
+      days: [
+        {
+          start: '2026-08-17T00:00:00.000Z',
+          receiptsDZD: 5000,
+          refundsDZD: 200,
+          revenueDZD: 4800,
+          expensesDZD: 120000,
+          netDZD: -115200,
+        },
+      ],
+    })
+    expect(report.netDZD).toBe(-115200)
+    expect(financeDaySchema.safeParse(report.days[0]).success).toBe(true)
+    expect(
+      financeReportSchema.safeParse({ ...report, revenue: { ...report.revenue, receiptsDZD: 1.5 } })
+        .success,
+    ).toBe(false)
+  })
+
+  it('financeReportQuerySchema parses windows and rejects malformed dates', () => {
+    const parsed = financeReportQuerySchema.parse({
+      from: '2026-08-01T00:00:00.000Z',
+      to: '2026-08-31T00:00:00.000Z',
+    })
+    expect(parsed.from).toBe('2026-08-01T00:00:00.000Z')
+    expect(financeReportQuerySchema.parse({}).from).toBeUndefined()
+    expect(financeReportQuerySchema.safeParse({ from: 'yesterday' }).success).toBe(false)
   })
 })
