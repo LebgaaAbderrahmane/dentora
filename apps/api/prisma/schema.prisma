@@ -68,6 +68,8 @@ enum AuditAction {
   PURCHASE_ORDER_UPDATE
   PURCHASE_ORDER_RECEIVE
   PURCHASE_ORDER_CANCEL
+  STOCK_OUT
+  STOCK_ADJUST
 }
 
 enum AuditTarget {
@@ -166,6 +168,16 @@ enum PurchaseOrderStatus {
   CANCELLED
 }
 
+// Stock movement journal (ADR 024) — append-only. OPENING adds (migration backfill),
+// IN adds (purchase receipts), OUT subtracts (usage, with a reason), ADJUST is signed
+// (positive = manual in / stock-up, negative = loss / count correction).
+enum StockLedgerType {
+  OPENING
+  IN
+  OUT
+  ADJUST
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -187,6 +199,7 @@ model Branch {
   products     Product[]
   suppliers    Supplier[]
   purchaseOrders PurchaseOrder[]
+  stockLedger  StockLedgerEntry[]
 
   @@map("branches")
 }
@@ -214,6 +227,7 @@ model User {
   createdProducts      Product[]         @relation("ProductCreator")
   createdSuppliers     Supplier[]        @relation("SupplierCreator")
   createdPurchaseOrders PurchaseOrder[]  @relation("PurchaseOrderCreator")
+  createdStock          StockLedgerEntry[] @relation("StockCreator")
 
   @@index([branchId])
   @@map("users")
@@ -479,6 +493,7 @@ model Product {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   purchaseOrderLines PurchaseOrderLine[]
+  stockLedger         StockLedgerEntry[]
 
   @@unique([branchId, code])
   @@index([branchId, category])
@@ -529,6 +544,7 @@ model PurchaseOrder {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   lines       PurchaseOrderLine[]
+  stockLedger StockLedgerEntry[]
 
   @@index([branchId, status, createdAt])
   @@index([branchId, supplierId])
@@ -550,6 +566,36 @@ model PurchaseOrderLine {
 
   @@index([purchaseOrderId])
   @@map("purchase_order_lines")
+}
+
+// Stock movement journal (ADR 024). OPENING adds (migration backfill),
+// IN adds (purchase receipts + optional batch/expiry), OUT subtracts (usage,
+// with a required reason), ADJUST is signed (positive add / negative subtract).
+// quantityOnHand on Product is kept in sync inside the same transaction and always
+// equals Σ ledger for the product.
+model StockLedgerEntry {
+  id              String          @id @default(cuid())
+  branchId        String
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  type            StockLedgerType
+  quantity        Int // whole units; positive for OPENING/IN/OUT, signed for ADJUST
+  unitCostDZD     Int?
+  batch           String?
+  expiryDate      DateTime?
+  reason          String?
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?  @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  createdById     String?
+  createdBy       User?           @relation("StockCreator", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+
+  @@index([branchId, createdAt])
+  @@index([branchId, productId, createdAt])
+  @@index([branchId, type, createdAt])
+  @@index([purchaseOrderId])
+  @@map("stock_ledger_entries")
 }
 
 model Setting {

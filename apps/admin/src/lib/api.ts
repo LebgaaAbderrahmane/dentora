@@ -61,6 +61,11 @@ import {
   type SupplierQueryParams,
   type SupplierUpdate,
   type SystemStatus,
+  type StockAdjustInput,
+  type StockEntry,
+  type StockList,
+  type StockOutInput,
+  type StockQueryParams,
   type UserList,
   type WaitlistEntryDetail,
   type WaitlistInput,
@@ -465,6 +470,29 @@ export const api = {
 
   receivePurchaseOrder: (id: string, input: PurchaseOrderReceive) =>
     request<PurchaseOrderDetail>(`/api/purchase-orders/${id}/receive`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  stock: (params: StockQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.productId) q.set('productId', params.productId)
+    if (params.type) q.set('type', params.type)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<StockList>(`/api/stock?${q.toString()}`)
+  },
+
+  stockOut: (productId: string, input: StockOutInput) =>
+    request<StockEntry>(`/api/stock/${productId}/out`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  stockAdjust: (productId: string, input: StockAdjustInput) =>
+    request<StockEntry>(`/api/stock/${productId}/adjust`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
