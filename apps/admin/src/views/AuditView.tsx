@@ -52,6 +52,10 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   EXPENSE_CREATE: 'audit.actions.expenseCreate',
   EXPENSE_UPDATE: 'audit.actions.expenseUpdate',
   EXPENSE_VOID: 'audit.actions.expenseVoid',
+  PRODUCT_CREATE: 'audit.actions.productCreate',
+  PRODUCT_UPDATE: 'audit.actions.productUpdate',
+  PRODUCT_ARCHIVE: 'audit.actions.productArchive',
+  PRODUCT_RESTORE: 'audit.actions.productRestore',
 }
 
 export function AuditView() {

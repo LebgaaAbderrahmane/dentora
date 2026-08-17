@@ -18,6 +18,11 @@ import {
   type ExpenseUpdate,
   type FinanceReport,
   type InvoiceCreate,
+  type Product,
+  type ProductInput,
+  type ProductList,
+  type ProductQueryParams,
+  type ProductUpdate,
   type InvoiceDetail,
   type InvoiceList,
   type InvoiceQueryParams,
@@ -372,6 +377,30 @@ export const api = {
     if (params.to) q.set('to', params.to)
     return request<FinanceReport>(`/api/finance/report?${q.toString()}`)
   },
+
+  products: (params: ProductQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.category) q.set('category', params.category)
+    if (params.archived) q.set('archived', params.archived)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<ProductList>(`/api/products?${q.toString()}`)
+  },
+
+  product: (id: string) => request<Product>(`/api/products/${id}`),
+
+  createProduct: (input: ProductInput) =>
+    request<Product>('/api/products', { method: 'POST', body: JSON.stringify(input) }),
+
+  updateProduct: (id: string, input: ProductUpdate) =>
+    request<Product>(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+
+  archiveProduct: (id: string) =>
+    request<Product>(`/api/products/${id}/archive`, { method: 'POST' }),
+
+  restoreProduct: (id: string) =>
+    request<Product>(`/api/products/${id}/restore`, { method: 'POST' }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

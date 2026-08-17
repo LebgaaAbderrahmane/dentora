@@ -246,6 +246,26 @@ derived on read from `payments` (RECEIPT/REFUND by `receivedAt`) and live `expen
   invoice/patient detail stays gated by its own routes. Pure aggregation lives in
   `lib/finance.ts` (`revenueStats`, `expenseStats`, `dayGrid`, `dailySeries` — no prisma import).
 
+## Products & stock catalog (Phase 3.1, ADR 022)
+
+`/api/products` — the clinic's product catalog with on-hand quantity and reorder levels.
+**Read: clinical trio + ACCOUNTANT; write: ADMIN + ACCOUNTANT** (the finance/management desk).
+
+- Categories and units are fixed enums — `ProductCategory` (`ANESTHETICS | DISPOSABLES |
+MATERIALS | INSTRUMENTS | EQUIPMENT | MEDICATIONS | LABORATORY | STATIONERY | OTHER`) and
+  `ProductUnit` (`UNIT | BOX | PACK | BOTTLE | JAR | SYRINGE | SET | KIT`).
+- `GET /` — branch-scoped list: `q` (name or code, case-insensitive), `category`, `archived`
+  `exclude` (default) | `only`, `limit` ≤200. `GET /:id` (404 for a foreign/unknown id).
+- `POST /` — `{ name, code?, category, unit, reorderLevel?, quantityOnHand? }` (defaults 0);
+  duplicate `code` per branch → `400 CODE_TAKEN`; `201` + `PRODUCT_CREATE` audit.
+- `PATCH /:id` — edit any field (≥1); audits `PRODUCT_UPDATE` with `before`/`after` metadata;
+  `400 CODE_TAKEN` on a taken code.
+- `POST /:id/archive` / `POST /:id/restore` — soft-archive (`archivedAt`), each audited
+  (`PRODUCT_ARCHIVE` / `PRODUCT_RESTORE`). No hard delete.
+- `quantityOnHand` is **transitional in 3.1** (stored); 3.3 replaces it with a ledger-derived
+  figure (ADR 022). Low-stock detection is client-side (`quantityOnHand ≤ reorderLevel`) until
+  3.4.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware
