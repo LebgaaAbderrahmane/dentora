@@ -173,6 +173,24 @@ management-sensitive):
 - **2.2 contract:** once invoices exist, invoice lines must **snapshot the price at booking
   time** — changing the catalog must never rewrite historical invoices/payments.
 
+## Invoices (Phase 2.2, ADR 018)
+
+`/api/invoices` — read for the clinical trio + ACCOUNTANT, **create/void ADMIN+RECEPTIONIST**:
+
+- `GET /` — list: `q` (patient name, or the invoice number when numeric), `status`
+  (`UNPAID`, `VOID` fully, `PARTIAL`/`PAID` resolve once payments arrive in 2.3), `patientId`,
+  `limit` ≤200. `GET /:id` — with its line items.
+- `POST /` — create from `{ patientId, lines: [{ serviceId?, serviceName, priceDZD, quantity }] }`.
+  Lines **snapshot** name + price; the catalog is never re-read for billing (ADR 017). Numbers
+  are whole-dinar `Int` and `invoiceNumber` is allocated **atomically per branch** (ADR 018).
+- `POST /:id/void` — the only status mutation (`voidedAt`); there is **no edit route** —
+  corrections are void + re-issue (ADR 018). `400 ALREADY_VOID` on a second void.
+- Totals (`subtotalDZD`, `totalDZD`) and the contract `status`
+  (`UNPAID | PARTIAL | PAID | VOID`) are **derived on read** (`lib/invoiceStatus.ts`, with
+  `lib/invoice.ts` owning the atomic per-branch number); until
+  payments exist every issued, non-voided invoice is `UNPAID`.
+- Every create/void is audited (`AuditTarget.INVOICE`, metadata number + patient + total).
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

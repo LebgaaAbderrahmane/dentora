@@ -19,3 +19,4 @@ Format follows [Michael Nygard's template](https://cognitect.com/blog/2011/11/15
 | [0015](0015-dashboard-kpis.md)          | Accepted | Dashboard KPIs derived on read; revenue/low-stock deferred to Ph.2/3  |
 | [0016](0016-public-booking-waitlist.md) | Accepted | Public web booking → PENDING waitlist entry (no new table)/API        |
 | [0017](0017-service-catalog.md)         | Accepted | Service catalog: whole-DZD Int prices, ADMIN-only write, 2.2 snapshot |
+| [0018](0018-invoices.md)                | Accepted | Immutable snapshot lines, atomic per-branch numbering, derived status |

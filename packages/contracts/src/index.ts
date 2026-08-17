@@ -106,6 +106,8 @@ export const auditActionSchema = z.enum([
   'SERVICE_UPDATE',
   'SERVICE_ARCHIVE',
   'SERVICE_RESTORE',
+  'INVOICE_CREATE',
+  'INVOICE_VOID',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -117,6 +119,7 @@ export const auditTargetSchema = z.enum([
   'BRANCH',
   'SYSTEM',
   'SERVICE',
+  'INVOICE',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -752,3 +755,79 @@ export const serviceQuerySchema = z.object({
 export type ServiceQuery = z.infer<typeof serviceQuerySchema>
 
 export type ServiceQueryParams = z.input<typeof serviceQuerySchema>
+
+export const invoiceStatusSchema = z.enum(['UNPAID', 'PARTIAL', 'PAID', 'VOID'])
+
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>
+
+export const INVOICE_STATUSES = invoiceStatusSchema.options
+
+export const invoiceLineSchema = z.object({
+  id: z.string(),
+  serviceId: z.string().nullable(),
+  serviceName: z.string(),
+  priceDZD: z.number().int().min(0),
+  quantity: z.number().int().min(1),
+})
+
+export type InvoiceLine = z.infer<typeof invoiceLineSchema>
+
+export const invoiceSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  patientId: z.string(),
+  patientName: z.string(),
+  invoiceNumber: z.number().int().positive(),
+  issuedAt: z.string(),
+  voidedAt: z.string().nullable(),
+  status: invoiceStatusSchema,
+  subtotalDZD: z.number().int().min(0),
+  totalDZD: z.number().int().min(0),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export type Invoice = z.infer<typeof invoiceSchema>
+
+export const invoiceDetailSchema = invoiceSchema.extend({
+  lines: z.array(invoiceLineSchema),
+})
+
+export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>
+
+export const invoiceListSchema = z.object({
+  items: z.array(invoiceSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type InvoiceList = z.infer<typeof invoiceListSchema>
+
+export const invoiceQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  status: invoiceStatusSchema.optional(),
+  patientId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type InvoiceQuery = z.infer<typeof invoiceQuerySchema>
+
+export type InvoiceQueryParams = z.input<typeof invoiceQuerySchema>
+
+export const MAX_INVOICE_LINES = 50
+
+export const invoiceLineInputSchema = z.object({
+  serviceId: z.string().optional(),
+  serviceName: z.string().trim().min(1).max(120),
+  priceDZD: z.number().int().min(0).max(100_000_000),
+  quantity: z.number().int().min(1).max(999),
+})
+
+export type InvoiceLineInput = z.infer<typeof invoiceLineInputSchema>
+
+export const invoiceCreateSchema = z.object({
+  patientId: z.string().min(1),
+  lines: z.array(invoiceLineInputSchema).min(1).max(MAX_INVOICE_LINES),
+})
+
+export type InvoiceCreate = z.infer<typeof invoiceCreateSchema>

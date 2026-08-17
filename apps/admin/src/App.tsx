@@ -13,6 +13,7 @@ import {
   CalendarDays,
   ListTodo,
   Tags,
+  Receipt,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ import { PatientsView } from './views/PatientsView'
 import { AppointmentsView } from './views/AppointmentsView'
 import { WaitlistView } from './views/WaitlistView'
 import { CatalogView } from './views/CatalogView'
+import { InvoicesView } from './views/InvoicesView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -41,7 +43,15 @@ const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   PATIENT: 'role.patient',
 }
 
-type View = 'dashboard' | 'users' | 'audit' | 'patients' | 'appointments' | 'waitlist' | 'catalog'
+type View =
+  | 'dashboard'
+  | 'users'
+  | 'audit'
+  | 'patients'
+  | 'appointments'
+  | 'waitlist'
+  | 'catalog'
+  | 'invoices'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -150,6 +160,8 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
 
   const isAdmin = user.role === 'ADMIN'
   const canManagePatients = ['ADMIN', 'DENTIST', 'RECEPTIONIST'].includes(user.role)
+  const canManageBilling = ['ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
+  const canEditInvoices = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
   const views: Array<{ id: View; label: MessageKey; icon: ComponentType<{ className?: string }> }> =
     [
       { id: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard },
@@ -167,6 +179,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         : []),
       ...(canManagePatients
         ? [{ id: 'catalog' as const, label: 'nav.catalog' as MessageKey, icon: Tags }]
+        : []),
+      ...(canManageBilling
+        ? [{ id: 'invoices' as const, label: 'nav.invoices' as MessageKey, icon: Receipt }]
         : []),
       ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
@@ -235,11 +250,13 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                     ? 'nav.waitlist'
                     : view === 'catalog'
                       ? 'nav.catalog'
-                      : view === 'patients'
-                        ? 'nav.patients'
-                        : view === 'users'
-                          ? 'nav.users'
-                          : 'nav.audit',
+                      : view === 'invoices'
+                        ? 'nav.invoices'
+                        : view === 'patients'
+                          ? 'nav.patients'
+                          : view === 'users'
+                            ? 'nav.users'
+                            : 'nav.audit',
             )}
           </h1>
           <Controls />
@@ -248,6 +265,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'appointments' && canManagePatients && <AppointmentsView />}
         {view === 'waitlist' && canManagePatients && <WaitlistView />}
         {view === 'catalog' && canManagePatients && <CatalogView canEdit={isAdmin} />}
+        {view === 'invoices' && canManageBilling && <InvoicesView canEdit={canEditInvoices} />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}
