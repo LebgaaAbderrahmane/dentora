@@ -60,6 +60,13 @@ import {
   financeDaySchema,
   financeReportQuerySchema,
   financeReportSchema,
+  PRODUCT_CATEGORIES,
+  PRODUCT_UNITS,
+  productInputSchema,
+  productListSchema,
+  productQuerySchema,
+  productSchema,
+  productUpdateSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -1123,5 +1130,82 @@ describe('expense contracts', () => {
     expect(parsed.from).toBe('2026-08-01T00:00:00.000Z')
     expect(financeReportQuerySchema.parse({}).from).toBeUndefined()
     expect(financeReportQuerySchema.safeParse({ from: 'yesterday' }).success).toBe(false)
+  })
+
+  it('PRODUCT_CATEGORIES/PRODUCT_UNITS are fixed lists', () => {
+    expect(PRODUCT_CATEGORIES).toContain('DISPOSABLES')
+    expect(PRODUCT_CATEGORIES).toContain('OTHER')
+    expect(PRODUCT_UNITS).toContain('BOX')
+    expect(PRODUCT_UNITS).toContain('KIT')
+  })
+
+  it('productSchema validates a row with on-hand quantity', () => {
+    const product = {
+      id: 'p1',
+      branchId: 'b1',
+      name: 'Gants nitrile M',
+      code: 'GN-100',
+      category: 'DISPOSABLES' as const,
+      unit: 'BOX' as const,
+      reorderLevel: 5,
+      quantityOnHand: 12,
+      archivedAt: null,
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+      createdById: 'u1',
+    }
+    const parsed = productSchema.parse(product)
+    expect(parsed.quantityOnHand).toBe(12)
+    expect(productSchema.safeParse({ ...product, quantityOnHand: -1 }).success).toBe(false)
+  })
+
+  it('productInputSchema defaults reorderLevel and quantity, rejects negatives', () => {
+    const parsed = productInputSchema.parse({
+      name: 'Anesthésique',
+      category: 'ANESTHETICS',
+      unit: 'SYRINGE',
+    })
+    expect(parsed.reorderLevel).toBe(0)
+    expect(parsed.quantityOnHand).toBe(0)
+    expect(
+      productInputSchema.safeParse({
+        name: 'x',
+        category: 'ANESTHETICS',
+        unit: 'UNIT',
+        quantityOnHand: -3,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('productUpdateSchema is a partial (no defaults) and query coerces limit', () => {
+    expect(productUpdateSchema.parse({ reorderLevel: 8 }).reorderLevel).toBe(8)
+    expect(productUpdateSchema.safeParse({}).success).toBe(false)
+    const q = productQuerySchema.parse({ category: 'EQUIPMENT', archived: 'only', limit: '10' })
+    expect(q.limit).toBe(10)
+    expect(q.archived).toBe('only')
+    expect(productQuerySchema.safeParse({ archived: 'sometimes' }).success).toBe(false)
+  })
+
+  it('productListSchema wraps items + total', () => {
+    const parsed = productListSchema.parse({
+      items: [
+        {
+          id: 'p1',
+          branchId: 'b1',
+          name: 'Gants',
+          code: null,
+          category: 'DISPOSABLES' as const,
+          unit: 'BOX' as const,
+          reorderLevel: 5,
+          quantityOnHand: 3,
+          archivedAt: null,
+          createdAt: '2026-08-17T00:00:00.000Z',
+          updatedAt: '2026-08-17T00:00:00.000Z',
+          createdById: null,
+        },
+      ],
+      total: 1,
+    })
+    expect(parsed.items[0].category).toBe('DISPOSABLES')
   })
 })

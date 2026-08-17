@@ -56,6 +56,10 @@ enum AuditAction {
   EXPENSE_CREATE
   EXPENSE_UPDATE
   EXPENSE_VOID
+  PRODUCT_CREATE
+  PRODUCT_UPDATE
+  PRODUCT_ARCHIVE
+  PRODUCT_RESTORE
 }
 
 enum AuditTarget {
@@ -67,6 +71,7 @@ enum AuditTarget {
   SERVICE
   INVOICE
   EXPENSE
+  PRODUCT
 }
 
 enum AppointmentStatus {
@@ -118,6 +123,29 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum ProductCategory {
+  ANESTHETICS
+  DISPOSABLES
+  MATERIALS
+  INSTRUMENTS
+  EQUIPMENT
+  MEDICATIONS
+  LABORATORY
+  STATIONERY
+  OTHER
+}
+
+enum ProductUnit {
+  UNIT
+  BOX
+  PACK
+  BOTTLE
+  JAR
+  SYRINGE
+  SET
+  KIT
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -136,6 +164,7 @@ model Branch {
   invoices     Invoice[]
   payments     Payment[]
   expenses     Expense[]
+  products     Product[]
 
   @@map("branches")
 }
@@ -160,6 +189,7 @@ model User {
   createdInvoices      Invoice[]         @relation("InvoiceCreator")
   createdPayments      Payment[]         @relation("PaymentCreator")
   createdExpenses      Expense[]         @relation("ExpenseCreator")
+  createdProducts      Product[]         @relation("ProductCreator")
 
   @@index([branchId])
   @@map("users")
@@ -405,6 +435,30 @@ model Expense {
   @@index([branchId, category, incurredAt])
   @@index([branchId, voidedAt])
   @@map("expenses")
+}
+
+// Stock catalog row (ADR 022). `quantityOnHand` is transitional in 3.1 — 3.3 replaces it
+// with a ledger-derived figure (opening this value as an opening-balance ledger row).
+model Product {
+  id              String          @id @default(cuid())
+  branchId        String
+  branch          Branch          @relation(fields: [branchId], references: [id])
+  name            String
+  code            String?
+  category        ProductCategory
+  unit            ProductUnit
+  reorderLevel    Int             @default(0)
+  quantityOnHand  Int             @default(0)
+  archivedAt      DateTime?
+  createdById     String?
+  createdBy       User?           @relation("ProductCreator", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([branchId, code])
+  @@index([branchId, category])
+  @@index([branchId, archivedAt])
+  @@map("products")
 }
 
 model Setting {

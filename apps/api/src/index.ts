@@ -22,6 +22,7 @@ import invoicesRouter from './routes/invoices'
 import paymentsRouter from './routes/payments'
 import expensesRouter from './routes/expenses'
 import financeRouter from './routes/finance'
+import productsRouter from './routes/products'
 
 initSentry()
 
@@ -88,6 +89,7 @@ api.use('/invoices', invoicesRouter)
 api.use('/payments', paymentsRouter)
 api.use('/expenses', expensesRouter)
 api.use('/finance', financeRouter)
+api.use('/products', productsRouter)
 
 app.use('/api', api)
 

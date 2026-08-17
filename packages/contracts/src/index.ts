@@ -113,6 +113,10 @@ export const auditActionSchema = z.enum([
   'EXPENSE_CREATE',
   'EXPENSE_UPDATE',
   'EXPENSE_VOID',
+  'PRODUCT_CREATE',
+  'PRODUCT_UPDATE',
+  'PRODUCT_ARCHIVE',
+  'PRODUCT_RESTORE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -126,6 +130,7 @@ export const auditTargetSchema = z.enum([
   'SERVICE',
   'INVOICE',
   'EXPENSE',
+  'PRODUCT',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -1037,3 +1042,99 @@ export const financeReportQuerySchema = z.object({
 export type FinanceReportQuery = z.infer<typeof financeReportQuerySchema>
 
 export type FinanceReportQueryParams = z.input<typeof financeReportQuerySchema>
+
+// ---- Products (3.1, ADR 022) ----
+
+export const productCategorySchema = z.enum([
+  'ANESTHETICS',
+  'DISPOSABLES',
+  'MATERIALS',
+  'INSTRUMENTS',
+  'EQUIPMENT',
+  'MEDICATIONS',
+  'LABORATORY',
+  'STATIONERY',
+  'OTHER',
+])
+
+export type ProductCategory = z.infer<typeof productCategorySchema>
+
+export const PRODUCT_CATEGORIES = productCategorySchema.options
+
+export const productUnitSchema = z.enum([
+  'UNIT',
+  'BOX',
+  'PACK',
+  'BOTTLE',
+  'JAR',
+  'SYRINGE',
+  'SET',
+  'KIT',
+])
+
+export type ProductUnit = z.infer<typeof productUnitSchema>
+
+export const PRODUCT_UNITS = productUnitSchema.options
+
+export const MAX_PRODUCT_QUANTITY = 1_000_000
+export const MAX_PRODUCT_REORDER_LEVEL = 100_000
+
+export const productSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  name: z.string(),
+  code: z.string().nullable(),
+  category: productCategorySchema,
+  unit: productUnitSchema,
+  reorderLevel: z.number().int().nonnegative(),
+  quantityOnHand: z.number().int().nonnegative(),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  createdById: z.string().nullable(),
+})
+
+export type Product = z.infer<typeof productSchema>
+
+export const productInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  code: z.string().trim().max(40).optional(),
+  category: productCategorySchema,
+  unit: productUnitSchema,
+  reorderLevel: z.number().int().min(0).max(MAX_PRODUCT_REORDER_LEVEL).default(0),
+  quantityOnHand: z.number().int().min(0).max(MAX_PRODUCT_QUANTITY).default(0),
+})
+
+export type ProductInput = z.infer<typeof productInputSchema>
+
+export const productUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    code: z.string().trim().max(40).optional(),
+    category: productCategorySchema.optional(),
+    unit: productUnitSchema.optional(),
+    reorderLevel: z.number().int().min(0).max(MAX_PRODUCT_REORDER_LEVEL).optional(),
+    quantityOnHand: z.number().int().min(0).max(MAX_PRODUCT_QUANTITY).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'at least one field' })
+
+export type ProductUpdate = z.infer<typeof productUpdateSchema>
+
+export const productListSchema = z.object({
+  items: z.array(productSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type ProductList = z.infer<typeof productListSchema>
+
+export const productQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  category: productCategorySchema.optional(),
+  archived: z.enum(['exclude', 'only']).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type ProductQuery = z.infer<typeof productQuerySchema>
+
+export type ProductQueryParams = z.input<typeof productQuerySchema>
