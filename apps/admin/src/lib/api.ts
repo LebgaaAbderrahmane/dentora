@@ -16,6 +16,7 @@ import {
   type ExpenseList,
   type ExpenseQueryParams,
   type ExpenseUpdate,
+  type FinanceReport,
   type InvoiceCreate,
   type InvoiceDetail,
   type InvoiceList,
@@ -363,8 +364,14 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),
-
   voidExpense: (id: string) => request<Expense>(`/api/expenses/${id}/void`, { method: 'POST' }),
+
+  financeReport: (params: { from?: string; to?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    return request<FinanceReport>(`/api/finance/report?${q.toString()}`)
+  },
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

@@ -979,3 +979,61 @@ export const expenseQuerySchema = z.object({
 export type ExpenseQuery = z.infer<typeof expenseQuerySchema>
 
 export type ExpenseQueryParams = z.input<typeof expenseQuerySchema>
+
+// ---- Finance report (2.5, ADR 021) ----
+
+// Net per payment method; refunds reduce each method's net within the window.
+export const financeByMethodSchema = z.object({
+  CASH: z.number().int().nonnegative(),
+  CHEQUE: z.number().int().nonnegative(),
+  CARD: z.number().int().nonnegative(),
+  TRANSFER: z.number().int().nonnegative(),
+})
+
+export type FinanceByMethod = z.infer<typeof financeByMethodSchema>
+
+// One row per fixed category (ADR 020), all nine keys always present.
+export const financeExpensesSchema = z.object({
+  totalDZD: z.number().int().nonnegative(),
+  count: z.number().int().nonnegative(),
+  byCategory: z.record(expenseCategorySchema, z.number().int().nonnegative()),
+})
+
+export type FinanceExpenses = z.infer<typeof financeExpensesSchema>
+
+export const financeDaySchema = z.object({
+  start: z.string(),
+  receiptsDZD: z.number().int().nonnegative(),
+  refundsDZD: z.number().int().nonnegative(),
+  revenueDZD: z.number().int(),
+  expensesDZD: z.number().int().nonnegative(),
+  netDZD: z.number().int(),
+})
+
+export type FinanceDay = z.infer<typeof financeDaySchema>
+
+export const financeReportSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  revenue: z.object({
+    receiptsDZD: z.number().int().nonnegative(),
+    refundsDZD: z.number().int().nonnegative(),
+    netDZD: z.number().int().nonnegative(),
+    byMethod: financeByMethodSchema,
+  }),
+  expenses: financeExpensesSchema,
+  netDZD: z.number().int(),
+  days: z.array(financeDaySchema),
+})
+
+export type FinanceReport = z.infer<typeof financeReportSchema>
+
+// from/to are absolute-instant ISO strings; default = server-local today (ADR 021).
+export const financeReportQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+})
+
+export type FinanceReportQuery = z.infer<typeof financeReportQuerySchema>
+
+export type FinanceReportQueryParams = z.input<typeof financeReportQuerySchema>

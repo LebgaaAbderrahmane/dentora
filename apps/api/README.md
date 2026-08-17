@@ -228,6 +228,24 @@ enum `SALARY | RENT | SUPPLIES | EQUIPMENT | UTILITIES | MAINTENANCE | MARKETING
 - Pure sums live in `lib/expenseMath.ts` (`expenseSums` by category, `expenseTotal` — no prisma
   import, CI-testable); the 2.5 close-out / P&L report will aggregate `incurredAt` + `voidedAt`.
 
+## Finance report — close-out & P&L (Phase 2.5, ADR 021)
+
+`GET /api/finance/report?from&to` — **ADMIN + ACCOUNTANT only** (finance desk). Everything is
+derived on read from `payments` (RECEIPT/REFUND by `receivedAt`) and live `expenses`
+(`incurredAt`, non-voided) — no stored counters (ADR 014/015/021).
+
+- **Cash basis**: revenue = Σ(RECEIPT) − Σ(REFUND) in the window; `netDZD` = revenue net −
+  expenses. `revenue.byMethod` nets per `CASH|CHEQUE|CARD|TRANSFER` so the drawer reconciles;
+  `expenses.byCategory` carries all nine ADR 020 categories.
+- `days` — the per-day series for the window (each with receipts/refunds/revenue/expenses/net);
+  day buckets are **fixed 24h steps from `from`**, so the API stays timezone-agnostic — clients
+  pass local-midnight → midnight instants for exact local days (Algeria: UTC+1, no DST).
+- `from`/`to` are optional absolute-instant ISO strings; default is the server-local today
+  (i.e. the endpoint is a daily close-out out of the box).
+- Aggregates only — no PHI, no per-read audit (matches dashboard/catalog); the underlying
+  invoice/patient detail stays gated by its own routes. Pure aggregation lives in
+  `lib/finance.ts` (`revenueStats`, `expenseStats`, `dayGrid`, `dailySeries` — no prisma import).
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware
