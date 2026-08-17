@@ -11,6 +11,10 @@ import {
   type AuthResponse,
   type DashboardKpis,
   type DashboardKpisQueryParams,
+  type InvoiceCreate,
+  type InvoiceDetail,
+  type InvoiceList,
+  type InvoiceQueryParams,
   type MedicalHistoryResponse,
   type MedicalHistoryWrite,
   type OdontogramResponse,
@@ -281,6 +285,27 @@ export const api = {
 
   restoreService: (id: string) =>
     request<Service>(`/api/services/${id}/restore`, { method: 'POST' }),
+
+  invoices: (params: InvoiceQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.status) q.set('status', params.status)
+    if (params.patientId) q.set('patientId', params.patientId)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<InvoiceList>(`/api/invoices?${q.toString()}`)
+  },
+
+  invoice: (id: string) => request<InvoiceDetail>(`/api/invoices/${id}`),
+
+  createInvoice: (input: InvoiceCreate) =>
+    request<InvoiceDetail>('/api/invoices', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  voidInvoice: (id: string) =>
+    request<InvoiceDetail>(`/api/invoices/${id}/void`, { method: 'POST' }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

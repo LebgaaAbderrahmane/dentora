@@ -49,6 +49,8 @@ enum AuditAction {
   SERVICE_UPDATE
   SERVICE_ARCHIVE
   SERVICE_RESTORE
+  INVOICE_CREATE
+  INVOICE_VOID
 }
 
 enum AuditTarget {
@@ -58,6 +60,7 @@ enum AuditTarget {
   BRANCH
   SYSTEM
   SERVICE
+  INVOICE
 }
 
 enum AppointmentStatus {
@@ -100,6 +103,7 @@ model Branch {
   appointments Appointment[]
   waitlist     WaitlistEntry[]
   services     Service[]
+  invoices     Invoice[]
 
   @@map("branches")
 }
@@ -121,6 +125,7 @@ model User {
   createdAppointments  Appointment[]     @relation("AppointmentCreator")
   waitlistDentist      WaitlistEntry[]   @relation("WaitlistDentist")
   createdWaitlist      WaitlistEntry[]   @relation("WaitlistCreator")
+  createdInvoices      Invoice[]         @relation("InvoiceCreator")
 
   @@index([branchId])
   @@map("users")
@@ -159,6 +164,7 @@ model Patient {
   documents      PatientDocument[]
   appointments   Appointment[]
   waitlist       WaitlistEntry[]
+  invoices       Invoice[]
 
   @@index([branchId])
   @@index([firstName, lastName])
@@ -209,22 +215,22 @@ model PatientOdontogram {
 }
 
 model Appointment {
-  id          String            @id @default(cuid())
-  branchId    String
-  branch      Branch            @relation(fields: [branchId], references: [id])
-  patientId   String
-  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  dentistId   String?
-  dentist     User?             @relation("AssignedDentist", fields: [dentistId], references: [id])
-  startAt     DateTime
-  endAt       DateTime
-  status      AppointmentStatus @default(PENDING)
-  notes       String? // encrypted at rest
-  createdById String?
-  createdBy   User?             @relation("AppointmentCreator", fields: [createdById], references: [id])
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  waitlistEntry WaitlistEntry?  @relation("WaitlistAppointment")
+  id            String            @id @default(cuid())
+  branchId      String
+  branch        Branch            @relation(fields: [branchId], references: [id])
+  patientId     String
+  patient       Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  dentistId     String?
+  dentist       User?             @relation("AssignedDentist", fields: [dentistId], references: [id])
+  startAt       DateTime
+  endAt         DateTime
+  status        AppointmentStatus @default(PENDING)
+  notes         String? // encrypted at rest
+  createdById   String?
+  createdBy     User?             @relation("AppointmentCreator", fields: [createdById], references: [id])
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  waitlistEntry WaitlistEntry?    @relation("WaitlistAppointment")
 
   @@index([branchId, startAt])
   @@index([branchId, status, startAt])
@@ -273,6 +279,45 @@ model Service {
   @@index([branchId, category])
   @@index([branchId, archivedAt])
   @@map("services")
+}
+
+// Invoice lines SNAPSHOT name + price at issue time (ADR 017: catalog changes must
+// never rewrite billing history). `serviceId` is kept only for traceability; the
+// line never re-reads the catalog. Lines are immutable — an issued invoice is
+// corrected by voiding + re-issuing, never edited.
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  serviceId   String?
+  serviceName String
+  priceDZD    Int // whole dinars, no sub-unit precision (ADR 017)
+  quantity    Int
+  createdAt   DateTime @default(now())
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  branchId      String
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  invoiceNumber Int // sequential per branch, allocated atomically (ADR 018)
+  issuedAt      DateTime      @default(now())
+  voidedAt      DateTime?
+  createdById   String?
+  createdBy     User?         @relation("InvoiceCreator", fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lines         InvoiceLine[]
+
+  @@unique([branchId, invoiceNumber])
+  @@index([branchId, issuedAt])
+  @@index([branchId, patientId])
+  @@map("invoices")
 }
 
 model Setting {

@@ -37,6 +37,12 @@ import {
   serviceQuerySchema,
   serviceSchema,
   serviceUpdateSchema,
+  INVOICE_STATUSES,
+  invoiceCreateSchema,
+  invoiceDetailSchema,
+  invoiceLineSchema,
+  invoiceQuerySchema,
+  invoiceSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -823,5 +829,81 @@ describe('service catalog contracts', () => {
     expect(serviceListResponseSchema.safeParse({ items: [{ id: 'x' }], total: 1 }).success).toBe(
       false,
     )
+  })
+})
+
+describe('invoice contracts', () => {
+  const line = {
+    serviceId: 'svc1',
+    serviceName: 'Détartrage',
+    priceDZD: 2500,
+    quantity: 2,
+  }
+
+  it('invoiceCreateSchema accepts patient + at least one line', () => {
+    const parsed = invoiceCreateSchema.parse({ patientId: 'p1', lines: [line] })
+    expect(parsed.lines[0].serviceName).toBe('Détartrage')
+    expect(invoiceCreateSchema.safeParse({ patientId: 'p1', lines: [] }).success).toBe(false)
+  })
+
+  it('invoiceCreateSchema rejects a fractional price or a zero quantity', () => {
+    expect(
+      invoiceCreateSchema.safeParse({ patientId: 'p1', lines: [{ ...line, priceDZD: 10.5 }] })
+        .success,
+    ).toBe(false)
+    expect(
+      invoiceCreateSchema.safeParse({ patientId: 'p1', lines: [{ ...line, quantity: 0 }] }).success,
+    ).toBe(false)
+  })
+
+  it('invoiceSchema derives status from row fields', () => {
+    const parsed = invoiceSchema.parse({
+      id: 'i1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Amine Hadji',
+      invoiceNumber: 3,
+      issuedAt: '2026-08-17T00:00:00.000Z',
+      voidedAt: null,
+      status: 'UNPAID',
+      subtotalDZD: 5000,
+      totalDZD: 5000,
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+    })
+    expect(parsed.invoiceNumber).toBe(3)
+    expect(INVOICE_STATUSES).toContain('VOID')
+    expect(invoiceSchema.safeParse({ ...parsed, status: 'CANCELLED' }).success).toBe(false)
+  })
+
+  it('invoiceLineSchema validates a line row', () => {
+    const parsed = invoiceLineSchema.parse({ ...line, id: 'l1' })
+    expect(parsed.quantity).toBe(2)
+    expect(invoiceLineSchema.safeParse({ ...line, id: 'l1', priceDZD: -1 }).success).toBe(false)
+  })
+
+  it('invoiceQuerySchema coerces limit and rejects an unknown status', () => {
+    expect(invoiceQuerySchema.parse({ limit: '25' }).limit).toBe(25)
+    expect(invoiceQuerySchema.parse({ status: 'PAID' }).status).toBe('PAID')
+    expect(invoiceQuerySchema.safeParse({ status: 'SOMEDAY' }).success).toBe(false)
+  })
+
+  it('invoiceDetailSchema extends the row with lines', () => {
+    const detail = invoiceDetailSchema.parse({
+      id: 'i1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Amine Hadji',
+      invoiceNumber: 1,
+      issuedAt: '2026-08-17T00:00:00.000Z',
+      voidedAt: null,
+      status: 'UNPAID',
+      subtotalDZD: 5000,
+      totalDZD: 5000,
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+      lines: [invoiceLineSchema.parse({ ...line, id: 'l1' })],
+    })
+    expect(detail.lines).toHaveLength(1)
   })
 })
