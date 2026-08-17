@@ -53,6 +53,9 @@ enum AuditAction {
   INVOICE_VOID
   PAYMENT_CREATE
   PAYMENT_REFUND
+  EXPENSE_CREATE
+  EXPENSE_UPDATE
+  EXPENSE_VOID
 }
 
 enum AuditTarget {
@@ -63,6 +66,7 @@ enum AuditTarget {
   SYSTEM
   SERVICE
   INVOICE
+  EXPENSE
 }
 
 enum AppointmentStatus {
@@ -102,6 +106,18 @@ enum PaymentMethod {
   TRANSFER
 }
 
+enum ExpenseCategory {
+  SALARY
+  RENT
+  SUPPLIES
+  EQUIPMENT
+  UTILITIES
+  MAINTENANCE
+  MARKETING
+  TAXES
+  OTHER
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -119,6 +135,7 @@ model Branch {
   services     Service[]
   invoices     Invoice[]
   payments     Payment[]
+  expenses     Expense[]
 
   @@map("branches")
 }
@@ -142,6 +159,7 @@ model User {
   createdWaitlist      WaitlistEntry[]   @relation("WaitlistCreator")
   createdInvoices      Invoice[]         @relation("InvoiceCreator")
   createdPayments      Payment[]         @relation("PaymentCreator")
+  createdExpenses      Expense[]         @relation("ExpenseCreator")
 
   @@index([branchId])
   @@map("users")
@@ -364,6 +382,29 @@ model Payment {
   @@index([branchId, receivedAt])
   @@index([branchId, kind])
   @@map("payments")
+}
+
+// Discretionary cost entry: editable (PATCH, audited before/after) and soft-voided via
+// `voidedAt`, never hard-deleted (ADR 020). `incurredAt` is the date the expense belongs
+// to for close-out / P&L (2.5); whole dinars, no sub-unit precision (ADR 017).
+model Expense {
+  id          String           @id @default(cuid())
+  branchId    String
+  branch      Branch           @relation(fields: [branchId], references: [id])
+  category    ExpenseCategory
+  amountDZD   Int // whole positive dinars
+  description String
+  incurredAt  DateTime         @default(now())
+  voidedAt    DateTime?
+  createdById String?
+  createdBy   User?            @relation("ExpenseCreator", fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([branchId, incurredAt])
+  @@index([branchId, category, incurredAt])
+  @@index([branchId, voidedAt])
+  @@map("expenses")
 }
 
 model Setting {

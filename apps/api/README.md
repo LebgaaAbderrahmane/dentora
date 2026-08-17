@@ -210,6 +210,24 @@ single `groupBy` in `lib/payments.ts`, never stored. Methods `CASH | CHEQUE | CA
 - `GET /` — ledger, filter `invoiceId` or `invoiceNumber`, `limit` ≤200.
 - A "receipt" is a `RECEIPT` payment row; printing it is a client concern.
 
+## Expenses (Phase 2.4, ADR 020)
+
+`/api/expenses` — the finance desk's cost book. **ADMIN + ACCOUNTANT only, read AND write**
+(clinical roles collect revenue but never record the clinic's costs). Categories are a fixed
+enum `SALARY | RENT | SUPPLIES | EQUIPMENT | UTILITIES | MAINTENANCE | MARKETING | TAXES | OTHER`.
+
+- `GET /` — branch-scoped list, `q` (description), `category`, `from`/`to` (`incurredAt` window,
+  ISO), `voided` `exclude` (default) | `only`, `limit` ≤200. Excludes voided by default.
+- `GET /:id` — one expense (404 for a foreign/unknown id).
+- `POST /` — `{ category, amountDZD, description, incurredAt? }` (whole dinars, default date
+  today); `201` + `EXPENSE_CREATE` audit.
+- `PATCH /:id` — edit any field (`category | amountDZD | description | incurredAt`, ≥1); audits
+  `EXPENSE_UPDATE` with `before`/`after` metadata. Voided expenses are frozen (`400 ALREADY_VOID`).
+- `POST /:id/void` — **soft-void** (`voidedAt`), never hard-deletes; `400 ALREADY_VOID` on
+  re-void, `EXPENSE_VOID` audit. No `DELETE` exists (ADR 020).
+- Pure sums live in `lib/expenseMath.ts` (`expenseSums` by category, `expenseTotal` — no prisma
+  import, CI-testable); the 2.5 close-out / P&L report will aggregate `incurredAt` + `voidedAt`.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

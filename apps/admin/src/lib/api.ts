@@ -11,6 +11,11 @@ import {
   type AuthResponse,
   type DashboardKpis,
   type DashboardKpisQueryParams,
+  type Expense,
+  type ExpenseInput,
+  type ExpenseList,
+  type ExpenseQueryParams,
+  type ExpenseUpdate,
   type InvoiceCreate,
   type InvoiceDetail,
   type InvoiceList,
@@ -332,6 +337,34 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     }),
+
+  expenses: (params: ExpenseQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.category) q.set('category', params.category)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.voided) q.set('voided', params.voided)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<ExpenseList>(`/api/expenses?${q.toString()}`)
+  },
+
+  expense: (id: string) => request<Expense>(`/api/expenses/${id}`),
+
+  createExpense: (input: ExpenseInput) =>
+    request<Expense>('/api/expenses', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateExpense: (id: string, input: ExpenseUpdate) =>
+    request<Expense>(`/api/expenses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  voidExpense: (id: string) => request<Expense>(`/api/expenses/${id}/void`, { method: 'POST' }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

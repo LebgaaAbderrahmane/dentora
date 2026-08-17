@@ -21,3 +21,4 @@ Format follows [Michael Nygard's template](https://cognitect.com/blog/2011/11/15
 | [0017](0017-service-catalog.md)         | Accepted | Service catalog: whole-DZD Int prices, ADMIN-only write, 2.2 snapshot        |
 | [0018](0018-invoices.md)                | Accepted | Immutable snapshot lines, atomic per-branch numbering, derived status        |
 | [0019](0019-payments-refunds.md)        | Accepted | Payments & refunds: one table, derived paid amount, refunds reverse receipts |
+| [0020](0020-expenses.md)                | Accepted | Expenses: fixed category enum, editable + soft-voided, ADMIN+ACCOUNTANT      |

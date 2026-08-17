@@ -110,6 +110,9 @@ export const auditActionSchema = z.enum([
   'INVOICE_VOID',
   'PAYMENT_CREATE',
   'PAYMENT_REFUND',
+  'EXPENSE_CREATE',
+  'EXPENSE_UPDATE',
+  'EXPENSE_VOID',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -122,6 +125,7 @@ export const auditTargetSchema = z.enum([
   'SYSTEM',
   'SERVICE',
   'INVOICE',
+  'EXPENSE',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -901,3 +905,77 @@ export const refundCreateSchema = z.object({
 })
 
 export type RefundCreate = z.infer<typeof refundCreateSchema>
+
+export const expenseCategorySchema = z.enum([
+  'SALARY',
+  'RENT',
+  'SUPPLIES',
+  'EQUIPMENT',
+  'UTILITIES',
+  'MAINTENANCE',
+  'MARKETING',
+  'TAXES',
+  'OTHER',
+])
+
+export type ExpenseCategory = z.infer<typeof expenseCategorySchema>
+
+export const EXPENSE_CATEGORIES = expenseCategorySchema.options
+
+export const MAX_EXPENSE_AMOUNT_DZD = 100_000_000
+
+export const expenseSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  category: expenseCategorySchema,
+  amountDZD: z.number().int().positive(),
+  description: z.string(),
+  incurredAt: z.string(),
+  voidedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  createdById: z.string().nullable(),
+})
+
+export type Expense = z.infer<typeof expenseSchema>
+
+export const expenseInputSchema = z.object({
+  category: expenseCategorySchema,
+  amountDZD: z.number().int().min(1).max(MAX_EXPENSE_AMOUNT_DZD),
+  description: z.string().trim().min(1).max(300),
+  incurredAt: z.string().datetime().optional(),
+})
+
+export type ExpenseInput = z.infer<typeof expenseInputSchema>
+
+export const expenseUpdateSchema = z
+  .object({
+    category: expenseCategorySchema.optional(),
+    amountDZD: z.number().int().min(1).max(MAX_EXPENSE_AMOUNT_DZD).optional(),
+    description: z.string().trim().min(1).max(300).optional(),
+    incurredAt: z.string().datetime().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'at least one field' })
+
+export type ExpenseUpdate = z.infer<typeof expenseUpdateSchema>
+
+export const expenseListSchema = z.object({
+  items: z.array(expenseSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type ExpenseList = z.infer<typeof expenseListSchema>
+
+export const expenseQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  category: expenseCategorySchema.optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  voided: z.enum(['exclude', 'only']).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type ExpenseQuery = z.infer<typeof expenseQuerySchema>
+
+export type ExpenseQueryParams = z.input<typeof expenseQuerySchema>

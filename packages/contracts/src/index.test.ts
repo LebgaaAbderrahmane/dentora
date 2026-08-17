@@ -49,6 +49,13 @@ import {
   paymentQuerySchema,
   paymentSchema,
   refundCreateSchema,
+  EXPENSE_CATEGORIES,
+  expenseCategorySchema,
+  expenseInputSchema,
+  expenseListSchema,
+  expenseQuerySchema,
+  expenseSchema,
+  expenseUpdateSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -973,5 +980,80 @@ describe('payment contracts', () => {
     expect(paymentQuerySchema.parse({ invoiceNumber: '12', limit: '5' }).invoiceNumber).toBe(12)
     expect(paymentQuerySchema.parse({ limit: '5' }).limit).toBe(5)
     expect(paymentQuerySchema.safeParse({ limit: 0 }).success).toBe(false)
+  })
+})
+
+describe('expense contracts', () => {
+  const expense = {
+    id: 'ex1',
+    branchId: 'b1',
+    category: 'UTILITIES' as const,
+    amountDZD: 8500,
+    description: 'Électricité août',
+    incurredAt: '2026-08-17T00:00:00.000Z',
+    voidedAt: null,
+    createdAt: '2026-08-17T00:00:00.000Z',
+    updatedAt: '2026-08-17T00:00:00.000Z',
+    createdById: null,
+  }
+
+  it('expenseCategorySchema accepts known categories only', () => {
+    expect(expenseCategorySchema.parse('SALARY')).toBe('SALARY')
+    expect(EXPENSE_CATEGORIES).toContain('OTHER')
+    expect(expenseCategorySchema.safeParse('SNACKS').success).toBe(false)
+  })
+
+  it('expenseSchema validates a row', () => {
+    const parsed = expenseSchema.parse(expense)
+    expect(parsed.amountDZD).toBe(8500)
+    expect(expenseSchema.safeParse({ ...expense, amountDZD: 0 }).success).toBe(false)
+  })
+
+  it('expenseInputSchema requires category/amount/description, allows date', () => {
+    const parsed = expenseInputSchema.parse({
+      category: 'RENT',
+      amountDZD: 120000,
+      description: 'Loyer local',
+    })
+    expect(parsed.category).toBe('RENT')
+    expect(expenseInputSchema.safeParse({ category: 'RENT', amountDZD: 120000 }).success).toBe(
+      false,
+    )
+    expect(
+      expenseInputSchema.safeParse({
+        category: 'RENT',
+        amountDZD: 120000,
+        description: 'x'.repeat(301),
+      }).success,
+    ).toBe(false)
+    expect(
+      expenseInputSchema.safeParse({ category: 'RENT', amountDZD: 10.5, description: 'a' }).success,
+    ).toBe(false)
+  })
+
+  it('expenseUpdateSchema rejects an empty patch', () => {
+    expect(expenseUpdateSchema.parse({ description: 'Nouvelle note' }).description).toBe(
+      'Nouvelle note',
+    )
+    expect(expenseUpdateSchema.safeParse({}).success).toBe(false)
+  })
+
+  it('expenseQuerySchema parses filters and coerces limit', () => {
+    const parsed = expenseQuerySchema.parse({
+      category: 'EQUIPMENT',
+      from: '2026-08-01T00:00:00.000Z',
+      to: '2026-08-31T00:00:00.000Z',
+      voided: 'only',
+      limit: '10',
+    })
+    expect(parsed.limit).toBe(10)
+    expect(parsed.voided).toBe('only')
+    expect(expenseQuerySchema.safeParse({ voided: 'sometimes' }).success).toBe(false)
+  })
+
+  it('expenseListSchema wraps items + total', () => {
+    const parsed = expenseListSchema.parse({ items: [expense], total: 1 })
+    expect(parsed.total).toBe(1)
+    expect(parsed.items[0].category).toBe('UTILITIES')
   })
 })
