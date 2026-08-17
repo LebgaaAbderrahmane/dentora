@@ -38,11 +38,17 @@ import {
   serviceSchema,
   serviceUpdateSchema,
   INVOICE_STATUSES,
+  PAYMENT_METHODS,
   invoiceCreateSchema,
   invoiceDetailSchema,
   invoiceLineSchema,
   invoiceQuerySchema,
   invoiceSchema,
+  paymentCreateSchema,
+  paymentKindSchema,
+  paymentQuerySchema,
+  paymentSchema,
+  refundCreateSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -903,7 +909,69 @@ describe('invoice contracts', () => {
       createdAt: '2026-08-17T00:00:00.000Z',
       updatedAt: '2026-08-17T00:00:00.000Z',
       lines: [invoiceLineSchema.parse({ ...line, id: 'l1' })],
+      paidDZD: 0,
+      balanceDZD: 5000,
+      payments: [],
     })
     expect(detail.lines).toHaveLength(1)
+    expect(detail.balanceDZD).toBe(5000)
+  })
+})
+
+describe('payment contracts', () => {
+  const payment = {
+    id: 'pay1',
+    invoiceId: 'i1',
+    kind: 'RECEIPT' as const,
+    method: 'CASH' as const,
+    amountDZD: 2500,
+    reference: null,
+    notes: null,
+    receivedAt: '2026-08-17T00:00:00.000Z',
+    refundsId: null,
+    createdAt: '2026-08-17T00:00:00.000Z',
+    createdById: null,
+  }
+
+  it('paymentSchema validates a receipt row', () => {
+    const parsed = paymentSchema.parse(payment)
+    expect(parsed.kind).toBe('RECEIPT')
+    expect(PAYMENT_METHODS).toContain('TRANSFER')
+    expect(paymentSchema.safeParse({ ...payment, amountDZD: 0 }).success).toBe(false)
+  })
+
+  it('paymentKindSchema admits receipts and refunds only', () => {
+    expect(paymentKindSchema.options).toEqual(['RECEIPT', 'REFUND'])
+    expect(paymentSchema.safeParse({ ...payment, kind: 'VOUCHER' }).success).toBe(false)
+  })
+
+  it('paymentCreateSchema accepts a method + amount, rejects fractional amount', () => {
+    const parsed = paymentCreateSchema.parse({
+      invoiceId: 'i1',
+      method: 'CHEQUE',
+      amountDZD: 3000,
+      reference: 'CHQ-004',
+    })
+    expect(parsed.reference).toBe('CHQ-004')
+    expect(
+      paymentCreateSchema.safeParse({ invoiceId: 'i1', method: 'CASH', amountDZD: 10.5 }).success,
+    ).toBe(false)
+    expect(
+      paymentCreateSchema.safeParse({ invoiceId: 'i1', method: 'CASH', amountDZD: 0 }).success,
+    ).toBe(false)
+    expect(
+      paymentCreateSchema.safeParse({ invoiceId: 'i1', method: 'CRYPTO', amountDZD: 5 }).success,
+    ).toBe(false)
+  })
+
+  it('refundCreateSchema requires a positive whole amount', () => {
+    expect(refundCreateSchema.parse({ amountDZD: 500 }).amountDZD).toBe(500)
+    expect(refundCreateSchema.safeParse({ amountDZD: -5 }).success).toBe(false)
+  })
+
+  it('paymentQuerySchema coerces invoiceNumber and limit', () => {
+    expect(paymentQuerySchema.parse({ invoiceNumber: '12', limit: '5' }).invoiceNumber).toBe(12)
+    expect(paymentQuerySchema.parse({ limit: '5' }).limit).toBe(5)
+    expect(paymentQuerySchema.safeParse({ limit: 0 }).success).toBe(false)
   })
 })

@@ -26,6 +26,11 @@ import {
   type PatientInput,
   type PatientList,
   type PatientQueryParams,
+  type Payment,
+  type PaymentCreate,
+  type PaymentList,
+  type PaymentQueryParams,
+  type RefundCreate,
   type Role,
   type Service,
   type ServiceInput,
@@ -306,6 +311,27 @@ export const api = {
 
   voidInvoice: (id: string) =>
     request<InvoiceDetail>(`/api/invoices/${id}/void`, { method: 'POST' }),
+
+  payments: (params: PaymentQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.invoiceId) q.set('invoiceId', params.invoiceId)
+    if (params.invoiceNumber) q.set('invoiceNumber', String(params.invoiceNumber))
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<PaymentList>(`/api/payments?${q.toString()}`)
+  },
+
+  createPayment: (input: PaymentCreate) =>
+    request<Payment>('/api/payments', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  refundPayment: (id: string, input: RefundCreate) =>
+    request<Payment>(`/api/payments/${id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

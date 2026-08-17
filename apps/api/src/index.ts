@@ -19,6 +19,7 @@ import dashboardRouter from './routes/dashboard'
 import publicRouter from './routes/public'
 import servicesRouter from './routes/services'
 import invoicesRouter from './routes/invoices'
+import paymentsRouter from './routes/payments'
 
 initSentry()
 
@@ -82,6 +83,7 @@ api.use('/dashboard', dashboardRouter)
 api.use('/public', publicRouter)
 api.use('/services', servicesRouter)
 api.use('/invoices', invoicesRouter)
+api.use('/payments', paymentsRouter)
 
 app.use('/api', api)
 

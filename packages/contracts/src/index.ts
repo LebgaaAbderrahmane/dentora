@@ -108,6 +108,8 @@ export const auditActionSchema = z.enum([
   'SERVICE_RESTORE',
   'INVOICE_CREATE',
   'INVOICE_VOID',
+  'PAYMENT_CREATE',
+  'PAYMENT_REFUND',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -789,8 +791,37 @@ export const invoiceSchema = z.object({
 
 export type Invoice = z.infer<typeof invoiceSchema>
 
+export const paymentMethodSchema = z.enum(['CASH', 'CHEQUE', 'CARD', 'TRANSFER'])
+
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>
+
+export const PAYMENT_METHODS = paymentMethodSchema.options
+
+export const paymentKindSchema = z.enum(['RECEIPT', 'REFUND'])
+
+export type PaymentKind = z.infer<typeof paymentKindSchema>
+
+export const paymentSchema = z.object({
+  id: z.string(),
+  invoiceId: z.string(),
+  kind: paymentKindSchema,
+  method: paymentMethodSchema,
+  amountDZD: z.number().int().positive(),
+  reference: z.string().nullable(),
+  notes: z.string().nullable(),
+  receivedAt: z.string(),
+  refundsId: z.string().nullable(),
+  createdAt: z.string(),
+  createdById: z.string().nullable(),
+})
+
+export type Payment = z.infer<typeof paymentSchema>
+
 export const invoiceDetailSchema = invoiceSchema.extend({
   lines: z.array(invoiceLineSchema),
+  paidDZD: z.number().int().min(0),
+  balanceDZD: z.number().int().min(0),
+  payments: z.array(paymentSchema),
 })
 
 export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>
@@ -831,3 +862,42 @@ export const invoiceCreateSchema = z.object({
 })
 
 export type InvoiceCreate = z.infer<typeof invoiceCreateSchema>
+
+export const paymentListSchema = z.object({
+  items: z.array(paymentSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type PaymentList = z.infer<typeof paymentListSchema>
+
+export const paymentQuerySchema = z.object({
+  invoiceId: z.string().optional(),
+  invoiceNumber: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type PaymentQuery = z.infer<typeof paymentQuerySchema>
+
+export type PaymentQueryParams = z.input<typeof paymentQuerySchema>
+
+export const MAX_PAYMENT_AMOUNT_DZD = 100_000_000
+
+export const paymentCreateSchema = z.object({
+  invoiceId: z.string().min(1),
+  method: paymentMethodSchema,
+  amountDZD: z.number().int().min(1).max(MAX_PAYMENT_AMOUNT_DZD),
+  reference: z.string().trim().max(80).optional(),
+  notes: z.string().trim().max(300).optional(),
+  receivedAt: z.string().datetime().optional(),
+})
+
+export type PaymentCreate = z.infer<typeof paymentCreateSchema>
+
+export const refundCreateSchema = z.object({
+  amountDZD: z.number().int().min(1).max(MAX_PAYMENT_AMOUNT_DZD),
+  notes: z.string().trim().max(300).optional(),
+  receivedAt: z.string().datetime().optional(),
+})
+
+export type RefundCreate = z.infer<typeof refundCreateSchema>

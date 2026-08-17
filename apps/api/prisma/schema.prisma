@@ -51,6 +51,8 @@ enum AuditAction {
   SERVICE_RESTORE
   INVOICE_CREATE
   INVOICE_VOID
+  PAYMENT_CREATE
+  PAYMENT_REFUND
 }
 
 enum AuditTarget {
@@ -88,6 +90,18 @@ enum ServiceCategory {
   IMAGING
 }
 
+enum PaymentKind {
+  RECEIPT
+  REFUND
+}
+
+enum PaymentMethod {
+  CASH
+  CHEQUE
+  CARD
+  TRANSFER
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -104,6 +118,7 @@ model Branch {
   waitlist     WaitlistEntry[]
   services     Service[]
   invoices     Invoice[]
+  payments     Payment[]
 
   @@map("branches")
 }
@@ -126,6 +141,7 @@ model User {
   waitlistDentist      WaitlistEntry[]   @relation("WaitlistDentist")
   createdWaitlist      WaitlistEntry[]   @relation("WaitlistCreator")
   createdInvoices      Invoice[]         @relation("InvoiceCreator")
+  createdPayments      Payment[]         @relation("PaymentCreator")
 
   @@index([branchId])
   @@map("users")
@@ -313,11 +329,41 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   lines         InvoiceLine[]
+  payments      Payment[]
 
   @@unique([branchId, invoiceNumber])
   @@index([branchId, issuedAt])
   @@index([branchId, patientId])
   @@map("invoices")
+}
+
+// Receipts (money in) and refunds (money out) share one table, discriminated by `kind`.
+// Refunds are immutable money-out rows that reverse a receipt via the `refundsId`
+// self-reference; `paidDZD` is always derived = Σ(RECEIPT) − Σ(REFUND) (ADR 019). The
+// over-payment and over-refund guards are enforced at write time, never by editing.
+model Payment {
+  id         String        @id @default(cuid())
+  branchId   String
+  branch     Branch        @relation(fields: [branchId], references: [id])
+  invoiceId  String
+  invoice    Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  kind       PaymentKind   @default(RECEIPT)
+  method     PaymentMethod
+  amountDZD  Int // whole positive dinars, no sub-unit precision (ADR 017)
+  reference  String?
+  notes      String?
+  receivedAt DateTime      @default(now())
+  refundsId  String?
+  refunds    Payment?      @relation("RefundsPayment", fields: [refundsId], references: [id])
+  refundedBy Payment[]     @relation("RefundsPayment")
+  createdById String?
+  createdBy  User?         @relation("PaymentCreator", fields: [createdById], references: [id])
+  createdAt  DateTime      @default(now())
+
+  @@index([invoiceId, receivedAt])
+  @@index([branchId, receivedAt])
+  @@index([branchId, kind])
+  @@map("payments")
 }
 
 model Setting {
