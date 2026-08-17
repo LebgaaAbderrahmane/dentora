@@ -727,6 +727,13 @@ function ReceiveOrderDialog({
         .map((l) => [l.id, String(l.quantity - l.receivedQuantity)]),
     ),
   )
+  const [lots, setLots] = useState<Record<string, { batch: string; expiry: string }>>(() =>
+    Object.fromEntries(
+      order.lines
+        .filter((l) => l.receivedQuantity < l.quantity)
+        .map((l) => [l.id, { batch: '', expiry: '' }]),
+    ),
+  )
   const [saving, setSaving] = useState(false)
 
   const pending = order.lines.filter((l) => l.receivedQuantity < l.quantity)
@@ -734,7 +741,15 @@ function ReceiveOrderDialog({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const lines = pending
-      .map((l) => ({ purchaseOrderLineId: l.id, quantity: Number(amounts[l.id]) }))
+      .map((l) => {
+        const lot = lots[l.id] ?? { batch: '', expiry: '' }
+        return {
+          purchaseOrderLineId: l.id,
+          quantity: Number(amounts[l.id]),
+          batch: lot.batch.trim() || undefined,
+          expiryDate: lot.expiry ? new Date(lot.expiry).toISOString() : undefined,
+        }
+      })
       .filter((l) => Number.isFinite(l.quantity) && l.quantity >= 1)
     if (lines.length === 0) return
     setSaving(true)
@@ -766,7 +781,7 @@ function ReceiveOrderDialog({
             return (
               <div
                 key={l.id}
-                className="grid grid-cols-2 items-end gap-2 rounded-lg border border-neutral-200 p-2 dark:border-neutral-800"
+                className="flex flex-col gap-2 rounded-lg border border-neutral-200 p-2 dark:border-neutral-800"
               >
                 <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                   {l.productName}
@@ -774,15 +789,43 @@ function ReceiveOrderDialog({
                     {t('purchaseOrders.received')} {l.receivedQuantity}/{l.quantity}
                   </span>
                 </span>
-                <div className="flex flex-col gap-1.5">
-                  <Label>{t('purchaseOrders.receiveQty')}</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={remaining}
-                    value={amounts[l.id]}
-                    onChange={(e) => setAmounts((prev) => ({ ...prev, [l.id]: e.target.value }))}
-                  />
+                <div className="grid grid-cols-3 items-end gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>{t('purchaseOrders.receiveQty')}</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={remaining}
+                      value={amounts[l.id]}
+                      onChange={(e) => setAmounts((prev) => ({ ...prev, [l.id]: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>{t('stock.batch')}</Label>
+                    <Input
+                      value={lots[l.id]?.batch ?? ''}
+                      maxLength={60}
+                      onChange={(e) =>
+                        setLots((prev) => ({
+                          ...prev,
+                          [l.id]: { batch: e.target.value, expiry: prev[l.id]?.expiry ?? '' },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>{t('stock.expiry')}</Label>
+                    <Input
+                      type="date"
+                      value={lots[l.id]?.expiry ?? ''}
+                      onChange={(e) =>
+                        setLots((prev) => ({
+                          ...prev,
+                          [l.id]: { expiry: e.target.value, batch: prev[l.id]?.batch ?? '' },
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             )

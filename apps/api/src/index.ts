@@ -25,6 +25,7 @@ import financeRouter from './routes/finance'
 import productsRouter from './routes/products'
 import suppliersRouter from './routes/suppliers'
 import purchaseOrdersRouter from './routes/purchaseOrders'
+import stockRouter from './routes/stock'
 
 initSentry()
 
@@ -94,6 +95,7 @@ api.use('/finance', financeRouter)
 api.use('/products', productsRouter)
 api.use('/suppliers', suppliersRouter)
 api.use('/purchase-orders', purchaseOrdersRouter)
+api.use('/stock', stockRouter)
 
 app.use('/api', api)
 

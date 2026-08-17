@@ -91,6 +91,13 @@ import {
   waitlistUpdateSchema,
   publicBookingSchema,
   publicBookingResponseSchema,
+  STOCK_LEDGER_TYPES,
+  stockAdjustInputSchema,
+  stockEntrySchema,
+  stockListSchema,
+  stockOutInputSchema,
+  stockQuerySchema,
+  MAX_STOCK_BATCH,
 } from './index'
 
 describe('auth contracts', () => {
@@ -1367,5 +1374,118 @@ describe('expense contracts', () => {
     expect(q.status).toBe('ORDERED')
     expect(q.limit).toBe(5)
     expect(purchaseOrderQuerySchema.safeParse({ status: 'SOMETHING' }).success).toBe(false)
+  })
+
+  it('STOCK_LEDGER_TYPES is the fixed movement set', () => {
+    expect(STOCK_LEDGER_TYPES).toEqual(['OPENING', 'IN', 'OUT', 'ADJUST'])
+  })
+
+  it('stockEntrySchema validates an OPENING row with null batch/cost', () => {
+    const entry = stockEntrySchema.parse({
+      id: 'e1',
+      branchId: 'b1',
+      productId: 'p1',
+      productName: 'Gants nitrile M',
+      unit: 'BOX',
+      type: 'OPENING',
+      quantity: 12,
+      unitCostDZD: null,
+      batch: null,
+      expiryDate: null,
+      reason: 'Opening balance (3.3)',
+      purchaseOrderId: null,
+      createdById: null,
+      createdAt: '2026-08-17T00:00:00.000Z',
+    })
+    expect(entry.type).toBe('OPENING')
+    expect(stockEntrySchema.safeParse({ ...entry, unit: 'FAKE' }).success).toBe(false)
+  })
+
+  it('stockEntrySchema validates an IN row with batch + expiry', () => {
+    const entry = stockEntrySchema.parse({
+      id: 'e2',
+      branchId: 'b1',
+      productId: 'p1',
+      productName: 'Lidocaïne',
+      unit: 'BOTTLE',
+      type: 'IN',
+      quantity: 20,
+      unitCostDZD: 500,
+      batch: 'LID-2026',
+      expiryDate: '2027-01-01T00:00:00.000Z',
+      reason: null,
+      purchaseOrderId: 'po1',
+      createdById: 'u1',
+      createdAt: '2026-08-17T00:00:00.000Z',
+    })
+    expect(entry.batch).toBe('LID-2026')
+  })
+
+  it('stockOutInputSchema requires a quantity + reason', () => {
+    const out = stockOutInputSchema.parse({ quantity: 3, reason: 'Usage soins' })
+    expect(out.quantity).toBe(3)
+    expect(stockOutInputSchema.safeParse({ reason: 'x' }).success).toBe(false)
+    expect(stockOutInputSchema.safeParse({ quantity: 0, reason: 'x' }).success).toBe(false)
+  })
+
+  it('stockAdjustInputSchema allows signed non-zero quantities with optional lot', () => {
+    const up = stockAdjustInputSchema.parse({ quantity: 5, reason: 'Don' })
+    const down = stockAdjustInputSchema.parse({ quantity: -2, reason: 'Casse' })
+    expect(up.quantity).toBe(5)
+    expect(down.quantity).toBe(-2)
+    expect(stockAdjustInputSchema.safeParse({ quantity: 0, reason: 'x' }).success).toBe(false)
+    expect(
+      stockAdjustInputSchema.safeParse({
+        quantity: -1,
+        reason: 'x',
+        batch: 'B-1',
+        expiryDate: '2027-06-01T00:00:00.000Z',
+      }).success,
+    ).toBe(true)
+    expect(
+      stockAdjustInputSchema.safeParse({
+        quantity: -1,
+        reason: 'x',
+        batch: 'y'.repeat(MAX_STOCK_BATCH + 1),
+      }).success,
+    ).toBe(false)
+  })
+
+  it('stockQuerySchema coerces filters and caps the limit', () => {
+    const q = stockQuerySchema.parse({
+      productId: 'p1',
+      type: 'IN',
+      limit: '5',
+      offset: '2',
+    })
+    expect(q.type).toBe('IN')
+    expect(q.limit).toBe(5)
+    expect(stockQuerySchema.safeParse({ type: 'OPENING', limit: '9999' }).success).toBe(false)
+    expect(stockQuerySchema.safeParse({ from: 'not-a-date' }).success).toBe(false)
+  })
+
+  it('stockListSchema wraps items + total', () => {
+    const parsed = stockListSchema.parse({ items: [], total: 0 })
+    expect(parsed.total).toBe(0)
+  })
+
+  it('purchaseOrderReceiveSchema accepts optional batch/expiry per line', () => {
+    const recv = purchaseOrderReceiveSchema.parse({
+      lines: [
+        { purchaseOrderLineId: 'l1', quantity: 5 },
+        {
+          purchaseOrderLineId: 'l2',
+          quantity: 2,
+          batch: 'B-99',
+          expiryDate: '2027-01-01T00:00:00.000Z',
+        },
+      ],
+    })
+    expect(recv.lines[1].batch).toBe('B-99')
+    expect(
+      purchaseOrderReceiveSchema.safeParse({
+        lines: [{ purchaseOrderLineId: 'l1', quantity: 1, batch: 'x'.repeat(MAX_STOCK_BATCH + 1) }],
+      }).success,
+    ).toBe(false)
   })
 })

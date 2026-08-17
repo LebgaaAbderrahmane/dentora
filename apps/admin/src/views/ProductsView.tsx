@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { Product, ProductCategory, ProductInput, ProductUnit } from '@dentora/contracts'
+import type {
+  Product,
+  ProductCategory,
+  ProductInput,
+  ProductUnit,
+  StockAdjustInput,
+  StockEntry,
+  StockLedgerType,
+  StockOutInput,
+} from '@dentora/contracts'
 import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
@@ -49,6 +58,13 @@ const UNIT_KEY: Record<ProductUnit, MessageKey> = {
 const CATEGORIES = Object.keys(CATEGORY_KEY) as ProductCategory[]
 const UNITS = Object.keys(UNIT_KEY) as ProductUnit[]
 
+const STOCK_TYPE_KEY: Record<StockLedgerType, MessageKey> = {
+  OPENING: 'stock.types.opening',
+  IN: 'stock.types.in',
+  OUT: 'stock.types.out',
+  ADJUST: 'stock.types.adjust',
+}
+
 export function ProductsView({ canEdit }: { canEdit: boolean }) {
   const { t } = useI18n()
   const { toast } = useToast()
@@ -60,6 +76,7 @@ export function ProductsView({ canEdit }: { canEdit: boolean }) {
   const [category, setCategory] = useState<ProductCategory | undefined>(undefined)
   const [archived, setArchived] = useState<'exclude' | 'only' | undefined>(undefined)
   const [editing, setEditing] = useState<Product | 'new' | null>(null)
+  const [stockFor, setStockFor] = useState<Product | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(q), 300)
@@ -156,21 +173,19 @@ export function ProductsView({ canEdit }: { canEdit: boolean }) {
               <th className="px-4 py-2 text-start font-medium">{t('products.category')}</th>
               <th className="px-4 py-2 text-center font-medium">{t('products.stock')}</th>
               <th className="px-4 py-2 text-center font-medium">{t('products.reorder')}</th>
-              {canEdit && (
-                <th className="px-4 py-2 text-end font-medium">{t('patients.actions')}</th>
-              )}
+              <th className="px-4 py-2 text-end font-medium">{t('patients.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={canEdit ? 5 : 4} className="px-4 py-6 text-center text-neutral-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-neutral-500">
                   …
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 5 : 4} className="px-4 py-6 text-center text-neutral-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-neutral-500">
                   {t('products.empty')}
                 </td>
               </tr>
@@ -214,22 +229,32 @@ export function ProductsView({ canEdit }: { canEdit: boolean }) {
                     <td className="px-4 py-3 text-center font-mono text-neutral-500 dark:text-neutral-400">
                       {p.reorderLevel}
                     </td>
-                    {canEdit && (
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setEditing(p)}>
-                            {t('catalog.edit')}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void toggleArchived(p)}
-                          >
-                            {p.archivedAt ? t('catalog.restore') : t('catalog.archive')}
-                          </Button>
-                        </div>
-                      </td>
-                    )}
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={Boolean(p.archivedAt)}
+                          onClick={() => setStockFor(p)}
+                        >
+                          {t('stock.title')}
+                        </Button>
+                        {canEdit && (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => setEditing(p)}>
+                              {t('catalog.edit')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void toggleArchived(p)}
+                            >
+                              {p.archivedAt ? t('catalog.restore') : t('catalog.archive')}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 )
               })
@@ -246,6 +271,15 @@ export function ProductsView({ canEdit }: { canEdit: boolean }) {
             setEditing(null)
             await refetch()
           }}
+        />
+      )}
+
+      {stockFor && (
+        <StockDrawer
+          product={stockFor}
+          canEdit={canEdit}
+          onClose={() => setStockFor(null)}
+          onMoved={() => refetch()}
         />
       )}
     </div>
@@ -384,6 +418,348 @@ function ProductForm({
             </Button>
             <Button type="submit" disabled={saving}>
               {t('appointments.save')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function StockDrawer({
+  product,
+  canEdit,
+  onClose,
+  onMoved,
+}: {
+  product: Product
+  canEdit: boolean
+  onClose: () => void
+  onMoved: () => void
+}) {
+  const { t } = useI18n()
+  const { toast } = useToast()
+  const [entries, setEntries] = useState<StockEntry[]>([])
+  const [onHand, setOnHand] = useState(product.quantityOnHand)
+  const [mode, setMode] = useState<null | 'out' | 'adjust'>(null)
+
+  async function load() {
+    try {
+      const r = await api.stock({ productId: product.id, limit: 100 })
+      setEntries(r.items)
+      setOnHand(() => {
+        return r.items.reduce(
+          (sum, e) =>
+            sum + (e.type === 'OUT' ? -e.quantity : e.type === 'ADJUST' ? e.quantity : e.quantity),
+          product.quantityOnHand,
+        )
+      })
+    } catch {
+      toast(t('stock.loadError'), 'error')
+    }
+  }
+
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id])
+
+  async function handleMoved() {
+    await load()
+    setMode(null)
+    toast(t('stock.moved'), 'success')
+    onMoved()
+  }
+
+  function handleMoveError(err: unknown) {
+    toast(
+      err instanceof ApiError && err.message === 'INSUFFICIENT_STOCK'
+        ? t('stock.insufficient')
+        : t('stock.moveError'),
+      'error',
+    )
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {product.name}
+            <span className="ms-2 font-mono text-xs text-muted-foreground">
+              {t('products.stock')}: {onHand} {t(UNIT_KEY[product.unit])}
+            </span>
+          </DialogTitle>
+        </DialogHeader>
+
+        {canEdit && (
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => setMode('out')}>
+              {t('stock.out.title')}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setMode('adjust')}>
+              {t('stock.adjust.title')}
+            </Button>
+          </div>
+        )}
+
+        <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
+          <table className="w-full text-sm">
+            <thead className="border-b border-neutral-200 text-start text-xs uppercase text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+              <tr>
+                <th className="px-4 py-2 text-start font-medium">{t('stock.date')}</th>
+                <th className="px-4 py-2 text-center font-medium">{t('stock.type')}</th>
+                <th className="px-4 py-2 text-center font-medium">{t('stock.quantity')}</th>
+                <th className="px-4 py-2 text-start font-medium">{t('stock.batch')}</th>
+                <th className="px-4 py-2 text-start font-medium">{t('stock.expiry')}</th>
+                <th className="px-4 py-2 text-start font-medium">{t('stock.reason')}</th>
+                <th className="px-4 py-2 text-start font-medium">{t('stock.source')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-6 text-center text-neutral-500">
+                    {t('stock.empty')}
+                  </td>
+                </tr>
+              ) : (
+                entries.map((e) => {
+                  const sign =
+                    e.type === 'OUT' ? -1 : e.type === 'ADJUST' && e.quantity < 0 ? -1 : 1
+                  return (
+                    <tr
+                      key={e.id}
+                      className="border-b border-neutral-100 last:border-0 dark:border-neutral-800"
+                    >
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {new Date(e.createdAt).toLocaleDateString()}{' '}
+                        {new Date(e.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className="inline-flex rounded-full border border-brand-500/30 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                          {t(STOCK_TYPE_KEY[e.type])}
+                        </span>
+                      </td>
+                      <td
+                        className={`px-4 py-2.5 text-center font-mono ${
+                          sign < 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-emerald-600 dark:text-emerald-400'
+                        }`}
+                      >
+                        {sign < 0 ? `−${e.quantity}` : `+${e.quantity}`}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                        {e.batch ?? '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {e.expiryDate ? new Date(e.expiryDate).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {e.reason ?? '—'}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {e.type === 'OPENING'
+                          ? t('stock.source.opening')
+                          : e.type === 'IN'
+                            ? t('stock.source.receipt')
+                            : '—'}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {mode === 'out' && (
+          <StockOutModal
+            product={product}
+            onClose={() => setMode(null)}
+            onSaved={handleMoved}
+            onError={handleMoveError}
+          />
+        )}
+        {mode === 'adjust' && (
+          <StockAdjustModal
+            product={product}
+            onClose={() => setMode(null)}
+            onSaved={handleMoved}
+            onError={handleMoveError}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function StockOutModal({
+  product,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  product: Product
+  onClose: () => void
+  onSaved: () => void | Promise<void>
+  onError: (err: unknown) => void
+}) {
+  const { t } = useI18n()
+  const [quantity, setQuantity] = useState('')
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    const input: StockOutInput = { quantity: Number(quantity), reason: reason.trim() }
+    if (!input.reason || !(input.quantity > 0)) return
+    setSaving(true)
+    try {
+      await api.stockOut(product.id, input)
+      await onSaved()
+    } catch (err) {
+      onError(err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t('stock.out.title')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label>{product.name}</Label>
+            <span className="text-xs text-muted-foreground">
+              {t('products.stock')}: {product.quantityOnHand} {t(UNIT_KEY[product.unit])}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('stock.out.quantity')}</Label>
+            <Input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('stock.out.reason')}</Label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={500}
+              required
+            />
+          </div>
+          <DialogFooter className="mt-2 gap-2">
+            <Button variant="outline" type="button" onClick={onClose}>
+              {t('appointments.cancel')}
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {t('stock.out.submit')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function StockAdjustModal({
+  product,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  product: Product
+  onClose: () => void
+  onSaved: () => void | Promise<void>
+  onError: (err: unknown) => void
+}) {
+  const { t } = useI18n()
+  const [quantity, setQuantity] = useState('')
+  const [reason, setReason] = useState('')
+  const [batch, setBatch] = useState('')
+  const [expiry, setExpiry] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    const input: StockAdjustInput = {
+      quantity: Number(quantity),
+      reason: reason.trim(),
+      batch: batch.trim() || undefined,
+      expiryDate: expiry ? new Date(expiry).toISOString() : undefined,
+    }
+    if (!input.reason || input.quantity === 0 || Number.isNaN(input.quantity)) return
+    setSaving(true)
+    try {
+      await api.stockAdjust(product.id, input)
+      await onSaved()
+    } catch (err) {
+      onError(err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t('stock.adjust.title')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label>{product.name}</Label>
+            <span className="text-xs text-muted-foreground">
+              {t('products.stock')}: {product.quantityOnHand} {t(UNIT_KEY[product.unit])}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('stock.adjust.quantity')}</Label>
+            <Input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('stock.adjust.reason')}</Label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={500}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('stock.adjust.batch')}</Label>
+              <Input value={batch} onChange={(e) => setBatch(e.target.value)} maxLength={60} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('stock.adjust.expiry')}</Label>
+              <Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="mt-2 gap-2">
+            <Button variant="outline" type="button" onClick={onClose}>
+              {t('appointments.cancel')}
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {t('stock.adjust.submit')}
             </Button>
           </DialogFooter>
         </form>

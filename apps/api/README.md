@@ -293,15 +293,34 @@ unitPriceDZD }] }` (1–50 lines); validates the supplier (`400 UNKNOWN_SUPPLIER
 - `PATCH /:id` — header edit (`supplierId?`, `reference?`, `notes?`, `orderedAt?`) while the
   order has **no receipts** and is not `CANCELLED`/`RECEIVED`, else `400 ORDER_LOCKED`; audits
   `PURCHASE_ORDER_UPDATE`.
-- `POST /:id/receive` — `{ lines[{ purchaseOrderLineId, quantity }] }`; each `quantity` must be
-  ≥1 and ≤ remaining (`400 RECEIPT_EXCEEDS_QUANTITY`); unknown line `400 UNKNOWN_LINE`, dup
-  line `400 DUPLICATE_LINE`; on a cancelled order `400 ORDER_CANCELLED`. Receipts increment
-  `Product.quantityOnHand` in the same transaction, move the status
-  (`PARTIALLY_RECEIVED`/`RECEIVED` + `receivedAt`), and audit `PURCHASE_ORDER_RECEIVE` with per-
-  line quantities.
+- `POST /:id/receive` — `{ lines[{ purchaseOrderLineId, quantity, batch?, expiryDate? }] }`;
+  each `quantity` must be ≥1 and ≤ remaining (`400 RECEIPT_EXCEEDS_QUANTITY`); unknown line
+  `400 UNKNOWN_LINE`, dup line `400 DUPLICATE_LINE`; on a cancelled order `400 ORDER_CANCELLED`.
+  Receipts increment `Product.quantityOnHand` in the same transaction, append one **stock-ledger
+  `IN` row per received line** (capturing `unitCostDZD`, optional `batch`/`expiryDate`, and the
+  `purchaseOrderId` link — ADR 024), move the status (`PARTIALLY_RECEIVED`/`RECEIVED` +
+  `receivedAt`), and audit `PURCHASE_ORDER_RECEIVE` with per-line quantities + lot info.
 - `POST /:id/cancel` — only with zero receipts (`400 HAS_RECEIVED`), `400 ALREADY_CANCELLED`
   when already cancelled; audits `PURCHASE_ORDER_CANCEL`.
 - No hard delete; receipts make the lines immutable.
+
+## Stock ledger (Phase 3.3, ADR 024)
+
+`/api/stock` — the append-only stock movement journal. Reads go to the **clinical trio +
+ACCOUNTANT** (like products, ADR 022); the movement writes are the finance desk's
+(**ADMIN + ACCOUNTANT**). Invariant: `Σ ledger == Product.quantityOnHand`, maintained in the
+same transaction as every append (migration backfilled an `OPENING` row per product).
+
+- `GET /` — filters `productId`, `type` (`OPENING|IN|OUT|ADJUST`), optional `from`/`to` window,
+  `limit` ≤200; `400 INVALID_QUERY` on bad params. Each row joins product name + unit.
+- `POST /:productId/out` — `{ quantity (1..), reason }` with optional `occurredAt`; blocks the
+  move below zero (`400 INSUFFICIENT_STOCK`), appends an `OUT` row, decrements the product, and
+  audits `STOCK_OUT` (before/after + reason).
+- `POST /:productId/adjust` — `{ quantity (signed non-zero), reason, batch?, expiryDate?,
+occurredAt? }`; positive adds (manual in / donation with optional lot), negative removes;
+  removes below zero are refused (`400 INSUFFICIENT_STOCK`); appends an `ADJUST` row, updates the
+  product, and audits `STOCK_ADJUST` (before/after + lot + reason).
+- No edit/delete on ledger rows — corrections are new movements.
 
 ## Error tracking (ADR 009, Phase 0.7)
 

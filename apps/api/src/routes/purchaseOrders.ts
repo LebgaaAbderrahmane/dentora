@@ -357,10 +357,16 @@ router.post('/:id/receive', async (req, res) => {
     return
   }
   const input = parsed.data
+  const actorId = assertAuth(req).user.id
 
   const byId = new Map(existing.lines.map((l) => [l.id, l]))
   const seen = new Set<string>()
-  const deltas: Array<{ line: LineRow; quantity: number }> = []
+  const deltas: Array<{
+    line: LineRow
+    quantity: number
+    batch?: string
+    expiryDate?: string
+  }> = []
   for (const item of input.lines) {
     if (seen.has(item.purchaseOrderLineId)) {
       res.status(400).json({ error: 'DUPLICATE_LINE' })
@@ -376,7 +382,7 @@ router.post('/:id/receive', async (req, res) => {
       res.status(400).json({ error: 'RECEIPT_EXCEEDS_QUANTITY' })
       return
     }
-    deltas.push({ line, quantity: item.quantity })
+    deltas.push({ line, quantity: item.quantity, batch: item.batch, expiryDate: item.expiryDate })
   }
   if (deltas.length === 0) {
     res.status(400).json({ error: 'INVALID_BODY' })
@@ -403,6 +409,19 @@ router.post('/:id/receive', async (req, res) => {
         where: { id: d.line.productId },
         data: { quantityOnHand: { increment: d.quantity } },
       })
+      await tx.stockLedgerEntry.create({
+        data: {
+          branchId: existing.branchId,
+          productId: d.line.productId,
+          type: 'IN',
+          quantity: d.quantity,
+          unitCostDZD: d.line.unitPriceDZD,
+          batch: d.batch ?? null,
+          expiryDate: d.expiryDate ? new Date(d.expiryDate) : null,
+          purchaseOrderId: existing.id,
+          createdById: actorId,
+        },
+      })
     }
     return tx.purchaseOrder.update({
       where: { id: existing.id },
@@ -416,7 +435,12 @@ router.post('/:id/receive', async (req, res) => {
     targetId: updated.id,
     metadata: {
       reference: updated.reference,
-      received: deltas.map((d) => ({ productId: d.line.productId, quantity: d.quantity })),
+      received: deltas.map((d) => ({
+        productId: d.line.productId,
+        quantity: d.quantity,
+        batch: d.batch ?? null,
+        expiryDate: d.expiryDate ?? null,
+      })),
       status,
     },
   })

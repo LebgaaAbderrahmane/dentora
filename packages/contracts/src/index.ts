@@ -125,6 +125,8 @@ export const auditActionSchema = z.enum([
   'PURCHASE_ORDER_UPDATE',
   'PURCHASE_ORDER_RECEIVE',
   'PURCHASE_ORDER_CANCEL',
+  'STOCK_OUT',
+  'STOCK_ADJUST',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -1089,6 +1091,9 @@ export const PRODUCT_UNITS = productUnitSchema.options
 export const MAX_PRODUCT_QUANTITY = 1_000_000
 export const MAX_PRODUCT_REORDER_LEVEL = 100_000
 
+export const MAX_STOCK_REASON = 500
+export const MAX_STOCK_BATCH = 60
+
 export const productSchema = z.object({
   id: z.string(),
   branchId: z.string(),
@@ -1295,6 +1300,10 @@ export type PurchaseOrderUpdate = z.infer<typeof purchaseOrderUpdateSchema>
 export const purchaseOrderReceiveLineSchema = z.object({
   purchaseOrderLineId: z.string().min(1),
   quantity: z.number().int().min(1).max(MAX_PURCHASE_ORDER_QUANTITY),
+  // Optional lot capture for the stock ledger (3.3, ADR 024): a receipt can tag the
+  // incoming units with a batch number + expiry date.
+  batch: z.string().trim().max(MAX_STOCK_BATCH).optional(),
+  expiryDate: z.string().datetime().optional(),
 })
 
 export const purchaseOrderReceiveSchema = z.object({
@@ -1321,3 +1330,73 @@ export const purchaseOrderQuerySchema = z.object({
 export type PurchaseOrderQuery = z.infer<typeof purchaseOrderQuerySchema>
 
 export type PurchaseOrderQueryParams = z.input<typeof purchaseOrderQuerySchema>
+
+// ---- Stock ledger (3.3, ADR 024) ----
+
+export const stockLedgerTypeSchema = z.enum(['OPENING', 'IN', 'OUT', 'ADJUST'])
+
+export type StockLedgerType = z.infer<typeof stockLedgerTypeSchema>
+
+export const STOCK_LEDGER_TYPES = stockLedgerTypeSchema.options
+
+// One append-only movement row (ADR 024). For ledger display the API joins
+// product name + unit so the UI never needs to re-resolve the catalog.
+export const stockEntrySchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  productId: z.string(),
+  productName: z.string(),
+  unit: productUnitSchema,
+  type: stockLedgerTypeSchema,
+  quantity: z.number().int(),
+  unitCostDZD: z.number().int().nonnegative().nullable(),
+  batch: z.string().max(MAX_STOCK_BATCH).nullable(),
+  expiryDate: z.string().nullable(),
+  reason: z.string().max(MAX_STOCK_REASON).nullable(),
+  purchaseOrderId: z.string().nullable(),
+  createdById: z.string().nullable(),
+  createdAt: z.string(),
+})
+
+export type StockEntry = z.infer<typeof stockEntrySchema>
+
+export const stockOutInputSchema = z.object({
+  quantity: z.number().int().min(1).max(MAX_PRODUCT_QUANTITY),
+  reason: z.string().trim().min(1).max(MAX_STOCK_REASON),
+  occurredAt: z.string().datetime().optional(),
+})
+
+export type StockOutInput = z.infer<typeof stockOutInputSchema>
+
+export const stockAdjustInputSchema = z.object({
+  quantity: z
+    .number()
+    .int()
+    .refine((n) => n !== 0 && Math.abs(n) <= MAX_PRODUCT_QUANTITY),
+  reason: z.string().trim().min(1).max(MAX_STOCK_REASON),
+  batch: z.string().trim().max(MAX_STOCK_BATCH).optional(),
+  expiryDate: z.string().datetime().optional(),
+  occurredAt: z.string().datetime().optional(),
+})
+
+export type StockAdjustInput = z.infer<typeof stockAdjustInputSchema>
+
+export const stockListSchema = z.object({
+  items: z.array(stockEntrySchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type StockList = z.infer<typeof stockListSchema>
+
+export const stockQuerySchema = z.object({
+  productId: z.string().optional(),
+  type: stockLedgerTypeSchema.optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type StockQuery = z.infer<typeof stockQuerySchema>
+
+export type StockQueryParams = z.input<typeof stockQuerySchema>
