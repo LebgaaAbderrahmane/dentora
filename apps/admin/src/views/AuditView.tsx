@@ -49,6 +49,9 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   INVOICE_VOID: 'audit.actions.invoiceVoid',
   PAYMENT_CREATE: 'audit.actions.paymentCreate',
   PAYMENT_REFUND: 'audit.actions.paymentRefund',
+  EXPENSE_CREATE: 'audit.actions.expenseCreate',
+  EXPENSE_UPDATE: 'audit.actions.expenseUpdate',
+  EXPENSE_VOID: 'audit.actions.expenseVoid',
 }
 
 export function AuditView() {

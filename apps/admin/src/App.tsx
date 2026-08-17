@@ -14,6 +14,7 @@ import {
   ListTodo,
   Tags,
   Receipt,
+  Wallet,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ import { AppointmentsView } from './views/AppointmentsView'
 import { WaitlistView } from './views/WaitlistView'
 import { CatalogView } from './views/CatalogView'
 import { InvoicesView } from './views/InvoicesView'
+import { ExpensesView } from './views/ExpensesView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -52,6 +54,7 @@ type View =
   | 'waitlist'
   | 'catalog'
   | 'invoices'
+  | 'expenses'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -161,6 +164,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const isAdmin = user.role === 'ADMIN'
   const canManagePatients = ['ADMIN', 'DENTIST', 'RECEPTIONIST'].includes(user.role)
   const canManageBilling = ['ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
+  const canManageExpenses = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canEditInvoices = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
   const views: Array<{ id: View; label: MessageKey; icon: ComponentType<{ className?: string }> }> =
     [
@@ -182,6 +186,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         : []),
       ...(canManageBilling
         ? [{ id: 'invoices' as const, label: 'nav.invoices' as MessageKey, icon: Receipt }]
+        : []),
+      ...(canManageExpenses
+        ? [{ id: 'expenses' as const, label: 'nav.expenses' as MessageKey, icon: Wallet }]
         : []),
       ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
@@ -252,11 +259,13 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                       ? 'nav.catalog'
                       : view === 'invoices'
                         ? 'nav.invoices'
-                        : view === 'patients'
-                          ? 'nav.patients'
-                          : view === 'users'
-                            ? 'nav.users'
-                            : 'nav.audit',
+                        : view === 'expenses'
+                          ? 'nav.expenses'
+                          : view === 'patients'
+                            ? 'nav.patients'
+                            : view === 'users'
+                              ? 'nav.users'
+                              : 'nav.audit',
             )}
           </h1>
           <Controls />
@@ -266,6 +275,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'waitlist' && canManagePatients && <WaitlistView />}
         {view === 'catalog' && canManagePatients && <CatalogView canEdit={isAdmin} />}
         {view === 'invoices' && canManageBilling && <InvoicesView canEdit={canEditInvoices} />}
+        {view === 'expenses' && canManageExpenses && <ExpensesView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}
