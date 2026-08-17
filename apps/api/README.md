@@ -266,6 +266,43 @@ MATERIALS | INSTRUMENTS | EQUIPMENT | MEDICATIONS | LABORATORY | STATIONERY | OT
   figure (ADR 022). Low-stock detection is client-side (`quantityOnHand ≤ reorderLevel`) until
   3.4.
 
+## Suppliers (Phase 3.2, ADR 023)
+
+`/api/suppliers` — branch-scoped vendor directory. **Read: clinical trio + ACCOUNTANT; write:
+ADMIN + ACCOUNTANT** (same desk as products/purchasing).
+
+- `GET /` — `q` (name), `archived` `exclude`/`only`, `limit` ≤200; `GET /:id`.
+- `POST /` — `{ name, phone?, email?, address?, notes? }`; duplicate name per branch →
+  `400 NAME_TAKEN`; `201` + `SUPPLIER_CREATE` audit.
+- `PATCH /:id` — partial edit; audits `SUPPLIER_UPDATE` with `before`/`after`; `400 NAME_TAKEN`.
+- `POST /:id/archive` / `POST /:id/restore` — soft-archive, audited. No hard delete (POs keep
+  pointing at archived suppliers).
+
+## Purchase orders (Phase 3.2, ADR 023)
+
+`/api/purchase-orders` — the procurement book, **ADMIN + ACCOUNTANT read AND write** (costs,
+like expenses, ADR 020). Status flow: created `ORDERED` → receipts → `PARTIALLY_RECEIVED` →
+`RECEIVED`, or `CANCELLED` while nothing has been received.
+
+- `GET /` — `q` (reference or supplier name), `status`, `supplierId`, `limit` ≤200; `GET /:id`
+  returns the order with its snapshot lines and derived `totalDZD` (whole dinars).
+- `POST /` — `{ supplierId?, reference?, notes?, orderedAt?, lines[{ productId, quantity,
+unitPriceDZD }] }` (1–50 lines); validates the supplier (`400 UNKNOWN_SUPPLIER`) and products
+  (`400 UNKNOWN_PRODUCT`); lines **snapshot** `productName` + `unit` at order time (ADR 018);
+  `201` + `PURCHASE_ORDER_CREATE` audit.
+- `PATCH /:id` — header edit (`supplierId?`, `reference?`, `notes?`, `orderedAt?`) while the
+  order has **no receipts** and is not `CANCELLED`/`RECEIVED`, else `400 ORDER_LOCKED`; audits
+  `PURCHASE_ORDER_UPDATE`.
+- `POST /:id/receive` — `{ lines[{ purchaseOrderLineId, quantity }] }`; each `quantity` must be
+  ≥1 and ≤ remaining (`400 RECEIPT_EXCEEDS_QUANTITY`); unknown line `400 UNKNOWN_LINE`, dup
+  line `400 DUPLICATE_LINE`; on a cancelled order `400 ORDER_CANCELLED`. Receipts increment
+  `Product.quantityOnHand` in the same transaction, move the status
+  (`PARTIALLY_RECEIVED`/`RECEIVED` + `receivedAt`), and audit `PURCHASE_ORDER_RECEIVE` with per-
+  line quantities.
+- `POST /:id/cancel` — only with zero receipts (`400 HAS_RECEIVED`), `400 ALREADY_CANCELLED`
+  when already cancelled; audits `PURCHASE_ORDER_CANCEL`.
+- No hard delete; receipts make the lines immutable.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware
