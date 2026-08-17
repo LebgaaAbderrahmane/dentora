@@ -67,6 +67,19 @@ import {
   productQuerySchema,
   productSchema,
   productUpdateSchema,
+  PURCHASE_ORDER_STATUSES,
+  purchaseOrderCreateSchema,
+  purchaseOrderDetailSchema,
+  purchaseOrderListSchema,
+  purchaseOrderQuerySchema,
+  purchaseOrderReceiveSchema,
+  purchaseOrderSchema,
+  purchaseOrderUpdateSchema,
+  supplierInputSchema,
+  supplierListSchema,
+  supplierQuerySchema,
+  supplierSchema,
+  supplierUpdateSchema,
   updateUserRoleSchema,
   waitlistActiveStatuses,
   waitlistDetailSchema,
@@ -1207,5 +1220,152 @@ describe('expense contracts', () => {
       total: 1,
     })
     expect(parsed.items[0].category).toBe('DISPOSABLES')
+  })
+
+  it('supplierSchema validates a row and rejects bad email/name', () => {
+    const supplier = {
+      id: 's1',
+      branchId: 'b1',
+      name: 'Alger Pharma',
+      phone: '+213 21 00 00 00',
+      email: 'contact@algerpharma.dz',
+      address: 'Alger',
+      notes: null,
+      archivedAt: null,
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+      createdById: 'u1',
+    }
+    expect(supplierSchema.parse(supplier).name).toBe('Alger Pharma')
+    expect(supplierInputSchema.safeParse({ name: '  ' }).success).toBe(false)
+    expect(supplierInputSchema.safeParse({ name: 'X', email: 'not-an-email' }).success).toBe(false)
+  })
+
+  it('supplierUpdateSchema is partial and query coerces limit', () => {
+    expect(supplierUpdateSchema.parse({ phone: '123' }).phone).toBe('123')
+    expect(supplierUpdateSchema.safeParse({}).success).toBe(false)
+    const q = supplierQuerySchema.parse({ archived: 'only', limit: '10' })
+    expect(q.limit).toBe(10)
+    expect(supplierQuerySchema.safeParse({ archived: 'maybe' }).success).toBe(false)
+  })
+
+  it('supplierListSchema wraps items + total', () => {
+    const parsed = supplierListSchema.parse({
+      items: [
+        {
+          id: 's1',
+          branchId: 'b1',
+          name: 'Alger Pharma',
+          phone: null,
+          email: null,
+          address: null,
+          notes: null,
+          archivedAt: null,
+          createdAt: '2026-08-17T00:00:00.000Z',
+          updatedAt: '2026-08-17T00:00:00.000Z',
+          createdById: null,
+        },
+      ],
+      total: 1,
+    })
+    expect(parsed.items[0].name).toBe('Alger Pharma')
+  })
+
+  it('PURCHASE_ORDER_STATUSES is the fixed list', () => {
+    expect(PURCHASE_ORDER_STATUSES).toContain('ORDERED')
+    expect(PURCHASE_ORDER_STATUSES).toContain('CANCELLED')
+    expect(PURCHASE_ORDER_STATUSES).toContain('PARTIALLY_RECEIVED')
+  })
+
+  it('purchaseOrderSchema validates a row with derived total', () => {
+    const po = {
+      id: 'po1',
+      branchId: 'b1',
+      supplierId: 's1',
+      supplierName: 'Alger Pharma',
+      reference: 'CMD-001',
+      notes: null,
+      status: 'ORDERED' as const,
+      orderedAt: '2026-08-17T00:00:00.000Z',
+      receivedAt: null,
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+      createdById: 'u1',
+      totalDZD: 12_000,
+      lineCount: 1,
+    }
+    expect(purchaseOrderSchema.parse(po).status).toBe('ORDERED')
+    expect(purchaseOrderSchema.safeParse({ ...po, totalDZD: -1 }).success).toBe(false)
+  })
+
+  it('purchaseOrderCreateSchema validates lines + supplier', () => {
+    const parsed = purchaseOrderCreateSchema.parse({
+      supplierId: 's1',
+      reference: 'CMD-001',
+      lines: [{ productId: 'p1', quantity: 12, unitPriceDZD: 1000 }],
+    })
+    expect(parsed.lines[0].quantity).toBe(12)
+    expect(purchaseOrderCreateSchema.safeParse({ lines: [] }).success).toBe(false)
+    expect(
+      purchaseOrderCreateSchema.safeParse({
+        lines: [{ productId: 'p1', quantity: 0, unitPriceDZD: 1000 }],
+      }).success,
+    ).toBe(false)
+  })
+
+  it('order update is partial and receive is bounded', () => {
+    expect(purchaseOrderUpdateSchema.parse({ notes: 'urgent' }).notes).toBe('urgent')
+    expect(purchaseOrderUpdateSchema.safeParse({}).success).toBe(false)
+    const recv = purchaseOrderReceiveSchema.parse({
+      lines: [{ purchaseOrderLineId: 'l1', quantity: 5 }],
+    })
+    expect(recv.lines[0].quantity).toBe(5)
+    expect(
+      purchaseOrderReceiveSchema.safeParse({
+        lines: [{ purchaseOrderLineId: 'l1', quantity: 0 }],
+      }).success,
+    ).toBe(false)
+    expect(
+      purchaseOrderReceiveSchema.safeParse({ lines: [{ purchaseOrderLineId: 'l1', quantity: -1 }] })
+        .success,
+    ).toBe(false)
+  })
+
+  it('purchaseOrderListSchema + detail lines + query status filter', () => {
+    const line = {
+      id: 'l1',
+      productId: 'p1',
+      productName: 'Gants nitrile M',
+      unit: 'BOX' as const,
+      unitPriceDZD: 1000,
+      quantity: 12,
+      receivedQuantity: 12,
+      lineTotalDZD: 12_000,
+    }
+    const row = {
+      id: 'po1',
+      branchId: 'b1',
+      supplierId: null,
+      supplierName: null,
+      reference: null,
+      notes: null,
+      status: 'RECEIVED' as const,
+      orderedAt: '2026-08-17T00:00:00.000Z',
+      receivedAt: '2026-08-17T00:00:00.000Z',
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+      createdById: null,
+      totalDZD: 12_000,
+      lineCount: 1,
+    }
+    expect(purchaseOrderListSchema.parse({ items: [row], total: 1 }).items[0].status).toBe(
+      'RECEIVED',
+    )
+    const detail = purchaseOrderDetailSchema.parse({ ...row, lines: [line] })
+    expect(detail.lines[0].lineTotalDZD).toBe(12_000)
+    const q = purchaseOrderQuerySchema.parse({ status: 'ORDERED', supplierId: 's1', limit: '5' })
+    expect(q.status).toBe('ORDERED')
+    expect(q.limit).toBe(5)
+    expect(purchaseOrderQuerySchema.safeParse({ status: 'SOMETHING' }).success).toBe(false)
   })
 })

@@ -42,6 +42,12 @@ import {
   type PaymentList,
   type PaymentQueryParams,
   type RefundCreate,
+  type PurchaseOrderCreate,
+  type PurchaseOrderDetail,
+  type PurchaseOrderList,
+  type PurchaseOrderQueryParams,
+  type PurchaseOrderReceive,
+  type PurchaseOrderUpdate,
   type Role,
   type Service,
   type ServiceInput,
@@ -49,6 +55,11 @@ import {
   type ServiceQueryParams,
   type ServiceUpdate,
   type StaffDentistList,
+  type Supplier,
+  type SupplierInput,
+  type SupplierList,
+  type SupplierQueryParams,
+  type SupplierUpdate,
   type SystemStatus,
   type UserList,
   type WaitlistEntryDetail,
@@ -401,6 +412,62 @@ export const api = {
 
   restoreProduct: (id: string) =>
     request<Product>(`/api/products/${id}/restore`, { method: 'POST' }),
+
+  suppliers: (params: SupplierQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.archived) q.set('archived', params.archived)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<SupplierList>(`/api/suppliers?${q.toString()}`)
+  },
+
+  supplier: (id: string) => request<Supplier>(`/api/suppliers/${id}`),
+
+  createSupplier: (input: SupplierInput) =>
+    request<Supplier>('/api/suppliers', { method: 'POST', body: JSON.stringify(input) }),
+
+  updateSupplier: (id: string, input: SupplierUpdate) =>
+    request<Supplier>(`/api/suppliers/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+
+  archiveSupplier: (id: string) =>
+    request<Supplier>(`/api/suppliers/${id}/archive`, { method: 'POST' }),
+
+  restoreSupplier: (id: string) =>
+    request<Supplier>(`/api/suppliers/${id}/restore`, { method: 'POST' }),
+
+  purchaseOrders: (params: PurchaseOrderQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.q) q.set('q', params.q)
+    if (params.status) q.set('status', params.status)
+    if (params.supplierId) q.set('supplierId', params.supplierId)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<PurchaseOrderList>(`/api/purchase-orders?${q.toString()}`)
+  },
+
+  purchaseOrder: (id: string) => request<PurchaseOrderDetail>(`/api/purchase-orders/${id}`),
+
+  createPurchaseOrder: (input: PurchaseOrderCreate) =>
+    request<PurchaseOrderDetail>('/api/purchase-orders', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updatePurchaseOrder: (id: string, input: PurchaseOrderUpdate) =>
+    request<PurchaseOrderDetail>(`/api/purchase-orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  cancelPurchaseOrder: (id: string) =>
+    request<PurchaseOrderDetail>(`/api/purchase-orders/${id}/cancel`, { method: 'POST' }),
+
+  receivePurchaseOrder: (id: string, input: PurchaseOrderReceive) =>
+    request<PurchaseOrderDetail>(`/api/purchase-orders/${id}/receive`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

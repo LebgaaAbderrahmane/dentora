@@ -17,6 +17,8 @@ import {
   Wallet,
   LineChart,
   Package,
+  Truck,
+  ShoppingCart,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -39,6 +41,8 @@ import { InvoicesView } from './views/InvoicesView'
 import { ExpensesView } from './views/ExpensesView'
 import { FinanceView } from './views/FinanceView'
 import { ProductsView } from './views/ProductsView'
+import { SuppliersView } from './views/SuppliersView'
+import { PurchaseOrdersView } from './views/PurchaseOrdersView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -61,6 +65,8 @@ type View =
   | 'expenses'
   | 'finance'
   | 'products'
+  | 'suppliers'
+  | 'purchaseOrders'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -174,6 +180,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const canManageFinance = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canViewProducts = ['ADMIN', 'DENTIST', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
   const canEditProducts = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
+  const canManageProcurement = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canEditInvoices = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
   const views: Array<{ id: View; label: MessageKey; icon: ComponentType<{ className?: string }> }> =
     [
@@ -204,6 +211,24 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         : []),
       ...(canViewProducts
         ? [{ id: 'products' as const, label: 'nav.products' as MessageKey, icon: Package }]
+        : []),
+      ...(canViewProducts
+        ? [
+            {
+              id: 'suppliers' as const,
+              label: 'nav.suppliers' as MessageKey,
+              icon: Truck,
+            },
+          ]
+        : []),
+      ...(canManageProcurement
+        ? [
+            {
+              id: 'purchaseOrders' as const,
+              label: 'nav.purchaseOrders' as MessageKey,
+              icon: ShoppingCart,
+            },
+          ]
         : []),
       ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
@@ -280,11 +305,15 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                             ? 'nav.finance'
                             : view === 'products'
                               ? 'nav.products'
-                              : view === 'patients'
-                                ? 'nav.patients'
-                                : view === 'users'
-                                  ? 'nav.users'
-                                  : 'nav.audit',
+                              : view === 'suppliers'
+                                ? 'nav.suppliers'
+                                : view === 'purchaseOrders'
+                                  ? 'nav.purchaseOrders'
+                                  : view === 'patients'
+                                    ? 'nav.patients'
+                                    : view === 'users'
+                                      ? 'nav.users'
+                                      : 'nav.audit',
             )}
           </h1>
           <Controls />
@@ -297,6 +326,8 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'expenses' && canManageExpenses && <ExpensesView />}
         {view === 'finance' && canManageFinance && <FinanceView />}
         {view === 'products' && canViewProducts && <ProductsView canEdit={canEditProducts} />}
+        {view === 'suppliers' && canViewProducts && <SuppliersView canEdit={canEditProducts} />}
+        {view === 'purchaseOrders' && canManageProcurement && <PurchaseOrdersView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}

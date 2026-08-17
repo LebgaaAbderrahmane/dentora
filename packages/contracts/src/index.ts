@@ -117,6 +117,14 @@ export const auditActionSchema = z.enum([
   'PRODUCT_UPDATE',
   'PRODUCT_ARCHIVE',
   'PRODUCT_RESTORE',
+  'SUPPLIER_CREATE',
+  'SUPPLIER_UPDATE',
+  'SUPPLIER_ARCHIVE',
+  'SUPPLIER_RESTORE',
+  'PURCHASE_ORDER_CREATE',
+  'PURCHASE_ORDER_UPDATE',
+  'PURCHASE_ORDER_RECEIVE',
+  'PURCHASE_ORDER_CANCEL',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -131,6 +139,8 @@ export const auditTargetSchema = z.enum([
   'INVOICE',
   'EXPENSE',
   'PRODUCT',
+  'SUPPLIER',
+  'PURCHASE_ORDER',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -1138,3 +1148,176 @@ export const productQuerySchema = z.object({
 export type ProductQuery = z.infer<typeof productQuerySchema>
 
 export type ProductQueryParams = z.input<typeof productQuerySchema>
+
+// ---- Suppliers (3.2, ADR 023) ----
+
+export const supplierSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  name: z.string(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  address: z.string().nullable(),
+  notes: z.string().nullable(),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  createdById: z.string().nullable(),
+})
+
+export type Supplier = z.infer<typeof supplierSchema>
+
+export const supplierInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().max(30).optional(),
+  email: z.string().trim().email().max(254).optional(),
+  address: z.string().trim().max(300).optional(),
+  notes: z.string().trim().max(1000).optional(),
+})
+
+export type SupplierInput = z.infer<typeof supplierInputSchema>
+
+export const supplierUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    phone: z.string().trim().max(30).optional(),
+    email: z.string().trim().email().max(254).optional(),
+    address: z.string().trim().max(300).optional(),
+    notes: z.string().trim().max(1000).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'at least one field' })
+
+export type SupplierUpdate = z.infer<typeof supplierUpdateSchema>
+
+export const supplierListSchema = z.object({
+  items: z.array(supplierSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type SupplierList = z.infer<typeof supplierListSchema>
+
+export const supplierQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  archived: z.enum(['exclude', 'only']).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type SupplierQuery = z.infer<typeof supplierQuerySchema>
+
+export type SupplierQueryParams = z.input<typeof supplierQuerySchema>
+
+// ---- Purchase orders (3.2, ADR 023) ----
+
+export const purchaseOrderStatusSchema = z.enum([
+  'DRAFT',
+  'ORDERED',
+  'PARTIALLY_RECEIVED',
+  'RECEIVED',
+  'CANCELLED',
+])
+
+export type PurchaseOrderStatus = z.infer<typeof purchaseOrderStatusSchema>
+
+export const PURCHASE_ORDER_STATUSES = purchaseOrderStatusSchema.options
+
+export const MAX_PURCHASE_ORDER_LINES = 50
+export const MAX_PURCHASE_ORDER_QUANTITY = 1_000_000
+export const MAX_PURCHASE_ORDER_UNIT_PRICE_DZD = 100_000_000
+
+export const purchaseOrderLineSchema = z.object({
+  id: z.string(),
+  productId: z.string(),
+  productName: z.string(),
+  unit: productUnitSchema,
+  unitPriceDZD: z.number().int().nonnegative(),
+  quantity: z.number().int().min(1).max(MAX_PURCHASE_ORDER_QUANTITY),
+  receivedQuantity: z.number().int().min(0).max(MAX_PURCHASE_ORDER_QUANTITY),
+  lineTotalDZD: z.number().int().nonnegative(),
+})
+
+export type PurchaseOrderLine = z.infer<typeof purchaseOrderLineSchema>
+
+export const purchaseOrderCreateLineSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().int().min(1).max(MAX_PURCHASE_ORDER_QUANTITY),
+  unitPriceDZD: z.number().int().min(0).max(MAX_PURCHASE_ORDER_UNIT_PRICE_DZD),
+})
+
+export type PurchaseOrderCreateLine = z.infer<typeof purchaseOrderCreateLineSchema>
+
+export const purchaseOrderSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  supplierId: z.string().nullable(),
+  supplierName: z.string().nullable(),
+  reference: z.string().nullable(),
+  notes: z.string().nullable(),
+  status: purchaseOrderStatusSchema,
+  orderedAt: z.string(),
+  receivedAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  createdById: z.string().nullable(),
+  totalDZD: z.number().int().nonnegative(),
+  lineCount: z.number().int().nonnegative(),
+})
+
+export type PurchaseOrder = z.infer<typeof purchaseOrderSchema>
+
+export const purchaseOrderDetailSchema = purchaseOrderSchema.extend({
+  lines: z.array(purchaseOrderLineSchema),
+})
+
+export type PurchaseOrderDetail = z.infer<typeof purchaseOrderDetailSchema>
+
+export const purchaseOrderCreateSchema = z.object({
+  supplierId: z.string().min(1).optional(),
+  reference: z.string().trim().max(60).optional(),
+  notes: z.string().trim().max(1000).optional(),
+  orderedAt: z.string().datetime().optional(),
+  lines: z.array(purchaseOrderCreateLineSchema).min(1).max(MAX_PURCHASE_ORDER_LINES),
+})
+
+export type PurchaseOrderCreate = z.infer<typeof purchaseOrderCreateSchema>
+
+export const purchaseOrderUpdateSchema = z
+  .object({
+    supplierId: z.string().min(1).nullable().optional(),
+    reference: z.string().trim().max(60).optional(),
+    notes: z.string().trim().max(1000).optional(),
+    orderedAt: z.string().datetime().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'at least one field' })
+
+export type PurchaseOrderUpdate = z.infer<typeof purchaseOrderUpdateSchema>
+
+export const purchaseOrderReceiveLineSchema = z.object({
+  purchaseOrderLineId: z.string().min(1),
+  quantity: z.number().int().min(1).max(MAX_PURCHASE_ORDER_QUANTITY),
+})
+
+export const purchaseOrderReceiveSchema = z.object({
+  lines: z.array(purchaseOrderReceiveLineSchema).min(1).max(MAX_PURCHASE_ORDER_LINES),
+})
+
+export type PurchaseOrderReceive = z.infer<typeof purchaseOrderReceiveSchema>
+
+export const purchaseOrderListSchema = z.object({
+  items: z.array(purchaseOrderSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type PurchaseOrderList = z.infer<typeof purchaseOrderListSchema>
+
+export const purchaseOrderQuerySchema = z.object({
+  q: z.string().trim().max(120).optional(),
+  status: purchaseOrderStatusSchema.optional(),
+  supplierId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type PurchaseOrderQuery = z.infer<typeof purchaseOrderQuerySchema>
+
+export type PurchaseOrderQueryParams = z.input<typeof purchaseOrderQuerySchema>

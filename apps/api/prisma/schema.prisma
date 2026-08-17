@@ -60,6 +60,14 @@ enum AuditAction {
   PRODUCT_UPDATE
   PRODUCT_ARCHIVE
   PRODUCT_RESTORE
+  SUPPLIER_CREATE
+  SUPPLIER_UPDATE
+  SUPPLIER_ARCHIVE
+  SUPPLIER_RESTORE
+  PURCHASE_ORDER_CREATE
+  PURCHASE_ORDER_UPDATE
+  PURCHASE_ORDER_RECEIVE
+  PURCHASE_ORDER_CANCEL
 }
 
 enum AuditTarget {
@@ -72,6 +80,8 @@ enum AuditTarget {
   INVOICE
   EXPENSE
   PRODUCT
+  SUPPLIER
+  PURCHASE_ORDER
 }
 
 enum AppointmentStatus {
@@ -146,6 +156,16 @@ enum ProductUnit {
   KIT
 }
 
+// Outreach/procurement state (ADR 023). DRAFT → ORDERED → (receipts) →
+// PARTIALLY_RECEIVED → RECEIVED, or CANCELLED while nothing has been received.
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -165,6 +185,8 @@ model Branch {
   payments     Payment[]
   expenses     Expense[]
   products     Product[]
+  suppliers    Supplier[]
+  purchaseOrders PurchaseOrder[]
 
   @@map("branches")
 }
@@ -190,6 +212,8 @@ model User {
   createdPayments      Payment[]         @relation("PaymentCreator")
   createdExpenses      Expense[]         @relation("ExpenseCreator")
   createdProducts      Product[]         @relation("ProductCreator")
+  createdSuppliers     Supplier[]        @relation("SupplierCreator")
+  createdPurchaseOrders PurchaseOrder[]  @relation("PurchaseOrderCreator")
 
   @@index([branchId])
   @@map("users")
@@ -454,11 +478,78 @@ model Product {
   createdBy       User?           @relation("ProductCreator", fields: [createdById], references: [id])
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  purchaseOrderLines PurchaseOrderLine[]
 
   @@unique([branchId, code])
   @@index([branchId, category])
   @@index([branchId, archivedAt])
   @@map("products")
+}
+
+// Branch-scoped vendor directory (ADR 023). Suppliers are soft-archived, never deleted;
+// POs keep pointing at them, so archive just hides them from the active supplier picker.
+model Supplier {
+  id          String   @id @default(cuid())
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  notes       String?
+  archivedAt  DateTime?
+  createdById String?
+  createdBy   User?    @relation("SupplierCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  purchaseOrders PurchaseOrder[]
+
+  @@unique([branchId, name])
+  @@index([branchId, archivedAt])
+  @@map("suppliers")
+}
+
+// Purchase order (ADR 023) — finance-desk book, like expenses. Lines SNAPSHOT product name +
+// unit at order time (ADR 018-style, immutable once received); status is one stored column
+// with transitions enforced at write time; totals derived. Receipts increment the product's
+// transitional `quantityOnHand` (3.3 opens them as ledger rows).
+model PurchaseOrder {
+  id          String            @id @default(cuid())
+  branchId    String
+  branch      Branch            @relation(fields: [branchId], references: [id])
+  supplierId  String?
+  supplier    Supplier?         @relation(fields: [supplierId], references: [id])
+  reference   String?
+  notes       String?
+  status      PurchaseOrderStatus @default(ORDERED)
+  orderedAt   DateTime          @default(now())
+  receivedAt  DateTime?
+  createdById String?
+  createdBy   User?             @relation("PurchaseOrderCreator", fields: [createdById], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  lines       PurchaseOrderLine[]
+
+  @@index([branchId, status, createdAt])
+  @@index([branchId, supplierId])
+  @@index([branchId, createdAt])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderLine {
+  id               String         @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productName      String // snapshot at order time (ADR 018-style)
+  unit             ProductUnit    // snapshot at order time
+  unitPriceDZD     Int // whole dinars, no sub-unit precision (ADR 017)
+  quantity         Int
+  receivedQuantity Int            @default(0)
+
+  @@index([purchaseOrderId])
+  @@map("purchase_order_lines")
 }
 
 model Setting {

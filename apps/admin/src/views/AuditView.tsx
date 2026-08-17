@@ -56,6 +56,14 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   PRODUCT_UPDATE: 'audit.actions.productUpdate',
   PRODUCT_ARCHIVE: 'audit.actions.productArchive',
   PRODUCT_RESTORE: 'audit.actions.productRestore',
+  SUPPLIER_CREATE: 'audit.actions.supplierCreate',
+  SUPPLIER_UPDATE: 'audit.actions.supplierUpdate',
+  SUPPLIER_ARCHIVE: 'audit.actions.supplierArchive',
+  SUPPLIER_RESTORE: 'audit.actions.supplierRestore',
+  PURCHASE_ORDER_CREATE: 'audit.actions.purchaseOrderCreate',
+  PURCHASE_ORDER_UPDATE: 'audit.actions.purchaseOrderUpdate',
+  PURCHASE_ORDER_RECEIVE: 'audit.actions.purchaseOrderReceive',
+  PURCHASE_ORDER_CANCEL: 'audit.actions.purchaseOrderCancel',
 }
 
 export function AuditView() {
