@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import type { Product, ProductUnit, TreatmentConsumption } from '@dentora/contracts'
-import { useI18n } from '@dentora/i18n'
+import { useI18n, formatDateTime } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
@@ -45,7 +45,7 @@ export function ConsumptionModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { toast } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [consumptions, setConsumptions] = useState<TreatmentConsumption[]>([])
@@ -118,7 +118,7 @@ export function ConsumptionModal({
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="truncate font-medium text-foreground">{c.productName}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {new Date(c.consumedAt).toLocaleString()}
+                    {formatDateTime(c.consumedAt, locale)}
                     {c.createdByName ? ` · ${t('consumption.by')} ${c.createdByName}` : ''}
                   </span>
                 </div>

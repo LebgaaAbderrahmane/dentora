@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ExpiringLotAlert, ProductUnit, StockAlerts } from '@dentora/contracts'
-import { useI18n } from '@dentora/i18n'
+import { useI18n, formatDate } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
 import { Button } from '@/components/ui/button'
@@ -149,7 +149,7 @@ function Row({ name, detail }: { name: string; detail: string }) {
 }
 
 function ExpiringRow({ lot, expired }: { lot: ExpiringLotAlert; expired?: boolean }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   return (
     <div className="rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900">
       <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
@@ -162,7 +162,7 @@ function ExpiringRow({ lot, expired }: { lot: ExpiringLotAlert; expired?: boolea
       </p>
       <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
         {t('alerts.batch')}: {lot.batch} · {t('alerts.expiresOn')}{' '}
-        {new Date(lot.expiryDate).toLocaleDateString()} · {t('alerts.remaining')}: {lot.remaining}
+        {formatDate(lot.expiryDate, locale)} · {t('alerts.remaining')}: {lot.remaining}
       </p>
     </div>
   )

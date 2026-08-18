@@ -50,6 +50,25 @@ import { AlertsView } from './views/AlertsView'
 import { ConsumptionView } from './views/ConsumptionView'
 import { SterilizationsView } from './views/SterilizationsView'
 
+const VIEW_TITLE: Record<View, MessageKey> = {
+  dashboard: 'nav.dashboard',
+  appointments: 'nav.appointments',
+  waitlist: 'nav.waitlist',
+  catalog: 'nav.catalog',
+  invoices: 'nav.invoices',
+  expenses: 'nav.expenses',
+  finance: 'nav.finance',
+  products: 'nav.products',
+  suppliers: 'nav.suppliers',
+  purchaseOrders: 'nav.purchaseOrders',
+  alerts: 'nav.alerts',
+  consumption: 'nav.consumption',
+  sterilizations: 'nav.sterilizations',
+  patients: 'nav.patients',
+  users: 'nav.users',
+  audit: 'nav.audit',
+}
+
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
   DENTIST: 'role.dentist',
@@ -191,85 +210,98 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const canEditProducts = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canManageProcurement = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canEditInvoices = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
-  const views: Array<{ id: View; label: MessageKey; icon: ComponentType<{ className?: string }> }> =
-    [
-      { id: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard },
-      ...(canManagePatients
-        ? [
-            {
-              id: 'appointments' as const,
-              label: 'nav.appointments' as MessageKey,
-              icon: CalendarDays,
-            },
-          ]
-        : []),
-      ...(canManagePatients
-        ? [{ id: 'waitlist' as const, label: 'nav.waitlist' as MessageKey, icon: ListTodo }]
-        : []),
-      ...(canManagePatients
-        ? [{ id: 'catalog' as const, label: 'nav.catalog' as MessageKey, icon: Tags }]
-        : []),
-      ...(canManageBilling
-        ? [{ id: 'invoices' as const, label: 'nav.invoices' as MessageKey, icon: Receipt }]
-        : []),
-      ...(canManageExpenses
-        ? [{ id: 'expenses' as const, label: 'nav.expenses' as MessageKey, icon: Wallet }]
-        : []),
-      ...(canManageFinance
-        ? [{ id: 'finance' as const, label: 'nav.finance' as MessageKey, icon: LineChart }]
-        : []),
-      ...(canViewProducts
-        ? [{ id: 'products' as const, label: 'nav.products' as MessageKey, icon: Package }]
-        : []),
-      ...(canViewProducts
-        ? [
-            {
-              id: 'suppliers' as const,
-              label: 'nav.suppliers' as MessageKey,
-              icon: Truck,
-            },
-          ]
-        : []),
-      ...(canManageProcurement
-        ? [
-            {
-              id: 'purchaseOrders' as const,
-              label: 'nav.purchaseOrders' as MessageKey,
-              icon: ShoppingCart,
-            },
-          ]
-        : []),
-      ...(canViewProducts
-        ? [{ id: 'alerts' as const, label: 'nav.alerts' as MessageKey, icon: Bell }]
-        : []),
-      ...(canViewProducts
-        ? [
-            {
-              id: 'consumption' as const,
-              label: 'nav.consumption' as MessageKey,
-              icon: Syringe,
-            },
-          ]
-        : []),
-      ...(canViewProducts
-        ? [
-            {
-              id: 'sterilizations' as const,
-              label: 'nav.sterilizations' as MessageKey,
-              icon: FlaskConical,
-            },
-          ]
-        : []),
-      ...(canManagePatients
-        ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
-        : []),
-      ...(isAdmin
-        ? [{ id: 'users' as const, label: 'nav.users' as MessageKey, icon: UserCog }]
-        : []),
-      ...(isAdmin
-        ? [{ id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText }]
-        : []),
-    ]
+  type NavItem = {
+    id: View
+    label: MessageKey
+    icon: ComponentType<{ className?: string }>
+  }
+  type NavSection = { label: MessageKey; items: NavItem[] }
+
+  const navSections: NavSection[] = [
+    {
+      label: 'nav.section.overview',
+      items: [{ id: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard }],
+    },
+    {
+      label: 'nav.section.clinical',
+      items: [
+        ...(canManagePatients
+          ? [
+              {
+                id: 'appointments' as const,
+                label: 'nav.appointments' as MessageKey,
+                icon: CalendarDays,
+              },
+              { id: 'waitlist' as const, label: 'nav.waitlist' as MessageKey, icon: ListTodo },
+              { id: 'catalog' as const, label: 'nav.catalog' as MessageKey, icon: Tags },
+            ]
+          : []),
+        ...(canViewProducts
+          ? [
+              {
+                id: 'consumption' as const,
+                label: 'nav.consumption' as MessageKey,
+                icon: Syringe,
+              },
+              {
+                id: 'sterilizations' as const,
+                label: 'nav.sterilizations' as MessageKey,
+                icon: FlaskConical,
+              },
+            ]
+          : []),
+        ...(canManagePatients
+          ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
+          : []),
+      ],
+    },
+    {
+      label: 'nav.section.stock',
+      items: [
+        ...(canViewProducts
+          ? [
+              { id: 'products' as const, label: 'nav.products' as MessageKey, icon: Package },
+              { id: 'alerts' as const, label: 'nav.alerts' as MessageKey, icon: Bell },
+              { id: 'suppliers' as const, label: 'nav.suppliers' as MessageKey, icon: Truck },
+            ]
+          : []),
+        ...(canManageProcurement
+          ? [
+              {
+                id: 'purchaseOrders' as const,
+                label: 'nav.purchaseOrders' as MessageKey,
+                icon: ShoppingCart,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      label: 'nav.section.billing',
+      items: [
+        ...(canManageBilling
+          ? [{ id: 'invoices' as const, label: 'nav.invoices' as MessageKey, icon: Receipt }]
+          : []),
+        ...(canManageExpenses
+          ? [{ id: 'expenses' as const, label: 'nav.expenses' as MessageKey, icon: Wallet }]
+          : []),
+        ...(canManageFinance
+          ? [{ id: 'finance' as const, label: 'nav.finance' as MessageKey, icon: LineChart }]
+          : []),
+      ],
+    },
+    ...(isAdmin
+      ? [
+          {
+            label: 'nav.section.admin' as MessageKey,
+            items: [
+              { id: 'users' as const, label: 'nav.users' as MessageKey, icon: UserCog },
+              { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
+            ],
+          },
+        ]
+      : []),
+  ]
 
   return (
     <div className="flex min-h-screen">
@@ -279,21 +311,30 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
             {t('app.name')}
           </span>
         </div>
-        <nav className="mt-6 flex flex-col gap-1">
-          {views.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setView(v.id)}
-              className={
-                view === v.id
-                  ? 'flex items-center gap-3 rounded-lg bg-neutral-100 px-3 py-2 text-start text-sm font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
-                  : 'flex items-center gap-3 rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
-              }
-            >
-              <v.icon className="size-4 shrink-0" aria-hidden="true" />
-              {t(v.label)}
-            </button>
-          ))}
+        <nav className="mt-6 flex flex-col gap-4 overflow-y-auto">
+          {navSections.map((section) =>
+            section.items.length === 0 ? null : (
+              <div key={section.label} className="flex flex-col gap-0.5">
+                <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                  {t(section.label)}
+                </p>
+                {section.items.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setView(v.id)}
+                    className={
+                      view === v.id
+                        ? 'flex items-center gap-3 rounded-lg bg-neutral-100 px-3 py-2 text-start text-sm font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
+                        : 'flex items-center gap-3 rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
+                    }
+                  >
+                    <v.icon className="size-4 shrink-0" aria-hidden="true" />
+                    {t(v.label)}
+                  </button>
+                ))}
+              </div>
+            ),
+          )}
         </nav>
         <div className="mt-auto flex flex-col gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
           <div className="flex items-center gap-3 px-2">
@@ -318,39 +359,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
       <main className="flex-1 p-6">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-            {t(
-              view === 'dashboard'
-                ? 'nav.dashboard'
-                : view === 'appointments'
-                  ? 'nav.appointments'
-                  : view === 'waitlist'
-                    ? 'nav.waitlist'
-                    : view === 'catalog'
-                      ? 'nav.catalog'
-                      : view === 'invoices'
-                        ? 'nav.invoices'
-                        : view === 'expenses'
-                          ? 'nav.expenses'
-                          : view === 'finance'
-                            ? 'nav.finance'
-                            : view === 'products'
-                              ? 'nav.products'
-                              : view === 'suppliers'
-                                ? 'nav.suppliers'
-                                : view === 'purchaseOrders'
-                                  ? 'nav.purchaseOrders'
-                                  : view === 'alerts'
-                                    ? 'nav.alerts'
-                                    : view === 'consumption'
-                                      ? 'nav.consumption'
-                                      : view === 'sterilizations'
-                                        ? 'nav.sterilizations'
-                                        : view === 'patients'
-                                          ? 'nav.patients'
-                                          : view === 'users'
-                                            ? 'nav.users'
-                                            : 'nav.audit',
-            )}
+            {t(VIEW_TITLE[view])}
           </h1>
           <Controls />
         </header>
