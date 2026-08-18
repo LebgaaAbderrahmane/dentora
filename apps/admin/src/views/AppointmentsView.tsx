@@ -18,6 +18,7 @@ import { useToast } from '@dentora/ui'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError, parseConflict } from '../lib/api'
 import type { Patient, StaffDentist } from '@dentora/contracts'
+import { ConsumptionModal } from './ConsumptionModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -76,6 +77,7 @@ export function AppointmentsView() {
   const [events, setEvents] = useState<Appointment[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('timeGridWeek')
   const [editing, setEditing] = useState<Editing>(null)
+  const [consuming, setConsuming] = useState<AppointmentDetail | null>(null)
   const [patients, setPatients] = useState<Patient[]>([])
   const [dentists, setDentists] = useState<StaffDentist[]>([])
 
@@ -252,10 +254,23 @@ export function AppointmentsView() {
           patients={patients}
           dentists={dentists}
           onClose={() => setEditing(null)}
+          onStartConsumption={(d) => {
+            setEditing(null)
+            setConsuming(d)
+          }}
           onSaved={() => {
             setEditing(null)
             refetchRange()
           }}
+        />
+      )}
+
+      {consuming && (
+        <ConsumptionModal
+          appointmentId={consuming.id}
+          patientName={consuming.patientName}
+          onClose={() => setConsuming(null)}
+          onSaved={refetchRange}
         />
       )}
     </div>
@@ -269,6 +284,7 @@ function AppointmentDialog({
   patients,
   dentists,
   onClose,
+  onStartConsumption,
   onSaved,
 }: {
   detail?: AppointmentDetail
@@ -277,6 +293,7 @@ function AppointmentDialog({
   patients: Patient[]
   dentists: StaffDentist[]
   onClose: () => void
+  onStartConsumption?: (detail: AppointmentDetail) => void
   onSaved: () => void
 }) {
   const { t } = useI18n()
@@ -378,6 +395,8 @@ function AppointmentDialog({
   }
 
   const statuses: AppointmentStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NOSHOW']
+  const canConsume =
+    !!(detail && onStartConsumption) && detail.status !== 'CANCELLED' && detail.status !== 'NOSHOW'
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -469,6 +488,11 @@ function AppointmentDialog({
           </div>
 
           <DialogFooter>
+            {canConsume && detail && (
+              <Button type="button" variant="outline" onClick={() => onStartConsumption?.(detail)}>
+                {t('consumption.record')}
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={onClose}>
               {t('common.close')}
             </Button>

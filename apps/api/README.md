@@ -338,6 +338,40 @@ Gated like products/stock (clinical trio + ACCOUNTANT).
     stock are alerted.
   * `generatedAt` — server timestamp.
 
+## Treatment stock consumption (Phase 3.6, ADR 026)
+
+`/api/consumption` — clinical stock usage tied to an appointment. Reads are gated like the
+stock journal (clinical trio + ACCOUNTANT); **writes are the clinical desk**
+(**ADMIN + DENTIST + RECEPTIONIST**), distinct from the finance-desk manual `OUT`/`ADJUST`
+(ADR 022). Each consumption appends an `OUT` ledger row carrying `appointmentId` (so the
+journal traces the clinical act), decrements the product, and audits `STOCK_OUT` with
+`source: 'TREATMENT'` — all in one transaction, so ADR 024's `Σ ledger == quantityOnHand`
+invariant holds and ADR 025's alerts read it unchanged.
+
+- `GET /` — filters `appointmentId`, `productId`, `from`/`to`, `limit` ≤200; joins product +
+  patient + creator names.
+- `POST /appointments/:appointmentId` — `{ productId, quantity (1..), batch?, reason? }`;
+  refuses terminal appointments (`400 APPOINTMENT_NOT_CONSUMABLE`) and below-zero moves
+  (`400 INSUFFICIENT_STOCK`); unknown appointment/product → `404`.
+- No edit/delete — corrections are new consumption rows (ADR 024).
+
+## Sterilization logs (Phase 3.6, ADR 026)
+
+`/api/sterilizations` — one row per instrument cycle (`AUTOCLAVE|CHEMICAL|UV|OTHER`), with
+snapshot `instrument` name + optional `productId` catalog link, `cycle`, `status`
+(`IN_PROGRESS → COMPLETED/FAILED/CANCELLED`), `startedAt`/`completedAt`, `operator`, `notes`.
+Writes: clinical desk (**ADMIN + DENTIST + RECEPTIONIST**); reads: clinical trio + ACCOUNTANT.
+Create/update are audited (`STERILIZATION_CREATE`/`STERILIZATION_UPDATE`, target
+`STERILIZATION`).
+
+- `GET /` — filters `status`, `productId`, `operatorId`, `from`/`to`, `limit` ≤200.
+- `POST /` — `{ instrument (required), method (required), productId?, cycle?, startedAt?,
+operatorId?, notes? }`; `operatorId` defaults to the acting user.
+- `PATCH /:id` — status/notes/method; only in-progress cycles reach a terminal state
+  (`400 TERMINAL_CYCLE` / `400 UNKNOWN_TRANSITION`), terminal cycles are never reopened, and
+  `completedAt` is set at the terminal transition.
+- No delete — mistakes are re-recorded.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

@@ -70,6 +70,8 @@ enum AuditAction {
   PURCHASE_ORDER_CANCEL
   STOCK_OUT
   STOCK_ADJUST
+  STERILIZATION_CREATE
+  STERILIZATION_UPDATE
 }
 
 enum AuditTarget {
@@ -84,6 +86,7 @@ enum AuditTarget {
   PRODUCT
   SUPPLIER
   PURCHASE_ORDER
+  STERILIZATION
 }
 
 enum AppointmentStatus {
@@ -178,6 +181,23 @@ enum StockLedgerType {
   ADJUST
 }
 
+// Instrument decontamination cycle (ADR 026). `operator` is the staff member who runs
+// the cycle; IN_PROGRESS becomes COMPLETED/FAILED/CANCELLED, COMPLETED/FAILED set
+// `completedAt` at transition time.
+enum SterilizationMethod {
+  AUTOCLAVE
+  CHEMICAL
+  UV
+  OTHER
+}
+
+enum SterilizationStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -200,6 +220,8 @@ model Branch {
   suppliers    Supplier[]
   purchaseOrders PurchaseOrder[]
   stockLedger  StockLedgerEntry[]
+  consumptions TreatmentStockConsumption[]
+  sterilizations SterilizationLog[]
 
   @@map("branches")
 }
@@ -228,6 +250,9 @@ model User {
   createdSuppliers     Supplier[]        @relation("SupplierCreator")
   createdPurchaseOrders PurchaseOrder[]  @relation("PurchaseOrderCreator")
   createdStock          StockLedgerEntry[] @relation("StockCreator")
+  createdConsumptions   TreatmentStockConsumption[] @relation("ConsumptionCreator")
+  createdSterilizations SterilizationLog[] @relation("SterilizationCreator")
+  operatedSterilizations SterilizationLog[] @relation("SterilizationOperator")
 
   @@index([branchId])
   @@map("users")
@@ -333,6 +358,8 @@ model Appointment {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   waitlistEntry WaitlistEntry?    @relation("WaitlistAppointment")
+  stockLedger   StockLedgerEntry[]
+  consumptions  TreatmentStockConsumption[]
 
   @@index([branchId, startAt])
   @@index([branchId, status, startAt])
@@ -494,6 +521,8 @@ model Product {
   updatedAt       DateTime        @updatedAt
   purchaseOrderLines PurchaseOrderLine[]
   stockLedger         StockLedgerEntry[]
+  consumptions        TreatmentStockConsumption[]
+  sterilizations      SterilizationLog[]
 
   @@unique([branchId, code])
   @@index([branchId, category])
@@ -572,7 +601,8 @@ model PurchaseOrderLine {
 // IN adds (purchase receipts + optional batch/expiry), OUT subtracts (usage,
 // with a required reason), ADJUST is signed (positive add / negative subtract).
 // quantityOnHand on Product is kept in sync inside the same transaction and always
-// equals Σ ledger for the product.
+// equals Σ ledger for the product. OUT rows written by treatment consumption carry
+// `appointmentId` so the finance journal traces back to the clinical act (ADR 026).
 model StockLedgerEntry {
   id              String          @id @default(cuid())
   branchId        String
@@ -587,6 +617,8 @@ model StockLedgerEntry {
   reason          String?
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder?  @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  appointmentId   String?
+  appointment     Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   createdById     String?
   createdBy       User?           @relation("StockCreator", fields: [createdById], references: [id])
   createdAt       DateTime        @default(now())
@@ -595,7 +627,67 @@ model StockLedgerEntry {
   @@index([branchId, productId, createdAt])
   @@index([branchId, type, createdAt])
   @@index([purchaseOrderId])
+  @@index([appointmentId])
   @@map("stock_ledger_entries")
+}
+
+// Clinical stock usage tied to a treatment appointment (ADR 026). Each row is written
+// together with an OUT ledger entry + product decrement inside one transaction, so the
+// demo-seed breadcrumb `Σ ledger == quantityOnHand` keeps holding. A consumption is a
+// clinical record (dentist/receptionist desk), distinct from the manual finance OUT;
+// corrections are new movements, never edits (ADR 024).
+model TreatmentStockConsumption {
+  id            String    @id @default(cuid())
+  branchId      String
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity      Int // whole positive units consumed
+  batch         String?
+  reason        String?
+  consumedAt    DateTime  @default(now())
+  createdById   String?
+  createdBy     User?     @relation("ConsumptionCreator", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([branchId, consumedAt])
+  @@index([branchId, productId, consumedAt])
+  @@index([appointmentId])
+  @@map("treatment_stock_consumptions")
+}
+
+// Instrument sterilization log (ADR 026) — one row per cycle. `instrument` is a snapshot
+// name; `productId` optionally links the catalog instrument (INSTRUMENTS/EQUIPMENT) but the
+// row must stay readable even if the catalog row is later archived. No hard deletes;
+// mistakes are corrected by marking the cycle CANCELLED/FAILED.
+model SterilizationLog {
+  id          String               @id @default(cuid())
+  branchId    String
+  branch      Branch               @relation(fields: [branchId], references: [id])
+  productId   String?
+  product     Product?             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  instrument  String
+  method      SterilizationMethod
+  cycle       Int?
+  status      SterilizationStatus  @default(IN_PROGRESS)
+  startedAt   DateTime
+  completedAt DateTime?
+  operatorId  String?
+  operator    User?                @relation("SterilizationOperator", fields: [operatorId], references: [id], onDelete: SetNull)
+  notes       String?
+  createdById String?
+  createdBy   User?                @relation("SterilizationCreator", fields: [createdById], references: [id])
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([branchId, startedAt])
+  @@index([branchId, status, startedAt])
+  @@index([branchId, productId])
+  @@index([operatorId])
+  @@map("sterilization_logs")
 }
 
 model Setting {

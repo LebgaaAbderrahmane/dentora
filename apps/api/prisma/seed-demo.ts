@@ -877,6 +877,148 @@ const WAITLIST: WaitlistSeed[] = [
   { patientIndex: 4, status: 'CANCELLED', notes: 'Rappel non abouti.' },
 ]
 
+// Clinical stock usage tied to appointments (3.6, ADR 026). Each row is applied by
+// appending an OUT ledger entry (with `appointmentId`) + a TreatmentStockConsumption
+// row + the matching product decrement, so `Σ ledger == quantityOnHand` keeps holding.
+type ConsumptionSeed = {
+  appointmentIndex: number
+  productIndex: number
+  quantity: number
+  dentistIndex: number
+  batch?: string
+  reason?: string
+}
+
+const CONSUMPTIONS: ConsumptionSeed[] = [
+  {
+    appointmentIndex: 0,
+    productIndex: 0,
+    quantity: 1,
+    dentistIndex: 0,
+    batch: 'GN-07',
+    reason: 'Contrôle post-extraction',
+  },
+  {
+    appointmentIndex: 2,
+    productIndex: 1,
+    quantity: 1,
+    dentistIndex: 1,
+    batch: 'MC-A',
+    reason: 'Détartrage',
+  },
+  {
+    appointmentIndex: 3,
+    productIndex: 3,
+    quantity: 1,
+    dentistIndex: 0,
+    batch: 'COMP-02',
+    reason: 'Dévitalisation 26',
+  },
+  {
+    appointmentIndex: 3,
+    productIndex: 2,
+    quantity: 1,
+    dentistIndex: 0,
+    batch: 'LID-01',
+    reason: 'Dévitalisation 26',
+  },
+  {
+    appointmentIndex: 12,
+    productIndex: 9,
+    quantity: 1,
+    dentistIndex: 0,
+    batch: 'AMX-01',
+    reason: 'Antibiothérapie post-op',
+  },
+  {
+    appointmentIndex: 13,
+    productIndex: 1,
+    quantity: 1,
+    dentistIndex: 1,
+    batch: 'MC-A',
+    reason: 'Soin carie',
+  },
+  {
+    appointmentIndex: 13,
+    productIndex: 5,
+    quantity: 1,
+    dentistIndex: 1,
+    reason: 'Soin carie',
+  },
+  {
+    appointmentIndex: 14,
+    productIndex: 2,
+    quantity: 1,
+    dentistIndex: 0,
+    batch: 'LID-01',
+    reason: 'Détartrage',
+  },
+]
+
+// Instrument sterilization log seeds (3.6, ADR 026) — one row per autoclave/UV/chemical
+// cycle. IN_PROGRESS rows are the live desk picture; terminal rows keep their timing.
+type SterilizationSeed = {
+  productIndex?: number
+  instrument: string
+  method: 'AUTOCLAVE' | 'CHEMICAL' | 'UV' | 'OTHER'
+  cycle?: number
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+  startedMinutesAgo: number
+  completedMinutesAgo?: number
+  notes?: string
+  operatorIndex?: number
+}
+
+const STERILIZATIONS: SterilizationSeed[] = [
+  {
+    productIndex: 4,
+    instrument: 'Kit détartreur ultrason',
+    method: 'AUTOCLAVE',
+    cycle: 39,
+    status: 'COMPLETED',
+    startedMinutesAgo: 2 * 24 * 60,
+    completedMinutesAgo: 2 * 24 * 60 - 35,
+    operatorIndex: 0,
+  },
+  {
+    instrument: 'Coffret extraction',
+    method: 'AUTOCLAVE',
+    cycle: 40,
+    status: 'COMPLETED',
+    startedMinutesAgo: 24 * 60,
+    completedMinutesAgo: 24 * 60 - 45,
+    operatorIndex: 0,
+  },
+  {
+    instrument: 'Miroirs (jeu)',
+    method: 'UV',
+    cycle: 2,
+    status: 'FAILED',
+    startedMinutesAgo: 24 * 60 + 120,
+    completedMinutesAgo: 24 * 60 + 220,
+    notes: 'Cycle interrompu : surchauffe.',
+    operatorIndex: 1,
+  },
+  {
+    instrument: 'Pointe à main turbine',
+    method: 'AUTOCLAVE',
+    cycle: 41,
+    status: 'COMPLETED',
+    startedMinutesAgo: 90,
+    completedMinutesAgo: 40,
+    operatorIndex: 1,
+  },
+  {
+    instrument: 'Compositeurs (jeu)',
+    method: 'CHEMICAL',
+    cycle: 7,
+    status: 'IN_PROGRESS',
+    startedMinutesAgo: 15,
+    notes: 'Désinfection chimique en cours.',
+    operatorIndex: 0,
+  },
+]
+
 function day(offset: number, hour: number, min: number): Date {
   const d = new Date()
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset, hour, min, 0, 0)
@@ -897,6 +1039,8 @@ async function main() {
     (await prisma.branch.create({ data: { name: branchName } }))
   const branchId = branch.id
 
+  await prisma.treatmentStockConsumption.deleteMany({ where: { branchId } })
+  await prisma.sterilizationLog.deleteMany({ where: { branchId } })
   await prisma.stockLedgerEntry.deleteMany({ where: { branchId } })
   await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrder: { branchId } } })
   await prisma.purchaseOrder.deleteMany({ where: { branchId } })
@@ -1221,6 +1365,61 @@ async function main() {
     }
   }
 
+  for (const c of CONSUMPTIONS) {
+    const productId = productsById.get(PRODUCTS[c.productIndex].code)!
+    await prisma.product.update({
+      where: { id: productId },
+      data: { quantityOnHand: { decrement: c.quantity } },
+    })
+    await prisma.stockLedgerEntry.create({
+      data: {
+        branchId,
+        productId,
+        type: 'OUT',
+        quantity: c.quantity,
+        batch: c.batch ?? null,
+        reason: c.reason ?? null,
+        appointmentId: appointments[c.appointmentIndex].id,
+        createdById: dentists[c.dentistIndex],
+        createdAt: appointments[c.appointmentIndex].startAt,
+      },
+    })
+    await prisma.treatmentStockConsumption.create({
+      data: {
+        branchId,
+        appointmentId: appointments[c.appointmentIndex].id,
+        productId,
+        quantity: c.quantity,
+        batch: c.batch ?? null,
+        reason: c.reason ?? null,
+        consumedAt: appointments[c.appointmentIndex].startAt,
+        createdById: dentists[c.dentistIndex],
+      },
+    })
+  }
+
+  for (const s of STERILIZATIONS) {
+    await prisma.sterilizationLog.create({
+      data: {
+        branchId,
+        productId:
+          s.productIndex !== undefined ? productsById.get(PRODUCTS[s.productIndex].code)! : null,
+        instrument: s.instrument,
+        method: s.method,
+        cycle: s.cycle ?? null,
+        status: s.status,
+        startedAt: new Date(Date.now() - s.startedMinutesAgo * 60_000),
+        completedAt:
+          s.completedMinutesAgo !== undefined
+            ? new Date(Date.now() - s.completedMinutesAgo * 60_000)
+            : null,
+        operatorId: s.operatorIndex !== undefined ? dentists[s.operatorIndex] : null,
+        notes: s.notes ?? null,
+        createdById: s.operatorIndex !== undefined ? dentists[s.operatorIndex] : null,
+      },
+    })
+  }
+
   const ledgerCount = await prisma.stockLedgerEntry.count({ where: { branchId } })
   const invariantCheck = await prisma.product.findMany({ where: { branchId } })
   let invariantOk = true
@@ -1260,6 +1459,8 @@ async function main() {
     suppliers: await prisma.supplier.count({ where: { branchId } }),
     purchaseOrders: await prisma.purchaseOrder.count({ where: { branchId } }),
     ledger: ledgerCount,
+    consumptions: await prisma.treatmentStockConsumption.count({ where: { branchId } }),
+    sterilizations: await prisma.sterilizationLog.count({ where: { branchId } }),
   }
 
   console.log(`demo seed ready on branch "${branchName}"`)

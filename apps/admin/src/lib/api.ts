@@ -67,6 +67,15 @@ import {
   type StockOutInput,
   type StockQueryParams,
   type StockAlerts,
+  type TreatmentConsumption,
+  type TreatmentConsumptionInput,
+  type TreatmentConsumptionList,
+  type TreatmentConsumptionQueryParams,
+  type SterilizationLog,
+  type SterilizationInput,
+  type SterilizationList,
+  type SterilizationQueryParams,
+  type SterilizationUpdate,
   type UserList,
   type WaitlistEntryDetail,
   type WaitlistInput,
@@ -500,6 +509,47 @@ export const api = {
 
   alerts: (horizonDays: number = 30) =>
     request<StockAlerts>(`/api/alerts?horizonDays=${horizonDays}`),
+
+  consumptions: (params: TreatmentConsumptionQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.appointmentId) q.set('appointmentId', params.appointmentId)
+    if (params.productId) q.set('productId', params.productId)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<TreatmentConsumptionList>(`/api/consumption?${q.toString()}`)
+  },
+
+  createConsumption: (appointmentId: string, input: TreatmentConsumptionInput) =>
+    request<TreatmentConsumption>(`/api/consumption/appointments/${appointmentId}`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  sterilizations: (params: SterilizationQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.status) q.set('status', params.status)
+    if (params.productId) q.set('productId', params.productId)
+    if (params.operatorId) q.set('operatorId', params.operatorId)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<SterilizationList>(`/api/sterilizations?${q.toString()}`)
+  },
+
+  createSterilization: (input: SterilizationInput) =>
+    request<SterilizationLog>('/api/sterilizations', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateSterilization: (id: string, input: SterilizationUpdate) =>
+    request<SterilizationLog>(`/api/sterilizations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

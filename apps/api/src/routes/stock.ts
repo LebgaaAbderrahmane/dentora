@@ -30,6 +30,7 @@ function toEntry(row: {
   expiryDate: Date | null
   reason: string | null
   purchaseOrderId: string | null
+  appointmentId: string | null
   createdById: string | null
   createdAt: Date
 }) {
@@ -46,6 +47,7 @@ function toEntry(row: {
     expiryDate: row.expiryDate ? row.expiryDate.toISOString() : null,
     reason: row.reason,
     purchaseOrderId: row.purchaseOrderId,
+    appointmentId: row.appointmentId,
     createdById: row.createdById,
     createdAt: row.createdAt.toISOString(),
   }

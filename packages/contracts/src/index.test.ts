@@ -102,6 +102,16 @@ import {
   stockAlertsSchema,
   expiringLotAlertSchema,
   lowStockAlertSchema,
+  treatmentConsumptionInputSchema,
+  treatmentConsumptionListSchema,
+  treatmentConsumptionQuerySchema,
+  treatmentConsumptionSchema,
+  STERILIZATION_METHODS,
+  STERILIZATION_STATUSES,
+  sterilizationInputSchema,
+  sterilizationLogSchema,
+  sterilizationQuerySchema,
+  sterilizationUpdateSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -1398,6 +1408,7 @@ describe('expense contracts', () => {
       expiryDate: null,
       reason: 'Opening balance (3.3)',
       purchaseOrderId: null,
+      appointmentId: null,
       createdById: null,
       createdAt: '2026-08-17T00:00:00.000Z',
     })
@@ -1419,6 +1430,7 @@ describe('expense contracts', () => {
       expiryDate: '2027-01-01T00:00:00.000Z',
       reason: null,
       purchaseOrderId: 'po1',
+      appointmentId: null,
       createdById: 'u1',
       createdAt: '2026-08-17T00:00:00.000Z',
     })
@@ -1536,5 +1548,113 @@ describe('expense contracts', () => {
         lines: [{ purchaseOrderLineId: 'l1', quantity: 1, batch: 'x'.repeat(MAX_STOCK_BATCH + 1) }],
       }).success,
     ).toBe(false)
+  })
+
+  it('treatmentConsumptionSchema validates a consumption row', () => {
+    const c = treatmentConsumptionSchema.parse({
+      id: 'c1',
+      branchId: 'b1',
+      appointmentId: 'a1',
+      productId: 'p1',
+      productName: 'Gants nitrile M',
+      unit: 'BOX',
+      patientName: 'Amine Benali',
+      quantity: 2,
+      batch: null,
+      reason: null,
+      consumedAt: '2026-08-18T09:00:00.000Z',
+      createdByName: 'Karim',
+    })
+    expect(c.quantity).toBe(2)
+    expect(treatmentConsumptionSchema.safeParse({ ...c, quantity: 0 }).success).toBe(false)
+  })
+
+  it('treatmentConsumptionInputSchema requires product + positive quantity', () => {
+    const ok = treatmentConsumptionInputSchema.parse({ productId: 'p1', quantity: 2 })
+    expect(ok.quantity).toBe(2)
+    expect(treatmentConsumptionInputSchema.safeParse({ quantity: 2 }).success).toBe(false)
+    expect(
+      treatmentConsumptionInputSchema.safeParse({ productId: 'p1', quantity: 0 }).success,
+    ).toBe(false)
+    expect(
+      treatmentConsumptionInputSchema.safeParse({
+        productId: 'p1',
+        quantity: 1,
+        batch: 'x'.repeat(MAX_STOCK_BATCH + 1),
+      }).success,
+    ).toBe(false)
+  })
+
+  it('treatmentConsumptionQuerySchema coerces filters and caps limit', () => {
+    const q = treatmentConsumptionQuerySchema.parse({
+      appointmentId: 'a1',
+      limit: '200',
+      offset: '0',
+    })
+    expect(q.appointmentId).toBe('a1')
+    expect(treatmentConsumptionQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('treatmentConsumptionListSchema wraps items + total', () => {
+    const parsed = treatmentConsumptionListSchema.parse({ items: [], total: 0 })
+    expect(parsed.total).toBe(0)
+  })
+
+  it('STERILIZATION_METHODS/STERILIZATION_STATUSES are fixed lists', () => {
+    expect(STERILIZATION_METHODS).toContain('AUTOCLAVE')
+    expect(STERILIZATION_METHODS).toContain('UV')
+    expect(STERILIZATION_STATUSES).toEqual(['IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED'])
+  })
+
+  it('sterilizationLogSchema validates a log row', () => {
+    const log = sterilizationLogSchema.parse({
+      id: 's1',
+      branchId: 'b1',
+      productId: 'p1',
+      instrument: 'Détartreur kit',
+      method: 'AUTOCLAVE',
+      cycle: 12,
+      status: 'COMPLETED',
+      startedAt: '2026-08-18T08:00:00.000Z',
+      completedAt: '2026-08-18T08:45:00.000Z',
+      operatorName: 'Karim',
+      notes: null,
+      createdByName: 'Karim',
+      createdAt: '2026-08-18T08:00:00.000Z',
+    })
+    expect(log.cycle).toBe(12)
+    expect(sterilizationLogSchema.safeParse({ ...log, status: 'FAKE' }).success).toBe(false)
+  })
+
+  it('sterilizationInputSchema requires instrument + method', () => {
+    const ok = sterilizationInputSchema.parse({
+      instrument: 'Détartreur kit',
+      method: 'AUTOCLAVE',
+      cycle: 1,
+    })
+    expect(ok.method).toBe('AUTOCLAVE')
+    expect(sterilizationInputSchema.safeParse({ method: 'AUTOCLAVE' }).success).toBe(false)
+    expect(sterilizationInputSchema.safeParse({ instrument: 'x', method: 'FAKE' }).success).toBe(
+      false,
+    )
+  })
+
+  it('sterilizationUpdateSchema needs at least one field and validates status', () => {
+    const ok = sterilizationUpdateSchema.parse({ status: 'COMPLETED' })
+    expect(ok.status).toBe('COMPLETED')
+    expect(sterilizationUpdateSchema.safeParse({}).success).toBe(false)
+    expect(sterilizationUpdateSchema.safeParse({ status: 'FAKE' }).success).toBe(false)
+  })
+
+  it('sterilizationQuerySchema coerces filters and caps limit', () => {
+    const q = sterilizationQuerySchema.parse({ status: 'IN_PROGRESS', limit: '5' })
+    expect(q.status).toBe('IN_PROGRESS')
+    expect(sterilizationQuerySchema.safeParse({ status: 'FAKE' }).success).toBe(false)
+    expect(sterilizationQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('auditActionSchema includes sterilization actions and targets', () => {
+    expect(auditActionSchema.options).toContain('STERILIZATION_CREATE')
+    expect(auditActionSchema.options).toContain('STERILIZATION_UPDATE')
   })
 })

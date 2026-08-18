@@ -27,6 +27,8 @@ import suppliersRouter from './routes/suppliers'
 import purchaseOrdersRouter from './routes/purchaseOrders'
 import stockRouter from './routes/stock'
 import alertsRouter from './routes/alerts'
+import consumptionRouter from './routes/consumption'
+import sterilizationsRouter from './routes/sterilizations'
 
 initSentry()
 
@@ -98,6 +100,8 @@ api.use('/suppliers', suppliersRouter)
 api.use('/purchase-orders', purchaseOrdersRouter)
 api.use('/stock', stockRouter)
 api.use('/alerts', alertsRouter)
+api.use('/consumption', consumptionRouter)
+api.use('/sterilizations', sterilizationsRouter)
 
 app.use('/api', api)
 
