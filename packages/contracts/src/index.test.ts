@@ -98,6 +98,10 @@ import {
   stockOutInputSchema,
   stockQuerySchema,
   MAX_STOCK_BATCH,
+  stockAlertQuerySchema,
+  stockAlertsSchema,
+  expiringLotAlertSchema,
+  lowStockAlertSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -1467,6 +1471,51 @@ describe('expense contracts', () => {
   it('stockListSchema wraps items + total', () => {
     const parsed = stockListSchema.parse({ items: [], total: 0 })
     expect(parsed.total).toBe(0)
+  })
+
+  it('stockAlertQuerySchema defaults horizon and bounds it', () => {
+    expect(stockAlertQuerySchema.parse({}).horizonDays).toBe(30)
+    expect(stockAlertQuerySchema.parse({ horizonDays: '60' }).horizonDays).toBe(60)
+    expect(stockAlertQuerySchema.safeParse({ horizonDays: 0 }).success).toBe(false)
+    expect(stockAlertQuerySchema.safeParse({ horizonDays: 9999 }).success).toBe(false)
+  })
+
+  it('lowStockAlertSchema validates an alert row', () => {
+    const alert = lowStockAlertSchema.parse({
+      productId: 'p1',
+      productName: 'Gants nitrile M',
+      unit: 'BOX',
+      category: 'DISPOSABLES',
+      quantityOnHand: 3,
+      reorderLevel: 5,
+    })
+    expect(alert.quantityOnHand).toBe(3)
+    expect(lowStockAlertSchema.safeParse({ ...alert, quantityOnHand: -1 }).success).toBe(false)
+  })
+
+  it('expiringLotAlertSchema validates a lot alert and requires positive remaining', () => {
+    const alert = expiringLotAlertSchema.parse({
+      productId: 'p1',
+      productName: 'Lidocaïne',
+      unit: 'BOTTLE',
+      batch: 'LID-2026',
+      expiryDate: '2027-01-31T00:00:00.000Z',
+      remaining: 4,
+      expired: false,
+    })
+    expect(alert.batch).toBe('LID-2026')
+    expect(expiringLotAlertSchema.safeParse({ ...alert, remaining: 0 }).success).toBe(false)
+    expect(expiringLotAlertSchema.safeParse({ ...alert, batch: '' }).success).toBe(false)
+  })
+
+  it('stockAlertsSchema wraps the derived feed', () => {
+    const parsed = stockAlertsSchema.parse({
+      lowStock: [],
+      expiring: [],
+      generatedAt: '2026-08-18T00:00:00.000Z',
+    })
+    expect(parsed.lowStock).toEqual([])
+    expect(stockAlertsSchema.safeParse({ lowStock: [], expiring: [] }).success).toBe(false)
   })
 
   it('purchaseOrderReceiveSchema accepts optional batch/expiry per line', () => {
