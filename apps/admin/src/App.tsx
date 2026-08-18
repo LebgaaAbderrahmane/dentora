@@ -24,7 +24,6 @@ import {
   Syringe,
   ClipboardCheck,
   GraduationCap,
-  Settings,
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
@@ -80,6 +79,15 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   attendance: 'nav.attendance',
   interns: 'nav.interns',
   audit: 'nav.audit',
+}
+
+const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
+  ADMIN: 'role.admin',
+  DENTIST: 'role.dentist',
+  RECEPTIONIST: 'role.receptionist',
+  ACCOUNTANT: 'role.accountant',
+  INTERN: 'role.intern',
+  PATIENT: 'role.patient',
 }
 
 type View =
@@ -310,32 +318,38 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           : []),
       ],
     },
-  ]
-
-  const adminItems: NavItem[] = [
-    ...(canViewAttendance
+    ...(isAdmin || canViewAttendance || canManageInterns
       ? [
           {
-            id: 'attendance' as const,
-            label: 'nav.attendance' as MessageKey,
-            icon: ClipboardCheck,
+            label: 'nav.section.admin' as MessageKey,
+            items: [
+              ...(canViewAttendance
+                ? [
+                    {
+                      id: 'attendance' as const,
+                      label: 'nav.attendance' as MessageKey,
+                      icon: ClipboardCheck,
+                    },
+                  ]
+                : []),
+              ...(canManageInterns
+                ? [
+                    {
+                      id: 'interns' as const,
+                      label: 'nav.interns' as MessageKey,
+                      icon: GraduationCap,
+                    },
+                  ]
+                : []),
+              ...(isAdmin
+                ? [
+                    { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
+                    { id: 'users' as const, label: 'nav.users' as MessageKey, icon: Users },
+                    { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
+                  ]
+                : []),
+            ],
           },
-        ]
-      : []),
-    ...(canManageInterns
-      ? [
-          {
-            id: 'interns' as const,
-            label: 'nav.interns' as MessageKey,
-            icon: GraduationCap,
-          },
-        ]
-      : []),
-    ...(isAdmin
-      ? [
-          { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
-          { id: 'users' as const, label: 'nav.users' as MessageKey, icon: Users },
-          { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
         ]
       : []),
   ]
@@ -400,17 +414,29 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
             ),
           )}
         </nav>
+        <div className="shrink-0 border-t border-neutral-200 px-2 py-2 dark:border-neutral-800">
+          <button
+            onClick={toggleCollapsed}
+            title={t(collapsed ? 'nav.expand' : 'nav.collapse')}
+            aria-label={t(collapsed ? 'nav.expand' : 'nav.collapse')}
+            className={
+              collapsed
+                ? 'mx-auto flex h-10 w-10 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
+                : 'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
+            }
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="size-4 shrink-0" aria-hidden="true" />
+            )}
+            {!collapsed && t('nav.collapse')}
+          </button>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppBar
-          view={view}
-          adminItems={adminItems}
-          collapsed={collapsed}
-          onSelect={setView}
-          onToggleCollapsed={toggleCollapsed}
-          onLoggedOut={onLoggedOut}
-        />
+        <AppBar view={view} user={user} onLoggedOut={onLoggedOut} />
         <main className="flex-1 overflow-y-auto p-6">
           {view === 'dashboard' && <DashboardView />}
           {view === 'appointments' && canManagePatients && <AppointmentsView />}
@@ -441,17 +467,11 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
 
 function AppBar({
   view,
-  adminItems,
-  collapsed,
-  onSelect,
-  onToggleCollapsed,
+  user,
   onLoggedOut,
 }: {
   view: View
-  adminItems: NavItem[]
-  collapsed: boolean
-  onSelect: (view: View) => void
-  onToggleCollapsed: () => void
+  user: SafeUser
   onLoggedOut: () => void
 }) {
   const { t } = useI18n()
@@ -462,40 +482,14 @@ function AppBar({
         {t(VIEW_TITLE[view])}
       </h1>
       <div className="ms-auto flex items-center gap-2">
-        {adminItems.length > 0 && <AdminMenu items={adminItems} view={view} onSelect={onSelect} />}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleCollapsed}
-          title={t(collapsed ? 'nav.expand' : 'nav.collapse')}
-          aria-label={t(collapsed ? 'nav.expand' : 'nav.collapse')}
-        >
-          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-        </Button>
         <Controls />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onLoggedOut}
-          title={t('auth.logout')}
-          aria-label={t('auth.logout')}
-        >
-          <LogOut />
-        </Button>
+        <UserMenu user={user} onLoggedOut={onLoggedOut} />
       </div>
     </header>
   )
 }
 
-function AdminMenu({
-  items,
-  view,
-  onSelect,
-}: {
-  items: NavItem[]
-  view: View
-  onSelect: (view: View) => void
-}) {
+function UserMenu({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -516,32 +510,47 @@ function AdminMenu({
     }
   }, [open])
 
+  const initials = user.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
   return (
     <div ref={ref} className="relative">
-      <Button variant="outline" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <Settings className="size-4" aria-hidden="true" />
-        {t('nav.section.admin')}
-      </Button>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label={t('auth.account')}
+        className="flex size-9 items-center justify-center rounded-full border border-brand-500/30 bg-brand-50 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
+      >
+        {initials}
+      </button>
       {open && (
-        <div className="absolute end-0 z-50 mt-2 w-52 rounded-lg border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-          {items.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => {
-                onSelect(v.id)
-                setOpen(false)
-              }}
-              className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-start text-sm ${
-                view === v.id
-                  ? 'bg-neutral-100 font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
-                  : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'
-              }`}
-            >
-              <v.icon className="size-4 shrink-0" aria-hidden="true" />
-              {t(v.label)}
-              {view === v.id && <span className="ms-auto size-1.5 rounded-full bg-brand-500" />}
-            </button>
-          ))}
+        <div className="absolute end-0 z-50 mt-2 w-56 rounded-lg border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="px-2.5 py-2">
+            <div className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              {user.name}
+            </div>
+            <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+              {user.email}
+            </div>
+          </div>
+          <div className="px-2.5 pb-2">
+            <span className="inline-flex rounded-full border border-brand-500/30 bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+              {t(ROLE_KEY[user.role])}
+            </span>
+          </div>
+          <div className="mx-1 border-t border-neutral-100 dark:border-neutral-800" />
+          <button
+            onClick={onLoggedOut}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-start text-sm text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+          >
+            <LogOut className="size-4 shrink-0" aria-hidden="true" />
+            {t('auth.logout')}
+          </button>
         </div>
       )}
     </div>
