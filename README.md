@@ -3,7 +3,7 @@
 Complete dental practice management system for a single Algerian clinic (multi-branch ready).
 Built on top of the [Dentora](https://dentora.dz) public marketing site.
 
-> **Status:** under active development — Phase 0 (walking skeleton). See [`PROCESS.md`](./PROCESS.md) for the full roadmap and session log.
+> **Status:** under active development — Phase 3 (clinical back-office) + demo seed. See [`PROCESS.md`](./PROCESS.md) for the full roadmap and session log.
 
 ## What's included
 
@@ -43,6 +43,22 @@ pnpm format       # prettier --write .
 ```
 
 The API listens on `:4000` and exposes `GET /api/health` (Zod-validated via `packages/contracts`).
+
+### Demo data
+
+After `pnpm install` + migrations, load a realistic, self-consistent dataset to explore every phase:
+
+```sh
+pnpm --filter @dentora/api db:seed:demo
+```
+
+It resets the active branch's demo data (catalog, patients + encrypted records, appointments,
+waitlist, invoices/payments/refunds, expenses, products + stock ledger, suppliers + purchase
+orders), keeps the branch + staff users, and prints the demo logins. Staff accounts use
+`demo-pass-123`; the admin keeps the `ADMIN_PASSWORD` from the env. The stock ledger invariant
+(`Σ ledger == quantityOnHand`) and the alert feed (low stock, expiring/expired lots) are verified
+on every run. `db:seed:demo` is refreshed after each phase so the demo data exercises the latest
+features.
 
 ## Documentation
 
