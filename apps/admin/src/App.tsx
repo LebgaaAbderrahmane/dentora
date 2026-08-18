@@ -19,6 +19,7 @@ import {
   Package,
   Truck,
   ShoppingCart,
+  Bell,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ import { FinanceView } from './views/FinanceView'
 import { ProductsView } from './views/ProductsView'
 import { SuppliersView } from './views/SuppliersView'
 import { PurchaseOrdersView } from './views/PurchaseOrdersView'
+import { AlertsView } from './views/AlertsView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -67,6 +69,7 @@ type View =
   | 'products'
   | 'suppliers'
   | 'purchaseOrders'
+  | 'alerts'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -230,6 +233,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
             },
           ]
         : []),
+      ...(canViewProducts
+        ? [{ id: 'alerts' as const, label: 'nav.alerts' as MessageKey, icon: Bell }]
+        : []),
       ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
         : []),
@@ -309,11 +315,13 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                                 ? 'nav.suppliers'
                                 : view === 'purchaseOrders'
                                   ? 'nav.purchaseOrders'
-                                  : view === 'patients'
-                                    ? 'nav.patients'
-                                    : view === 'users'
-                                      ? 'nav.users'
-                                      : 'nav.audit',
+                                  : view === 'alerts'
+                                    ? 'nav.alerts'
+                                    : view === 'patients'
+                                      ? 'nav.patients'
+                                      : view === 'users'
+                                        ? 'nav.users'
+                                        : 'nav.audit',
             )}
           </h1>
           <Controls />
@@ -328,6 +336,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'products' && canViewProducts && <ProductsView canEdit={canEditProducts} />}
         {view === 'suppliers' && canViewProducts && <SuppliersView canEdit={canEditProducts} />}
         {view === 'purchaseOrders' && canManageProcurement && <PurchaseOrdersView />}
+        {view === 'alerts' && canViewProducts && <AlertsView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}

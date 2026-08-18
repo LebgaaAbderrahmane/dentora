@@ -322,6 +322,22 @@ occurredAt? }`; positive adds (manual in / donation with optional lot), negative
   product, and audits `STOCK_ADJUST` (before/after + lot + reason).
 - No edit/delete on ledger rows — corrections are new movements.
 
+## Stock alerts (Phase 3.4, ADR 025)
+
+`/api/alerts` — **derived entirely on read**: no tables, no stored flags, no audit on read.
+Gated like products/stock (clinical trio + ACCOUNTANT).
+
+- `GET ?horizonDays=` — optional `horizonDays` 1..365, **default 30**. Computes from the catalog
+  - ledger in one pass:
+  * `lowStock` — active products with `reorderLevel > 0` and `quantityOnHand <= reorderLevel`
+    (ADR 022 threshold), sorted by name.
+  * `expiring` — open lots (`IN` + positive `ADJUST` minus `OUT` + negative `ADJUST` consumed
+    **FEFO**, batchless lots drained last) with remaining stock and expiry within
+    `(now, now + horizonDays]`. Already-past expiry is flagged `expired: true`. The ADR 024
+    invariant (`Σ ledger == quantityOnHand`) keeps totals exact — only lots actually still in
+    stock are alerted.
+  * `generatedAt` — server timestamp.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

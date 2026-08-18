@@ -1400,3 +1400,46 @@ export const stockQuerySchema = z.object({
 export type StockQuery = z.infer<typeof stockQuerySchema>
 
 export type StockQueryParams = z.input<typeof stockQuerySchema>
+
+// ---- Stock alerts (3.4, ADR 025) ----
+
+export const ALERT_HORIZON_MAX = 365
+
+export const stockAlertQuerySchema = z.object({
+  horizonDays: z.coerce.number().int().min(1).max(ALERT_HORIZON_MAX).default(30),
+})
+
+export type StockAlertQuery = z.infer<typeof stockAlertQuerySchema>
+
+export type StockAlertQueryParams = z.input<typeof stockAlertQuerySchema>
+
+export const lowStockAlertSchema = z.object({
+  productId: z.string(),
+  productName: z.string(),
+  unit: productUnitSchema,
+  category: productCategorySchema,
+  quantityOnHand: z.number().int().nonnegative(),
+  reorderLevel: z.number().int().nonnegative(),
+})
+
+export type LowStockAlert = z.infer<typeof lowStockAlertSchema>
+
+export const expiringLotAlertSchema = z.object({
+  productId: z.string(),
+  productName: z.string(),
+  unit: productUnitSchema,
+  batch: z.string().min(1),
+  expiryDate: z.string(),
+  remaining: z.number().int().positive(),
+  expired: z.boolean(),
+})
+
+export type ExpiringLotAlert = z.infer<typeof expiringLotAlertSchema>
+
+export const stockAlertsSchema = z.object({
+  lowStock: z.array(lowStockAlertSchema),
+  expiring: z.array(expiringLotAlertSchema),
+  generatedAt: z.string(),
+})
+
+export type StockAlerts = z.infer<typeof stockAlertsSchema>

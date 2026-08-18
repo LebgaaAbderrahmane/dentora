@@ -66,6 +66,7 @@ import {
   type StockList,
   type StockOutInput,
   type StockQueryParams,
+  type StockAlerts,
   type UserList,
   type WaitlistEntryDetail,
   type WaitlistInput,
@@ -496,6 +497,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(input),
     }),
+
+  alerts: (horizonDays: number = 30) =>
+    request<StockAlerts>(`/api/alerts?horizonDays=${horizonDays}`),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

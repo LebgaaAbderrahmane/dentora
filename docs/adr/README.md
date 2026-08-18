@@ -26,3 +26,4 @@ Format follows [Michael Nygard's template](https://cognitect.com/blog/2011/11/15
 | [0022](0022-products.md)                  | Accepted | Products: fixed category/unit enums, transitional stored qty, ADMIN+ACCOUNTANT |
 | [0023](0023-suppliers-purchase-orders.md) | Accepted | Suppliers + POs: finance-desk book, snapshot lines, status-driven receipts     |
 | [0024](0024-stock-ledger.md)              | Accepted | Stock ledger: append-only journal, derived stock, batch + expiry on inward     |
+| [0025](0025-stock-alerts.md)              | Accepted | Low-stock + expiry alerts: derived on read, FEFO lot consumption from ledger   |
