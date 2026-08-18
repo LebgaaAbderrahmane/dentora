@@ -68,6 +68,10 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   STOCK_ADJUST: 'audit.actions.stockAdjust',
   STERILIZATION_CREATE: 'audit.actions.sterilizationCreate',
   STERILIZATION_UPDATE: 'audit.actions.sterilizationUpdate',
+  STAFF_CREATE: 'audit.actions.staffCreate',
+  STAFF_UPDATE: 'audit.actions.staffUpdate',
+  STAFF_PASSWORD_RESET: 'audit.actions.staffPasswordReset',
+  SCHEDULE_UPDATE: 'audit.actions.scheduleUpdate',
 }
 
 export function AuditView() {

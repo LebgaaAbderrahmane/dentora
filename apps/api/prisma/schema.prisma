@@ -16,6 +16,18 @@ enum Role {
   PATIENT
 }
 
+// Recurring weekly worker availability (ADR 027). Consumed by the staff
+// schedule editor; attendance/rostering in 4.2 will read these templates.
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
 enum AuditAction {
   LOGIN_SUCCESS
   LOGIN_FAILURE
@@ -72,6 +84,10 @@ enum AuditAction {
   STOCK_ADJUST
   STERILIZATION_CREATE
   STERILIZATION_UPDATE
+  STAFF_CREATE
+  STAFF_UPDATE
+  STAFF_PASSWORD_RESET
+  SCHEDULE_UPDATE
 }
 
 enum AuditTarget {
@@ -87,6 +103,7 @@ enum AuditTarget {
   SUPPLIER
   PURCHASE_ORDER
   STERILIZATION
+  SCHEDULE
 }
 
 enum AppointmentStatus {
@@ -222,6 +239,7 @@ model Branch {
   stockLedger  StockLedgerEntry[]
   consumptions TreatmentStockConsumption[]
   sterilizations SterilizationLog[]
+  schedules   StaffSchedule[]
 
   @@map("branches")
 }
@@ -253,6 +271,7 @@ model User {
   createdConsumptions   TreatmentStockConsumption[] @relation("ConsumptionCreator")
   createdSterilizations SterilizationLog[] @relation("SterilizationCreator")
   operatedSterilizations SterilizationLog[] @relation("SterilizationOperator")
+  schedules          StaffSchedule[]       @relation("ScheduleStaff")
 
   @@index([branchId])
   @@map("users")
@@ -688,6 +707,27 @@ model SterilizationLog {
   @@index([branchId, productId])
   @@index([operatorId])
   @@map("sterilization_logs")
+}
+
+// Recurring weekly worker availability (ADR 027). One row per weekday slot;
+// times are local HH:mm strings. A staff member can have several rows on one
+// weekday (e.g. two half-days); overlaps are rejected at write time.
+model StaffSchedule {
+  id        String   @id @default(cuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  staffId   String
+  staff     User     @relation("ScheduleStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  weekday   Weekday
+  startTime String
+  endTime   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([staffId])
+  @@index([branchId, weekday])
+  @@map("staff_schedules")
 }
 
 model Setting {

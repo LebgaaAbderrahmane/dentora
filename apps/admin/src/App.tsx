@@ -49,6 +49,7 @@ import { PurchaseOrdersView } from './views/PurchaseOrdersView'
 import { AlertsView } from './views/AlertsView'
 import { ConsumptionView } from './views/ConsumptionView'
 import { SterilizationsView } from './views/SterilizationsView'
+import { StaffView } from './views/StaffView'
 
 const VIEW_TITLE: Record<View, MessageKey> = {
   dashboard: 'nav.dashboard',
@@ -66,6 +67,7 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   sterilizations: 'nav.sterilizations',
   patients: 'nav.patients',
   users: 'nav.users',
+  staff: 'nav.staff',
   audit: 'nav.audit',
 }
 
@@ -81,6 +83,7 @@ const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
 type View =
   | 'dashboard'
   | 'users'
+  | 'staff'
   | 'audit'
   | 'patients'
   | 'appointments'
@@ -292,7 +295,8 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           {
             label: 'nav.section.admin' as MessageKey,
             items: [
-              { id: 'users' as const, label: 'nav.users' as MessageKey, icon: UserCog },
+              { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
+              { id: 'users' as const, label: 'nav.users' as MessageKey, icon: Users },
               { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
             ],
           },
@@ -375,6 +379,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'sterilizations' && canViewProducts && <SterilizationsView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
+        {view === 'staff' && isAdmin && <StaffView />}
         {view === 'audit' && isAdmin && <AuditView />}
       </main>
     </div>

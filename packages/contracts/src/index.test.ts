@@ -15,6 +15,7 @@ import {
   auditEntrySchema,
   auditQuerySchema,
   loginSchema,
+  auditTargetSchema,
   medicalHistoryResponseSchema,
   medicalHistorySchema,
   medicalHistoryWriteSchema,
@@ -30,7 +31,20 @@ import {
   patientUpdateSchema,
   roleSchema,
   safeUserSchema,
+  STAFF_ROLES,
   staffDentistListSchema,
+  staffInputSchema,
+  staffListSchema,
+  staffQuerySchema,
+  staffRoleSchema,
+  staffScheduleInputSchema,
+  staffScheduleListSchema,
+  staffScheduleRowSchema,
+  staffScheduleSchema,
+  staffUpdateSchema,
+  resetPasswordSchema,
+  WEEKDAYS,
+  weekdaySchema,
   SERVICE_CATEGORIES,
   serviceInputSchema,
   serviceListResponseSchema,
@@ -1656,5 +1670,139 @@ describe('expense contracts', () => {
   it('auditActionSchema includes sterilization actions and targets', () => {
     expect(auditActionSchema.options).toContain('STERILIZATION_CREATE')
     expect(auditActionSchema.options).toContain('STERILIZATION_UPDATE')
+  })
+})
+
+describe('staff contracts (ADR 027)', () => {
+  it('staffRoleSchema excludes PATIENT and keeps staff roles', () => {
+    expect(STAFF_ROLES).toEqual(['ADMIN', 'DENTIST', 'RECEPTIONIST', 'ACCOUNTANT', 'INTERN'])
+    expect(staffRoleSchema.safeParse('PATIENT').success).toBe(false)
+    expect(staffRoleSchema.safeParse('DENTIST').success).toBe(true)
+  })
+
+  it('weekdaySchema + WEEKDAYS list the week in order', () => {
+    expect(WEEKDAYS).toEqual([
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY',
+    ])
+    expect(weekdaySchema.safeParse('MONDAY').success).toBe(true)
+    expect(weekdaySchema.safeParse('MONDAYY').success).toBe(false)
+  })
+
+  it('staffInputSchema requires name/email/password and a staff role', () => {
+    const ok = staffInputSchema.parse({
+      name: 'Dr. Nora',
+      email: 'NORA@dentora.DZ',
+      password: 'correct-horse',
+      role: 'DENTIST',
+    })
+    expect(ok.email).toBe('nora@dentora.dz')
+    expect(ok.active).toBe(true)
+    expect(
+      staffInputSchema.safeParse({ name: 'x', email: 'a@b.dz', password: 'short' }).success,
+    ).toBe(false)
+    expect(
+      staffInputSchema.safeParse({
+        name: 'x',
+        email: 'a@b.dz',
+        password: 'long-enough',
+        role: 'PATIENT',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('staffUpdateSchema requires at least one field', () => {
+    expect(staffUpdateSchema.safeParse({ name: 'Dr. Nora' }).success).toBe(true)
+    expect(staffUpdateSchema.safeParse({}).success).toBe(false)
+  })
+
+  it('staffQuerySchema coerces limit/offset and booleans', () => {
+    const q = staffQuerySchema.parse({
+      search: 'nora',
+      role: 'DENTIST',
+      active: 'true',
+      limit: '10',
+    })
+    expect(q.active).toBe(true)
+    expect(q.limit).toBe(10)
+    expect(staffQuerySchema.parse({ active: 'false' }).active).toBe(false)
+    expect(staffQuerySchema.parse({ active: '0' }).active).toBe(false)
+    expect(staffQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+    expect(staffQuerySchema.safeParse({ role: 'PATIENT' }).success).toBe(false)
+  })
+
+  it('staffListSchema wraps items + total', () => {
+    const parsed = staffListSchema.parse({
+      items: [
+        { id: 'u1', email: 'a@b.dz', name: 'A', role: 'ADMIN', branchId: 'b1', active: true },
+      ],
+      total: 1,
+    })
+    expect(parsed.items[0].email).toBe('a@b.dz')
+    expect(parsed.total).toBe(1)
+  })
+
+  it('staffScheduleRowSchema validates HH:mm times', () => {
+    const ok = staffScheduleRowSchema.parse({
+      weekday: 'MONDAY',
+      startTime: '08:00',
+      endTime: '12:00',
+    })
+    expect(ok.active).toBe(true)
+    expect(
+      staffScheduleRowSchema.safeParse({ weekday: 'MONDAY', startTime: '8:00', endTime: '12:00' })
+        .success,
+    ).toBe(false)
+    expect(
+      staffScheduleRowSchema.safeParse({ weekday: 'MONDAY', startTime: '08:00', endTime: '24:00' })
+        .success,
+    ).toBe(false)
+  })
+
+  it('staffScheduleInputSchema caps the row count', () => {
+    const rows = Array.from({ length: 7 * 3 }, (_, i) => ({
+      weekday: 'MONDAY',
+      startTime: '08:00',
+      endTime: '09:00',
+      active: true,
+      slot: i,
+    }))
+    expect(staffScheduleInputSchema.safeParse({ schedules: rows }).success).toBe(true)
+    expect(
+      staffScheduleInputSchema.safeParse({
+        schedules: [...rows, { weekday: 'MONDAY', startTime: '10:00', endTime: '11:00' }],
+      }).success,
+    ).toBe(false)
+  })
+
+  it('staffScheduleSchema validates a stored row', () => {
+    const parsed = staffScheduleSchema.parse({
+      id: 's1',
+      staffId: 'u1',
+      weekday: 'FRIDAY',
+      startTime: '09:00',
+      endTime: '13:00',
+      active: true,
+    })
+    expect(parsed.weekday).toBe('FRIDAY')
+    expect(staffScheduleListSchema.parse({ schedules: [parsed] }).schedules.length).toBe(1)
+  })
+
+  it('resetPasswordSchema enforces a minimum length', () => {
+    expect(resetPasswordSchema.parse({ password: 'eight-char' }).password).toBe('eight-char')
+    expect(resetPasswordSchema.safeParse({ password: 'short' }).success).toBe(false)
+  })
+
+  it('auditActionSchema includes staff + schedule actions and SCHEDULE target', () => {
+    expect(auditActionSchema.options).toContain('STAFF_CREATE')
+    expect(auditActionSchema.options).toContain('STAFF_UPDATE')
+    expect(auditActionSchema.options).toContain('STAFF_PASSWORD_RESET')
+    expect(auditActionSchema.options).toContain('SCHEDULE_UPDATE')
+    expect(auditTargetSchema.options).toContain('SCHEDULE')
   })
 })
