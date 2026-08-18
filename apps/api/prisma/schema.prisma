@@ -88,6 +88,8 @@ enum AuditAction {
   STAFF_UPDATE
   STAFF_PASSWORD_RESET
   SCHEDULE_UPDATE
+  ATTENDANCE_CREATE
+  ATTENDANCE_UPDATE
 }
 
 enum AuditTarget {
@@ -104,6 +106,7 @@ enum AuditTarget {
   PURCHASE_ORDER
   STERILIZATION
   SCHEDULE
+  ATTENDANCE
 }
 
 enum AppointmentStatus {
@@ -240,6 +243,7 @@ model Branch {
   consumptions TreatmentStockConsumption[]
   sterilizations SterilizationLog[]
   schedules   StaffSchedule[]
+  attendance  AttendanceLog[]
 
   @@map("branches")
 }
@@ -272,6 +276,8 @@ model User {
   createdSterilizations SterilizationLog[] @relation("SterilizationCreator")
   operatedSterilizations SterilizationLog[] @relation("SterilizationOperator")
   schedules          StaffSchedule[]       @relation("ScheduleStaff")
+  attendance         AttendanceLog[]       @relation("AttendanceStaff")
+  createdAttendance  AttendanceLog[]       @relation("AttendanceCreator")
 
   @@index([branchId])
   @@map("users")
@@ -739,6 +745,30 @@ model Setting {
 
   @@unique([branchId, key])
   @@map("settings")
+}
+
+// Day-level presence record (ADR 028). One row per (staffId, date); `checkIn`/
+// `checkOut` are absolute instants, worked time is derived (4.4 payroll will sum
+// it). Corrections are edits, never deletes. `date` is a Postgres DATE so a staff
+// member has exactly one record per day.
+model AttendanceLog {
+  id          String    @id @default(cuid())
+  branchId    String
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  staffId     String
+  staff       User      @relation("AttendanceStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  date        DateTime  @db.Date
+  checkIn     DateTime?
+  checkOut    DateTime?
+  notes       String?
+  createdById String?
+  createdBy   User?     @relation("AttendanceCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([staffId, date])
+  @@index([branchId, date])
+  @@map("attendance_logs")
 }
 
 model AuditLog {

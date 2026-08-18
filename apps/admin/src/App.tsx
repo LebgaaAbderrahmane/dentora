@@ -22,6 +22,7 @@ import {
   Bell,
   FlaskConical,
   Syringe,
+  ClipboardCheck,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,7 @@ import { AlertsView } from './views/AlertsView'
 import { ConsumptionView } from './views/ConsumptionView'
 import { SterilizationsView } from './views/SterilizationsView'
 import { StaffView } from './views/StaffView'
+import { AttendanceView } from './views/AttendanceView'
 
 const VIEW_TITLE: Record<View, MessageKey> = {
   dashboard: 'nav.dashboard',
@@ -68,6 +70,7 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   patients: 'nav.patients',
   users: 'nav.users',
   staff: 'nav.staff',
+  attendance: 'nav.attendance',
   audit: 'nav.audit',
 }
 
@@ -98,6 +101,7 @@ type View =
   | 'alerts'
   | 'consumption'
   | 'sterilizations'
+  | 'attendance'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -213,6 +217,8 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const canEditProducts = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canManageProcurement = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   const canEditInvoices = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
+  const canViewAttendance = ['ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
+  const canEditAttendance = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
   type NavItem = {
     id: View
     label: MessageKey
@@ -290,14 +296,27 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           : []),
       ],
     },
-    ...(isAdmin
+    ...(isAdmin || canViewAttendance
       ? [
           {
             label: 'nav.section.admin' as MessageKey,
             items: [
-              { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
-              { id: 'users' as const, label: 'nav.users' as MessageKey, icon: Users },
-              { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
+              ...(canViewAttendance
+                ? [
+                    {
+                      id: 'attendance' as const,
+                      label: 'nav.attendance' as MessageKey,
+                      icon: ClipboardCheck,
+                    },
+                  ]
+                : []),
+              ...(isAdmin
+                ? [
+                    { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
+                    { id: 'users' as const, label: 'nav.users' as MessageKey, icon: Users },
+                    { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
+                  ]
+                : []),
             ],
           },
         ]
@@ -380,6 +399,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'staff' && isAdmin && <StaffView />}
+        {view === 'attendance' && canViewAttendance && (
+          <AttendanceView canEdit={canEditAttendance} />
+        )}
         {view === 'audit' && isAdmin && <AuditView />}
       </main>
     </div>

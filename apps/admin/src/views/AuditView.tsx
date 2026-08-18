@@ -72,6 +72,8 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   STAFF_UPDATE: 'audit.actions.staffUpdate',
   STAFF_PASSWORD_RESET: 'audit.actions.staffPasswordReset',
   SCHEDULE_UPDATE: 'audit.actions.scheduleUpdate',
+  ATTENDANCE_CREATE: 'audit.actions.attendanceCreate',
+  ATTENDANCE_UPDATE: 'audit.actions.attendanceUpdate',
 }
 
 export function AuditView() {
