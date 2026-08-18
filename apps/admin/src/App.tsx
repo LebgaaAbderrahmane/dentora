@@ -23,6 +23,7 @@ import {
   FlaskConical,
   Syringe,
   ClipboardCheck,
+  GraduationCap,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ import { ConsumptionView } from './views/ConsumptionView'
 import { SterilizationsView } from './views/SterilizationsView'
 import { StaffView } from './views/StaffView'
 import { AttendanceView } from './views/AttendanceView'
+import { InternsView } from './views/InternsView'
 
 const VIEW_TITLE: Record<View, MessageKey> = {
   dashboard: 'nav.dashboard',
@@ -71,6 +73,7 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   users: 'nav.users',
   staff: 'nav.staff',
   attendance: 'nav.attendance',
+  interns: 'nav.interns',
   audit: 'nav.audit',
 }
 
@@ -102,6 +105,7 @@ type View =
   | 'consumption'
   | 'sterilizations'
   | 'attendance'
+  | 'interns'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -219,6 +223,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const canEditInvoices = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
   const canViewAttendance = ['ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
   const canEditAttendance = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
+  const canManageInterns = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
   type NavItem = {
     id: View
     label: MessageKey
@@ -296,7 +301,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           : []),
       ],
     },
-    ...(isAdmin || canViewAttendance
+    ...(isAdmin || canViewAttendance || canManageInterns
       ? [
           {
             label: 'nav.section.admin' as MessageKey,
@@ -307,6 +312,15 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                       id: 'attendance' as const,
                       label: 'nav.attendance' as MessageKey,
                       icon: ClipboardCheck,
+                    },
+                  ]
+                : []),
+              ...(canManageInterns
+                ? [
+                    {
+                      id: 'interns' as const,
+                      label: 'nav.interns' as MessageKey,
+                      icon: GraduationCap,
                     },
                   ]
                 : []),
@@ -402,6 +416,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'attendance' && canViewAttendance && (
           <AttendanceView canEdit={canEditAttendance} />
         )}
+        {view === 'interns' && canManageInterns && <InternsView canEdit={isAdmin} />}
         {view === 'audit' && isAdmin && <AuditView />}
       </main>
     </div>

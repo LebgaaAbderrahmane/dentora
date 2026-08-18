@@ -1043,6 +1043,7 @@ async function main() {
   await prisma.sterilizationLog.deleteMany({ where: { branchId } })
   await prisma.staffSchedule.deleteMany({ where: { branchId } })
   await prisma.attendanceLog.deleteMany({ where: { branchId } })
+  await prisma.internProfile.deleteMany({ where: { branchId } })
   await prisma.stockLedgerEntry.deleteMany({ where: { branchId } })
   await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrder: { branchId } } })
   await prisma.purchaseOrder.deleteMany({ where: { branchId } })
@@ -1181,6 +1182,21 @@ async function main() {
     }
   }
   await prisma.attendanceLog.createMany({ data: attendanceRows })
+
+  const internStart = new Date()
+  internStart.setDate(internStart.getDate() - 45)
+  await prisma.internProfile.create({
+    data: {
+      branchId,
+      internId: users['rayan@dentora.dz'].id,
+      school: process.env.INTERN_SCHOOL ?? 'Université d’Alger',
+      requiredHours: 200,
+      rotation: 'CARE',
+      mentorId: users['karim@dentora.dz'].id,
+      startDate: internStart,
+      active: true,
+    },
+  })
 
   const services = []
   for (const s of SERVICES) {
@@ -1549,6 +1565,7 @@ async function main() {
     sterilizations: await prisma.sterilizationLog.count({ where: { branchId } }),
     schedules: await prisma.staffSchedule.count({ where: { branchId } }),
     attendance: await prisma.attendanceLog.count({ where: { branchId } }),
+    interns: await prisma.internProfile.count({ where: { branchId } }),
   }
 
   console.log(`demo seed ready on branch "${branchName}"`)

@@ -20,7 +20,16 @@ import {
   attendanceListSchema,
   attendanceLogSchema,
   attendanceQuerySchema,
+  attendanceRosterSchema,
   attendanceUpdateSchema,
+  internInputSchema,
+  internListSchema,
+  internMetaSchema,
+  internProfileSchema,
+  internQuerySchema,
+  internRotationSchema,
+  internUpdateSchema,
+  INTERN_ROTATIONS,
   medicalHistoryResponseSchema,
   medicalHistorySchema,
   medicalHistoryWriteSchema,
@@ -1867,9 +1876,123 @@ describe('attendance contracts (ADR 028)', () => {
     expect(parsed.total).toBe(1)
   })
 
+  it('attendanceRosterSchema validates the minimal roster rows', () => {
+    const parsed = attendanceRosterSchema.parse({
+      staff: [
+        { id: 'u1', name: 'Karim', role: 'DENTIST' },
+        { id: 'u2', name: 'Lina', role: 'RECEPTIONIST' },
+      ],
+    })
+    expect(parsed.staff).toHaveLength(2)
+    expect(attendanceRosterSchema.safeParse({ staff: [{ id: 'u1', name: 'Karim' }] }).success).toBe(
+      false,
+    )
+  })
+
   it('auditActionSchema includes attendance actions and ATTENDANCE target', () => {
     expect(auditActionSchema.options).toContain('ATTENDANCE_CREATE')
     expect(auditActionSchema.options).toContain('ATTENDANCE_UPDATE')
     expect(auditTargetSchema.options).toContain('ATTENDANCE')
+  })
+})
+
+describe('intern contracts (ADR 029)', () => {
+  const valid = {
+    id: 'p1',
+    internId: 'u1',
+    internName: 'Rayan Meziane',
+    internEmail: 'rayan@dentora.dz',
+    school: 'Université d’Alger',
+    requiredHours: 200,
+    rotation: 'CARE',
+    mentorId: 'm1',
+    mentorName: 'Dr. Karim Bensalem',
+    startDate: '2026-05-01T00:00:00.000Z',
+    endDate: '2026-10-01T00:00:00.000Z',
+    completedMinutes: 7200,
+    progressPct: 60,
+    active: true,
+    notes: null,
+  }
+
+  it('internProfileSchema validates a read row with derived hours', () => {
+    const parsed = internProfileSchema.parse(valid)
+    expect(parsed.progressPct).toBe(60)
+    expect(internProfileSchema.safeParse({ ...valid, requiredHours: 0 }).success).toBe(false)
+    expect(internProfileSchema.safeParse({ ...valid, rotation: 'BOGUS' }).success).toBe(false)
+  })
+
+  it('internInputSchema requires internId + school + rotation + startDate', () => {
+    const ok = internInputSchema.parse({
+      internId: 'u1',
+      school: 'Université d’Alger',
+      requiredHours: 200,
+      rotation: 'CARE',
+      startDate: '2026-05-01',
+    })
+    expect(ok.endDate).toBeUndefined()
+    expect(internInputSchema.safeParse({ internId: 'u1', rotation: 'CARE' }).success).toBe(false)
+    expect(
+      internInputSchema.safeParse({
+        internId: 'u1',
+        school: ' ',
+        requiredHours: 1,
+        rotation: 'CARE',
+        startDate: 'nope',
+      }).success,
+    ).toBe(false)
+    expect(
+      internInputSchema.safeParse({
+        internId: 'u1',
+        school: 'S',
+        requiredHours: 0,
+        rotation: 'CARE',
+        startDate: '2026-05-01',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('internUpdateSchema requires at least one editable field', () => {
+    expect(internUpdateSchema.safeParse({}).success).toBe(false)
+    expect(internUpdateSchema.safeParse({ active: false }).success).toBe(true)
+    expect(internUpdateSchema.safeParse({ mentorId: null }).success).toBe(true)
+    expect(internUpdateSchema.safeParse({ endDate: null }).success).toBe(true)
+    expect(internUpdateSchema.safeParse({ school: 'CHU Alger Centre' }).success).toBe(true)
+    expect(internUpdateSchema.safeParse({ startDate: 'bogus' }).success).toBe(false)
+  })
+
+  it('internQuerySchema coerces limit/offset and the active flag', () => {
+    const q = internQuerySchema.parse({ active: 'false', rotation: 'SURGERY', limit: '10' })
+    expect(q.active).toBe(false)
+    expect(q.rotation).toBe('SURGERY')
+    expect(internQuerySchema.safeParse({ rotation: 'BOGUS' }).success).toBe(false)
+    expect(internQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('internListSchema wraps items + total', () => {
+    const parsed = internListSchema.parse({ items: [valid], total: 1 })
+    expect(parsed.items[0].internName).toBe('Rayan Meziane')
+    expect(parsed.total).toBe(1)
+  })
+
+  it('internMetaSchema validates mentors + interns', () => {
+    const parsed = internMetaSchema.parse({
+      mentors: [{ id: 'm1', name: 'Dr. Karim Bensalem', role: 'DENTIST' }],
+      interns: [{ id: 'u1', name: 'Rayan Meziane', hasProfile: false }],
+    })
+    expect(parsed.mentors[0].role).toBe('DENTIST')
+    expect(parsed.interns[0].hasProfile).toBe(false)
+    expect(internMetaSchema.safeParse({ mentors: [{ id: 'm1' }], interns: [] }).success).toBe(false)
+  })
+
+  it('internRotationSchema mirrors the exported INTERN_ROTATIONS list', () => {
+    expect(internRotationSchema.options).toEqual(INTERN_ROTATIONS)
+    expect(INTERN_ROTATIONS).toContain('PROSTHETIC_ORTHO')
+  })
+
+  it('auditActionSchema includes intern actions and INTERN target', () => {
+    expect(auditActionSchema.options).toContain('INTERN_CREATE')
+    expect(auditActionSchema.options).toContain('INTERN_UPDATE')
+    expect(auditTargetSchema.options).toContain('INTERN')
   })
 })

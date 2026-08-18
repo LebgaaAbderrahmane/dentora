@@ -24,6 +24,12 @@ import {
   type ExpenseUpdate,
   type FinanceReport,
   type InvoiceCreate,
+  type InternInput,
+  type InternList,
+  type InternMeta,
+  type InternProfile,
+  type InternQueryParams,
+  type InternUpdate,
   type Product,
   type ProductInput,
   type ProductList,
@@ -345,6 +351,29 @@ export const api = {
 
   updateAttendance: (id: string, input: AttendanceUpdate) =>
     request<AttendanceLog>(`/api/attendance/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  internMeta: () => request<InternMeta>('/api/interns/meta'),
+
+  interns: (params: Partial<InternQueryParams> = {}) => {
+    const q = new URLSearchParams()
+    if (params.search) q.set('search', params.search)
+    if (params.school) q.set('school', params.school)
+    if (params.rotation) q.set('rotation', params.rotation)
+    if (params.active !== undefined) q.set('active', String(params.active))
+    if (params.mentorId) q.set('mentorId', params.mentorId)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<InternList>(`/api/interns?${q.toString()}`)
+  },
+
+  createIntern: (input: InternInput) =>
+    request<InternProfile>('/api/interns', { method: 'POST', body: JSON.stringify(input) }),
+
+  updateIntern: (id: string, input: InternUpdate) =>
+    request<InternProfile>(`/api/interns/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),

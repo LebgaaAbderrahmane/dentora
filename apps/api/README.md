@@ -11,49 +11,54 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 
 ## Routes (Phase 0.5–0.6)
 
-| Method | Path                                 | Auth    | Description                                                                                               |
-| ------ | ------------------------------------ | ------- | --------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/auth/login`                    | —       | Create session, set httpOnly cookie                                                                       |
-| POST   | `/api/auth/logout`                   | session | Revoke current session, clear cookie                                                                      |
-| GET    | `/api/auth/me`                       | session | Current user (safe fields)                                                                                |
-| POST   | `/api/auth/revoke-all`               | session | Revoke all other sessions                                                                                 |
-| POST   | `/api/auth/change-password`          | session | Verify current + rotate password, revoke others                                                           |
-| GET    | `/api/users`                         | ADMIN   | List staff of the branch                                                                                  |
-| PATCH  | `/api/users/:id/role`                | ADMIN   | Change role — **revokes all sessions** of the user                                                        |
-| POST   | `/api/users/:id/revoke-sessions`     | ADMIN   | Revoke all sessions of the user                                                                           |
-| GET    | `/api/audit`                         | ADMIN   | Audit trail: paginated + filterable (action/actorEmail)                                                   |
-| GET    | `/api/patients`                      | staff*  | Paginated list: `q`, `archived`, `limit` (≤200), `offset`                                                 |
-| POST   | `/api/patients`                      | staff*  | Create patient — **notes encrypted** at rest                                                              |
-| GET    | `/api/patients/:id`                  | staff*  | Detail — notes **decrypted only here** (audits VIEW)                                                      |
-| PATCH  | `/api/patients/:id`                  | staff*  | Update patient (partial), notes encrypted on change                                                       |
-| POST   | `/api/patients/:id/archive`          | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED`                                                   |
-| POST   | `/api/patients/:id/restore`          | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`                                                                |
-| GET    | `/api/patients/:id/medical-history`  | staff*  | Record + `version`; `data: null` until first save (audits VIEW)                                           |
-| PUT    | `/api/patients/:id/medical-history`  | staff*  | Upsert encrypted blob, **optimistic lock** (see below)                                                    |
-| GET    | `/api/patients/:id/odontogram`       | staff*  | Tooth chart + `version`; `data: null` until first save (audits VIEW)                                      |
-| PUT    | `/api/patients/:id/odontogram`       | staff*  | Upsert encrypted blob, **optimistic lock** (see below)                                                    |
-| GET    | `/api/patients/:id/documents`        | staff*  | List document metadata (`originalName`, `mimeType`, `size`)                                               |
-| POST   | `/api/patients/:id/documents`        | staff*  | Upload: raw body (`application/octet-stream`, ≤50 MB), headers `X-File-Name` (URI-encoded), `X-File-Mime` |
-| GET    | `/api/patients/:id/documents/:docId` | staff*  | **Proxied download**: RBAC + branch scope, decrypts, streams, audits `PATIENT_DOCUMENT_VIEW`              |
-| GET    | `/api/appointments`                  | staff*  | Range list: `start`+`end` ISO required; optional `status`/`dentistId`/`patientId`. **No notes**           |
-| POST   | `/api/appointments`                  | staff*  | Create (PENDING/CONFIRMED/COMPLETED/CANCELLED/NOSHOW); notes encrypted; **409 CONFLICT** on double-book   |
-| GET    | `/api/appointments/:id`              | staff*  | Detail — notes **decrypted only here** (audits `APPOINTMENT_VIEW`)                                        |
-| PATCH  | `/api/appointments/:id`              | staff*  | Update/reschedule/cancel/no-show; re-checks conflict unless becoming terminal (audits per action)         |
-| GET    | `/api/waitlist`                      | staff*  | List `{items,total}`: filter `status`/`dentistId`/`patientId`/`q` (patient name), `limit` (≤200)/`offset` |
-| POST   | `/api/waitlist`                      | staff*  | Add patient to waiting list (`preferredDate`/`notes` encrypted); **409 WAITLIST_ALREADY_ACTIVE** on dup   |
-| GET    | `/api/waitlist/:id`                  | staff*  | Entry detail — notes **decrypted only here**                                                              |
-| PATCH  | `/api/waitlist/:id`                  | staff*  | Update/status transition; `BOOKED` requires a matching `appointmentId` (audits per action)                |
-| GET    | `/api/staff/dentists`                | staff*  | Branch-scoped dentist roster (`{id,name,email}`) for scheduling UIs                                       |
-| GET    | `/api/attendance`                    | trio†   | Attendance list: `from`/`to`/`staffId`/`open`/`limit`/`offset` → `{items,total}`; no per-read audit       |
-| GET    | `/api/attendance/roster`             | trio†   | Minimal `{id,name,role}` staff list for the attendance dropdown (keeps `/api/staff` ADMIN-only)           |
-| POST   | `/api/attendance`                    | duo‡    | Clock-in: `{staffId, date, checkIn?, checkOut?, notes?}`; **409 ATTENDANCE_EXISTS**; 422 time guards      |
-| PATCH  | `/api/attendance/:id`                | duo‡    | Clock-out / fix a punch (nullable times/notes); 404 UNKNOWN_ATTENDANCE; 422 time guards; audited          |
+| Method | Path                                 | Auth    | Description                                                                                                     |
+| ------ | ------------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/auth/login`                    | —       | Create session, set httpOnly cookie                                                                             |
+| POST   | `/api/auth/logout`                   | session | Revoke current session, clear cookie                                                                            |
+| GET    | `/api/auth/me`                       | session | Current user (safe fields)                                                                                      |
+| POST   | `/api/auth/revoke-all`               | session | Revoke all other sessions                                                                                       |
+| POST   | `/api/auth/change-password`          | session | Verify current + rotate password, revoke others                                                                 |
+| GET    | `/api/users`                         | ADMIN   | List staff of the branch                                                                                        |
+| PATCH  | `/api/users/:id/role`                | ADMIN   | Change role — **revokes all sessions** of the user                                                              |
+| POST   | `/api/users/:id/revoke-sessions`     | ADMIN   | Revoke all sessions of the user                                                                                 |
+| GET    | `/api/audit`                         | ADMIN   | Audit trail: paginated + filterable (action/actorEmail)                                                         |
+| GET    | `/api/patients`                      | staff*  | Paginated list: `q`, `archived`, `limit` (≤200), `offset`                                                       |
+| POST   | `/api/patients`                      | staff*  | Create patient — **notes encrypted** at rest                                                                    |
+| GET    | `/api/patients/:id`                  | staff*  | Detail — notes **decrypted only here** (audits VIEW)                                                            |
+| PATCH  | `/api/patients/:id`                  | staff*  | Update patient (partial), notes encrypted on change                                                             |
+| POST   | `/api/patients/:id/archive`          | staff*  | Soft-delete: sets `archivedAt`, logs `PATIENT_ARCHIVED`                                                         |
+| POST   | `/api/patients/:id/restore`          | staff*  | Clear `archivedAt`, logs `PATIENT_RESTORE`                                                                      |
+| GET    | `/api/patients/:id/medical-history`  | staff*  | Record + `version`; `data: null` until first save (audits VIEW)                                                 |
+| PUT    | `/api/patients/:id/medical-history`  | staff*  | Upsert encrypted blob, **optimistic lock** (see below)                                                          |
+| GET    | `/api/patients/:id/odontogram`       | staff*  | Tooth chart + `version`; `data: null` until first save (audits VIEW)                                            |
+| PUT    | `/api/patients/:id/odontogram`       | staff*  | Upsert encrypted blob, **optimistic lock** (see below)                                                          |
+| GET    | `/api/patients/:id/documents`        | staff*  | List document metadata (`originalName`, `mimeType`, `size`)                                                     |
+| POST   | `/api/patients/:id/documents`        | staff*  | Upload: raw body (`application/octet-stream`, ≤50 MB), headers `X-File-Name` (URI-encoded), `X-File-Mime`       |
+| GET    | `/api/patients/:id/documents/:docId` | staff*  | **Proxied download**: RBAC + branch scope, decrypts, streams, audits `PATIENT_DOCUMENT_VIEW`                    |
+| GET    | `/api/appointments`                  | staff*  | Range list: `start`+`end` ISO required; optional `status`/`dentistId`/`patientId`. **No notes**                 |
+| POST   | `/api/appointments`                  | staff*  | Create (PENDING/CONFIRMED/COMPLETED/CANCELLED/NOSHOW); notes encrypted; **409 CONFLICT** on double-book         |
+| GET    | `/api/appointments/:id`              | staff*  | Detail — notes **decrypted only here** (audits `APPOINTMENT_VIEW`)                                              |
+| PATCH  | `/api/appointments/:id`              | staff*  | Update/reschedule/cancel/no-show; re-checks conflict unless becoming terminal (audits per action)               |
+| GET    | `/api/waitlist`                      | staff*  | List `{items,total}`: filter `status`/`dentistId`/`patientId`/`q` (patient name), `limit` (≤200)/`offset`       |
+| POST   | `/api/waitlist`                      | staff*  | Add patient to waiting list (`preferredDate`/`notes` encrypted); **409 WAITLIST_ALREADY_ACTIVE** on dup         |
+| GET    | `/api/waitlist/:id`                  | staff*  | Entry detail — notes **decrypted only here**                                                                    |
+| PATCH  | `/api/waitlist/:id`                  | staff*  | Update/status transition; `BOOKED` requires a matching `appointmentId` (audits per action)                      |
+| GET    | `/api/staff/dentists`                | staff*  | Branch-scoped dentist roster (`{id,name,email}`) for scheduling UIs                                             |
+| GET    | `/api/attendance`                    | trio†   | Attendance list: `from`/`to`/`staffId`/`open`/`limit`/`offset` → `{items,total}`; no per-read audit             |
+| GET    | `/api/attendance/roster`             | trio†   | Minimal `{id,name,role}` staff list for the attendance dropdown (keeps `/api/staff` ADMIN-only)                 |
+| POST   | `/api/attendance`                    | duo‡    | Clock-in: `{staffId, date, checkIn?, checkOut?, notes?}`; **409 ATTENDANCE_EXISTS**; 422 time guards            |
+| GET    | `/api/interns`                       | read§   | Intern placements: `search`/`school`/`rotation`/`active`/`mentorId`, derived `completedMinutes` + `progressPct` |
+| GET    | `/api/interns/meta`                  | read§   | Form data: active `DENTIST` mentors + `INTERN` users (w/ `hasProfile`)                                          |
+| POST   | `/api/interns`                       | writ§   | Create placement; **409 INTERN_PROFILE_EXISTS**, `400 UNKNOWN_MENTOR`, `422 END_BEFORE_START`                   |
+| PATCH  | `/api/interns/:id`                   | writ§   | Edit placement / toggle `active` (null clears mentor/endDate); same guards                                      |
+| PATCH  | `/api/attendance/:id`                | duo‡    | Clock-out / fix a punch (nullable times/notes); 404 UNKNOWN_ATTENDANCE; 422 time guards; audited                |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
 
 `†` trio = ADMIN, RECEPTIONIST, ACCOUNTANT (attendance reads). `‡` duo = ADMIN, RECEPTIONIST
-(attendance writes). See "Attendance (Phase 4.2, ADR 028)" below.
+(attendance writes). `§` intern read/write = ADMIN + ACCOUNTANT read, ADMIN write (HR/payroll
+desk). See "Attendance (Phase 4.2, ADR 028)" and "Interns (Phase 4.3, ADR 029)" below.
 
 ### Documents (Phase 1.4, ADR 005 amended)
 
@@ -423,6 +428,31 @@ UNKNOWN_ATTENDANCE`, `422` time guard.
 
 Time validation lives in pure `lib/attendanceMath.ts` (unit-tested, no DB):
 `attendanceTimeError`, `attendanceWorkedMinutes`, `isOpenRecord`, `minutesToHoursLabel`.
+
+## Interns (Phase 4.3, ADR 029)
+
+`/api/interns` — the intern **placement** record (`InternProfile`): which school an `INTERN`
+user is from, their `rotation`, their `DENTIST` `mentor`, the contractual `requiredHours`,
+and the counting window (`startDate`/`endDate`, Postgres `DATE`). Hours worked are **derived
+on read** from `attendance_logs` (ADR 028) — each row carries `completedMinutes` (Σ closed
+attendance records inside the window) and `progressPct` (uncapped). Reads are open to
+**ADMIN + ACCOUNTANT** (HR/payroll desk), writes to **ADMIN** only. Audits `INTERN_CREATE` /
+`INTERN_UPDATE` (before/after).
+
+- `GET /` — `search` (intern name/email or school), `school`, `rotation`, `active=true|false`,
+  `mentorId`, `limit` ≤200, `offset`.
+- `GET /meta` — form data: active `DENTIST` mentors + `INTERN` users (with `hasProfile` so the
+  create form only offers interns without a profile).
+- `POST /` — `{ internId, school, requiredHours (1..4000), rotation, mentorId?, startDate,
+endDate?, notes? }`; `404` for a non-`INTERN` user, `409 INTERN_PROFILE_EXISTS` (one profile
+  per intern), `400 UNKNOWN_MENTOR`, `422 END_BEFORE_START`.
+- `PATCH /:id` — school/requiredHours/rotation/mentorId (null to clear)/startDate/endDate
+  (null to clear)/active/notes; `404` unknown profile, `400 UNKNOWN_MENTOR`, `422
+END_BEFORE_START`.
+- No delete — deactivate via `active`.
+
+Derivation lives in pure `lib/internMath.ts` (unit-tested, no DB): `internDateError`,
+`internCompletedMinutes`, `internRemainingMinutes`, `internProgressPct`.
 
 ## Error tracking (ADR 009, Phase 0.7)
 

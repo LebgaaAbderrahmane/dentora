@@ -30,6 +30,7 @@ import alertsRouter from './routes/alerts'
 import consumptionRouter from './routes/consumption'
 import sterilizationsRouter from './routes/sterilizations'
 import attendanceRouter from './routes/attendance'
+import internsRouter from './routes/interns'
 
 initSentry()
 
@@ -104,6 +105,7 @@ api.use('/alerts', alertsRouter)
 api.use('/consumption', consumptionRouter)
 api.use('/sterilizations', sterilizationsRouter)
 api.use('/attendance', attendanceRouter)
+api.use('/interns', internsRouter)
 
 app.use('/api', api)
 
