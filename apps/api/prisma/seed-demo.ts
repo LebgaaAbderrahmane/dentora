@@ -1042,6 +1042,7 @@ async function main() {
   await prisma.treatmentStockConsumption.deleteMany({ where: { branchId } })
   await prisma.sterilizationLog.deleteMany({ where: { branchId } })
   await prisma.staffSchedule.deleteMany({ where: { branchId } })
+  await prisma.attendanceLog.deleteMany({ where: { branchId } })
   await prisma.stockLedgerEntry.deleteMany({ where: { branchId } })
   await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrder: { branchId } } })
   await prisma.purchaseOrder.deleteMany({ where: { branchId } })
@@ -1144,6 +1145,42 @@ async function main() {
   await prisma.staffSchedule.createMany({
     data: scheduleRows.map((r) => ({ branchId, ...r })),
   })
+
+  const attendanceDays: Date[] = []
+  const cursor = new Date()
+  while (attendanceDays.length < 10) {
+    const day = cursor.getDay()
+    if (day !== 0 && day !== 6) attendanceDays.push(new Date(cursor))
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  attendanceDays.reverse()
+
+  const dayTimes: Record<string, readonly [number, number]> = {
+    [users['karim@dentora.dz'].id]: [8, 30],
+    [users['amel@dentora.dz'].id]: [9, 0],
+    [users['yasmine@dentora.dz'].id]: [9, 0],
+    [users['sofiane@dentora.dz'].id]: [9, 0],
+    [users['nadia@dentora.dz'].id]: [8, 0],
+    [users['rayan@dentora.dz'].id]: [9, 0],
+  }
+  const attendanceRows = []
+  for (const staffId of Object.keys(dayTimes)) {
+    const [startH, startM] = dayTimes[staffId]
+    for (const day of attendanceDays) {
+      const checkIn = new Date(day.getFullYear(), day.getMonth(), day.getDate(), startH, startM, 0)
+      const endH = staffId === users['nadia@dentora.dz'].id ? 16 : 17
+      const checkOut = new Date(day.getFullYear(), day.getMonth(), day.getDate(), endH, 0, 0)
+      attendanceRows.push({
+        branchId,
+        staffId,
+        date: day,
+        checkIn,
+        checkOut,
+        createdById: users[adminEmail].id,
+      })
+    }
+  }
+  await prisma.attendanceLog.createMany({ data: attendanceRows })
 
   const services = []
   for (const s of SERVICES) {
@@ -1511,6 +1548,7 @@ async function main() {
     consumptions: await prisma.treatmentStockConsumption.count({ where: { branchId } }),
     sterilizations: await prisma.sterilizationLog.count({ where: { branchId } }),
     schedules: await prisma.staffSchedule.count({ where: { branchId } }),
+    attendance: await prisma.attendanceLog.count({ where: { branchId } }),
   }
 
   console.log(`demo seed ready on branch "${branchName}"`)

@@ -6,6 +6,12 @@ import {
   type AppointmentList,
   type AppointmentQueryParams,
   type AppointmentUpdate,
+  type AttendanceInput,
+  type AttendanceList,
+  type AttendanceLog,
+  type AttendanceQueryParams,
+  type AttendanceRoster,
+  type AttendanceUpdate,
   type AuditAction,
   type AuditList,
   type AuthResponse,
@@ -317,6 +323,31 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(input),
     }).then((r) => r.schedules),
+
+  attendance: (params: Partial<AttendanceQueryParams> = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.staffId) q.set('staffId', params.staffId)
+    if (params.open !== undefined) q.set('open', String(params.open))
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<AttendanceList>(`/api/attendance?${q.toString()}`)
+  },
+
+  attendanceRoster: () => request<AttendanceRoster>(`/api/attendance/roster`).then((r) => r.staff),
+
+  createAttendance: (input: AttendanceInput) =>
+    request<AttendanceLog>(`/api/attendance`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  updateAttendance: (id: string, input: AttendanceUpdate) =>
+    request<AttendanceLog>(`/api/attendance/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
 
   waitlist: (params: WaitlistQueryParams = {}) => {
     const q = new URLSearchParams()

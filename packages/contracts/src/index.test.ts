@@ -16,6 +16,11 @@ import {
   auditQuerySchema,
   loginSchema,
   auditTargetSchema,
+  attendanceInputSchema,
+  attendanceListSchema,
+  attendanceLogSchema,
+  attendanceQuerySchema,
+  attendanceUpdateSchema,
   medicalHistoryResponseSchema,
   medicalHistorySchema,
   medicalHistoryWriteSchema,
@@ -1804,5 +1809,67 @@ describe('staff contracts (ADR 027)', () => {
     expect(auditActionSchema.options).toContain('STAFF_PASSWORD_RESET')
     expect(auditActionSchema.options).toContain('SCHEDULE_UPDATE')
     expect(auditTargetSchema.options).toContain('SCHEDULE')
+  })
+})
+
+describe('attendance contracts (ADR 028)', () => {
+  const valid = {
+    id: 'a1',
+    branchId: 'b1',
+    staffId: 'u1',
+    staffName: 'Karim',
+    staffRole: 'DENTIST',
+    date: '2026-08-18T00:00:00.000Z',
+    checkIn: '2026-08-18T08:30:00.000Z',
+    checkOut: '2026-08-18T16:30:00.000Z',
+    workedMinutes: 480,
+    notes: null,
+    createdByName: 'Yasmine',
+  }
+
+  it('attendanceLogSchema validates a read row with derived worked minutes', () => {
+    const parsed = attendanceLogSchema.parse(valid)
+    expect(parsed.workedMinutes).toBe(480)
+    expect(attendanceLogSchema.safeParse({ ...valid, workedMinutes: -5 }).success).toBe(false)
+  })
+
+  it('attendanceInputSchema requires staffId + valid date, optional times', () => {
+    const ok = attendanceInputSchema.parse({ staffId: 'u1', date: '2026-08-18' })
+    expect(ok.checkIn).toBeUndefined()
+    expect(attendanceInputSchema.safeParse({ staffId: 'u1' }).success).toBe(false)
+    expect(attendanceInputSchema.safeParse({ staffId: 'u1', date: 'not-a-date' }).success).toBe(
+      false,
+    )
+    expect(
+      attendanceInputSchema.safeParse({ staffId: 'u1', date: '2026-08-18', checkIn: 'nope' })
+        .success,
+    ).toBe(false)
+  })
+
+  it('attendanceUpdateSchema requires at least one editable field', () => {
+    expect(attendanceUpdateSchema.safeParse({ checkOut: null }).success).toBe(true)
+    expect(attendanceUpdateSchema.safeParse({ notes: 'ok' }).success).toBe(true)
+    expect(attendanceUpdateSchema.safeParse({}).success).toBe(false)
+    expect(attendanceUpdateSchema.safeParse({ checkIn: 'bogus' }).success).toBe(false)
+  })
+
+  it('attendanceQuerySchema coerces limit/offset and the open flag', () => {
+    const q = attendanceQuerySchema.parse({ staffId: 'u1', open: 'true', limit: '5' })
+    expect(q.open).toBe(true)
+    expect(q.limit).toBe(5)
+    expect(attendanceQuerySchema.parse({ open: 'false' }).open).toBe(false)
+    expect(attendanceQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('attendanceListSchema wraps items + total', () => {
+    const parsed = attendanceListSchema.parse({ items: [valid], total: 1 })
+    expect(parsed.items[0].staffName).toBe('Karim')
+    expect(parsed.total).toBe(1)
+  })
+
+  it('auditActionSchema includes attendance actions and ATTENDANCE target', () => {
+    expect(auditActionSchema.options).toContain('ATTENDANCE_CREATE')
+    expect(auditActionSchema.options).toContain('ATTENDANCE_UPDATE')
+    expect(auditTargetSchema.options).toContain('ATTENDANCE')
   })
 })

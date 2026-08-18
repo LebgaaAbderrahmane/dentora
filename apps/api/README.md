@@ -44,9 +44,16 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 | GET    | `/api/waitlist/:id`                  | staff*  | Entry detail — notes **decrypted only here**                                                              |
 | PATCH  | `/api/waitlist/:id`                  | staff*  | Update/status transition; `BOOKED` requires a matching `appointmentId` (audits per action)                |
 | GET    | `/api/staff/dentists`                | staff*  | Branch-scoped dentist roster (`{id,name,email}`) for scheduling UIs                                       |
+| GET    | `/api/attendance`                    | trio†   | Attendance list: `from`/`to`/`staffId`/`open`/`limit`/`offset` → `{items,total}`; no per-read audit       |
+| GET    | `/api/attendance/roster`             | trio†   | Minimal `{id,name,role}` staff list for the attendance dropdown (keeps `/api/staff` ADMIN-only)           |
+| POST   | `/api/attendance`                    | duo‡    | Clock-in: `{staffId, date, checkIn?, checkOut?, notes?}`; **409 ATTENDANCE_EXISTS**; 422 time guards      |
+| PATCH  | `/api/attendance/:id`                | duo‡    | Clock-out / fix a punch (nullable times/notes); 404 UNKNOWN_ATTENDANCE; 422 time guards; audited          |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
+
+`†` trio = ADMIN, RECEPTIONIST, ACCOUNTANT (attendance reads). `‡` duo = ADMIN, RECEPTIONIST
+(attendance writes). See "Attendance (Phase 4.2, ADR 028)" below.
 
 ### Documents (Phase 1.4, ADR 005 amended)
 
@@ -392,6 +399,30 @@ and fully audited (`STAFF_CREATE`/`STAFF_UPDATE`/`STAFF_PASSWORD_RESET`/`SCHEDUL
 
 Validation lives in the pure `lib/scheduleMath.ts` module (unit-tested, no DB): `isHhMm`,
 `timeToMinutes`/`minutesToTime`, `validateScheduleRows`.
+
+## Attendance (Phase 4.2, ADR 028)
+
+`/api/attendance` — a daily **clock-in/clock-out record** per staff member
+(`AttendanceLog`: `branchId`, `staffId`, `date` as Postgres `DATE`, `checkIn`/`checkOut`
+`DateTime?`, `notes` ≤500, `createdById`; `@@unique([staffId, date])` → **one punch per staff
+per business day**). `workedMinutes` is **derived on read** by the pure `lib/attendanceMath.ts`
+module. Reads are open to **ADMIN + ACCOUNTANT + RECEPTIONIST**; writes to
+**ADMIN + RECEPTIONIST** only. Audits `ATTENDANCE_CREATE` / `ATTENDANCE_UPDATE`
+(before/after).
+
+- `GET /` — `from`/`to` (ISO dates), `staffId`, `open=true` (checked-in, not yet checked
+  out), `limit` ≤200, `offset`; returns `{ items (with staffName/staffRole/workedMinutes), total }`.
+- `GET /roster` — minimal `{id, name, role}` staff list for attendance dropdowns
+  (`/api/staff` stays ADMIN-only).
+- `POST /` — `{ staffId, date (YYYY-MM-DD), checkIn?, checkOut?, notes? }`; `404
+UNKNOWN_STAFF`, `409 ATTENDANCE_EXISTS` (already punched that day), `422
+CHECKOUT_WITHOUT_CHECKIN`/`CHECKOUT_BEFORE_CHECKIN`.
+- `PATCH /:id` — nullable `checkIn`/`checkOut`/`notes` (≥1 field); `404
+UNKNOWN_ATTENDANCE`, `422` time guard.
+- No delete — a wrong punch is corrected by patching it to the real time.
+
+Time validation lives in pure `lib/attendanceMath.ts` (unit-tested, no DB):
+`attendanceTimeError`, `attendanceWorkedMinutes`, `isOpenRecord`, `minutesToHoursLabel`.
 
 ## Error tracking (ADR 009, Phase 0.7)
 

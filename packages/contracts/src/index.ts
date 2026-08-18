@@ -176,6 +176,96 @@ export const staffScheduleInputSchema = z.object({
 
 export type StaffScheduleInput = z.infer<typeof staffScheduleInputSchema>
 
+const ATTENDANCE_NOTES_MAX = 500
+
+export const attendanceLogSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  staffId: z.string(),
+  staffName: z.string(),
+  staffRole: roleSchema,
+  date: z.string(),
+  checkIn: z.string().nullable(),
+  checkOut: z.string().nullable(),
+  workedMinutes: z.number().int().min(0).nullable(),
+  notes: z.string().nullable(),
+  createdByName: z.string().nullable(),
+})
+
+export type AttendanceLog = z.infer<typeof attendanceLogSchema>
+
+export const attendanceInputSchema = z
+  .object({
+    staffId: z.string().min(1),
+    date: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'date must be a valid date'),
+    checkIn: z.string().optional(),
+    checkOut: z.string().optional(),
+    notes: z.string().trim().max(ATTENDANCE_NOTES_MAX, 'notes too long').optional(),
+  })
+  .refine((v) => v.checkIn === undefined || !Number.isNaN(Date.parse(v.checkIn)), {
+    message: 'checkIn must be a valid date-time',
+    path: ['checkIn'],
+  })
+  .refine((v) => v.checkOut === undefined || !Number.isNaN(Date.parse(v.checkOut)), {
+    message: 'checkOut must be a valid date-time',
+    path: ['checkOut'],
+  })
+
+export type AttendanceInput = z.infer<typeof attendanceInputSchema>
+
+export const attendanceUpdateSchema = z
+  .object({
+    checkIn: z.string().optional().nullable(),
+    checkOut: z.string().optional().nullable(),
+    notes: z.string().trim().max(ATTENDANCE_NOTES_MAX, 'notes too long').optional().nullable(),
+  })
+  .refine(
+    (v) =>
+      Object.keys(v).length > 0 &&
+      (v.checkIn !== undefined || v.checkOut !== undefined || v.notes !== undefined),
+    'nothing to update',
+  )
+  .refine(
+    (v) => v.checkIn === undefined || v.checkIn === null || !Number.isNaN(Date.parse(v.checkIn)),
+    {
+      message: 'checkIn must be a valid date-time',
+      path: ['checkIn'],
+    },
+  )
+  .refine(
+    (v) => v.checkOut === undefined || v.checkOut === null || !Number.isNaN(Date.parse(v.checkOut)),
+    { message: 'checkOut must be a valid date-time', path: ['checkOut'] },
+  )
+
+export type AttendanceUpdate = z.infer<typeof attendanceUpdateSchema>
+
+export const attendanceQuerySchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+  staffId: z.string().optional(),
+  open: z
+    .string()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true' || v === '1')),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type AttendanceQueryParams = z.infer<typeof attendanceQuerySchema>
+
+export const attendanceListSchema = z.object({
+  items: z.array(attendanceLogSchema),
+  total: z.number().int(),
+})
+
+export type AttendanceList = z.infer<typeof attendanceListSchema>
+
+export const attendanceRosterSchema = z.object({
+  staff: z.array(z.object({ id: z.string(), name: z.string(), role: roleSchema })),
+})
+
+export type AttendanceRoster = z.infer<typeof attendanceRosterSchema>
+
 export const errorSchema = z.object({ error: z.string(), issues: z.unknown().optional() })
 
 export type ApiError = z.infer<typeof errorSchema>
@@ -240,6 +330,8 @@ export const auditActionSchema = z.enum([
   'STAFF_UPDATE',
   'STAFF_PASSWORD_RESET',
   'SCHEDULE_UPDATE',
+  'ATTENDANCE_CREATE',
+  'ATTENDANCE_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -258,6 +350,7 @@ export const auditTargetSchema = z.enum([
   'PURCHASE_ORDER',
   'STERILIZATION',
   'SCHEDULE',
+  'ATTENDANCE',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
