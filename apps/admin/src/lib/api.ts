@@ -49,12 +49,19 @@ import {
   type PurchaseOrderReceive,
   type PurchaseOrderUpdate,
   type Role,
+  type SafeUser,
   type Service,
   type ServiceInput,
   type ServiceList,
   type ServiceQueryParams,
   type ServiceUpdate,
   type StaffDentistList,
+  type StaffInput,
+  type StaffList,
+  type StaffQueryParams,
+  type StaffScheduleInput,
+  type StaffScheduleList,
+  type StaffUpdate,
   type Supplier,
   type SupplierInput,
   type SupplierList,
@@ -274,6 +281,42 @@ export const api = {
     }),
 
   dentists: () => request<StaffDentistList>('/api/staff/dentists').then((r) => r.dentists),
+
+  staff: (params: Partial<StaffQueryParams> = {}) => {
+    const q = new URLSearchParams()
+    if (params.search) q.set('search', params.search)
+    if (params.role) q.set('role', params.role)
+    if (params.active !== undefined) q.set('active', String(params.active))
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<StaffList>(`/api/staff?${q.toString()}`)
+  },
+
+  createStaff: (input: StaffInput) =>
+    request<{ user: SafeUser }>('/api/staff', { method: 'POST', body: JSON.stringify(input) }).then(
+      (r) => r.user,
+    ),
+
+  updateStaff: (id: string, input: StaffUpdate) =>
+    request<{ user: SafeUser }>(`/api/staff/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }).then((r) => r.user),
+
+  resetStaffPassword: (id: string, password: string) =>
+    request(`/api/staff/${id}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+
+  staffSchedules: (id: string) =>
+    request<StaffScheduleList>(`/api/staff/${id}/schedules`).then((r) => r.schedules),
+
+  saveStaffSchedules: (id: string, input: StaffScheduleInput) =>
+    request<StaffScheduleList>(`/api/staff/${id}/schedules`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }).then((r) => r.schedules),
 
   waitlist: (params: WaitlistQueryParams = {}) => {
     const q = new URLSearchParams()

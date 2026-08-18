@@ -1041,6 +1041,7 @@ async function main() {
 
   await prisma.treatmentStockConsumption.deleteMany({ where: { branchId } })
   await prisma.sterilizationLog.deleteMany({ where: { branchId } })
+  await prisma.staffSchedule.deleteMany({ where: { branchId } })
   await prisma.stockLedgerEntry.deleteMany({ where: { branchId } })
   await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrder: { branchId } } })
   await prisma.purchaseOrder.deleteMany({ where: { branchId } })
@@ -1095,6 +1096,54 @@ async function main() {
   const receptionistId = users['yasmine@dentora.dz'].id
   const accountantId = users['nadia@dentora.dz'].id
   const dentists = [users['karim@dentora.dz'].id, users['amel@dentora.dz'].id]
+
+  const scheduleRows: Array<{
+    staffId: string
+    weekday: string
+    startTime: string
+    endTime: string
+    active: boolean
+  }> = []
+  const weekDays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const
+  const template = (id: string, days: ReadonlyArray<readonly [string, string, string]>) => {
+    for (const [weekday, startTime, endTime] of days) {
+      scheduleRows.push({ staffId: id, weekday, startTime, endTime, active: true })
+    }
+  }
+  template(
+    dentists[0],
+    weekDays.map((d) => [d, '08:30', '16:30'] as const),
+  )
+  template(dentists[1], [
+    ['MONDAY', '09:00', '17:00'],
+    ['TUESDAY', '09:00', '17:00'],
+    ['THURSDAY', '13:00', '19:00'],
+    ['FRIDAY', '09:00', '13:00'],
+  ])
+  template(
+    users['yasmine@dentora.dz'].id,
+    weekDays.map((d) => [d, '09:00', '17:00'] as const),
+  )
+  template(users['sofiane@dentora.dz'].id, [
+    ['MONDAY', '09:00', '14:00'],
+    ['WEDNESDAY', '09:00', '17:00'],
+    ['FRIDAY', '09:00', '14:00'],
+  ])
+  template(users['nadia@dentora.dz'].id, [
+    ['MONDAY', '08:00', '16:00'],
+    ['TUESDAY', '08:00', '16:00'],
+    ['WEDNESDAY', '08:00', '16:00'],
+    ['THURSDAY', '08:00', '16:00'],
+    ['FRIDAY', '08:00', '16:00'],
+  ])
+  template(users['rayan@dentora.dz'].id, [
+    ['MONDAY', '09:00', '15:00'],
+    ['TUESDAY', '09:00', '15:00'],
+    ['THURSDAY', '09:00', '15:00'],
+  ])
+  await prisma.staffSchedule.createMany({
+    data: scheduleRows.map((r) => ({ branchId, ...r })),
+  })
 
   const services = []
   for (const s of SERVICES) {
@@ -1461,6 +1510,7 @@ async function main() {
     ledger: ledgerCount,
     consumptions: await prisma.treatmentStockConsumption.count({ where: { branchId } }),
     sterilizations: await prisma.sterilizationLog.count({ where: { branchId } }),
+    schedules: await prisma.staffSchedule.count({ where: { branchId } }),
   }
 
   console.log(`demo seed ready on branch "${branchName}"`)

@@ -372,6 +372,27 @@ operatorId?, notes? }`; `operatorId` defaults to the acting user.
   `completedAt` is set at the terminal transition.
 - No delete — mistakes are re-recorded.
 
+## Staff & schedules (Phase 4.1, ADR 027)
+
+`/api/staff` — the branch's staff directory (`User` rows, roles minus `PATIENT`) plus a
+**recurring weekly availability template** (`StaffSchedule`: `weekday` + local `HH:mm`
+start/end, multiple slots per weekday allowed). Directory + schedules are **ADMIN-only**
+and fully audited (`STAFF_CREATE`/`STAFF_UPDATE`/`STAFF_PASSWORD_RESET`/`SCHEDULE_UPDATE`).
+`/api/staff/dentists` stays open to the clinical desk for dropdowns (active dentists only).
+
+- `GET /` — `search` (name/email), `role`, `active`, `limit` ≤200, `offset`.
+- `POST /` — `{ name, email, password (≥8), role (staff roles), active? }`; duplicate email →
+  `409 EMAIL_IN_USE`.
+- `PATCH /:id` — name/email/role/active (≥1 field); a **role change revokes all of the
+  target's sessions** (+ self-logout if editing your own role).
+- `POST /:id/reset-password` — new password; revokes all sessions.
+- `GET`/`PUT /:id/schedules` — bulk-replace the weekly template; `PUT` is validated
+  (`422 INVALID_TIME` / `END_BEFORE_START` / `OVERLAP`), empty template clears availability.
+- No hard delete — deactivate via `active`.
+
+Validation lives in the pure `lib/scheduleMath.ts` module (unit-tested, no DB): `isHhMm`,
+`timeToMinutes`/`minutesToTime`, `validateScheduleRows`.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

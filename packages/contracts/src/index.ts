@@ -30,6 +30,28 @@ export type Role = z.infer<typeof roleSchema>
 
 export const ROLES = roleSchema.options
 
+export const staffRoleSchema = roleSchema.exclude(['PATIENT'])
+
+export type StaffRole = z.infer<typeof staffRoleSchema>
+
+export const STAFF_ROLES = staffRoleSchema.options
+
+export const weekdaySchema = z.enum([
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+])
+
+export type Weekday = z.infer<typeof weekdaySchema>
+
+export const WEEKDAYS = weekdaySchema.options
+
+export const TIME_HHMM_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+
 export const safeUserSchema = z.object({
   id: z.string(),
   email: z.string().email(),
@@ -68,6 +90,91 @@ export type UserList = z.infer<typeof userListSchema>
 export const revokeSessionsSchema = z.object({ revokedCount: z.number() })
 
 export type RevokeSessions = z.infer<typeof revokeSessionsSchema>
+
+const NAME_MAX = 120
+const EMAIL_MAX = 254
+const PASSWORD_MAX = 128
+
+export const staffInputSchema = z.object({
+  name: z.string().trim().min(1).max(NAME_MAX, 'name is too long'),
+  email: z.string().trim().toLowerCase().email().max(EMAIL_MAX, 'email is too long'),
+  password: z
+    .string()
+    .min(8, 'password must be at least 8 characters')
+    .max(PASSWORD_MAX, 'password is too long'),
+  role: staffRoleSchema,
+  active: z.boolean().optional().default(true),
+})
+
+export type StaffInput = z.infer<typeof staffInputSchema>
+
+export const staffUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(NAME_MAX, 'name is too long').optional(),
+    email: z.string().trim().toLowerCase().email().max(EMAIL_MAX, 'email is too long').optional(),
+    role: staffRoleSchema.optional(),
+    active: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'nothing to update')
+
+export type StaffUpdate = z.infer<typeof staffUpdateSchema>
+
+export const staffQuerySchema = z.object({
+  search: z.string().trim().max(EMAIL_MAX).optional(),
+  role: staffRoleSchema.optional(),
+  active: z
+    .string()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true' || v === '1')),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type StaffQueryParams = z.infer<typeof staffQuerySchema>
+
+export const staffListSchema = z.object({
+  items: z.array(safeUserSchema),
+  total: z.number().int(),
+})
+
+export type StaffList = z.infer<typeof staffListSchema>
+
+export const resetPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(8, 'password must be at least 8 characters')
+    .max(PASSWORD_MAX, 'password is too long'),
+})
+
+export const staffScheduleSchema = z.object({
+  id: z.string(),
+  staffId: z.string(),
+  weekday: weekdaySchema,
+  startTime: z.string().regex(TIME_HHMM_RE, 'startTime must be HH:mm'),
+  endTime: z.string().regex(TIME_HHMM_RE, 'endTime must be HH:mm'),
+  active: z.boolean(),
+})
+
+export type StaffSchedule = z.infer<typeof staffScheduleSchema>
+
+export const staffScheduleListSchema = z.object({ schedules: z.array(staffScheduleSchema) })
+
+export type StaffScheduleList = z.infer<typeof staffScheduleListSchema>
+
+export const staffScheduleRowSchema = z.object({
+  weekday: weekdaySchema,
+  startTime: z.string().regex(TIME_HHMM_RE, 'startTime must be HH:mm'),
+  endTime: z.string().regex(TIME_HHMM_RE, 'endTime must be HH:mm'),
+  active: z.boolean().optional().default(true),
+})
+
+export type StaffScheduleRow = z.infer<typeof staffScheduleRowSchema>
+
+export const staffScheduleInputSchema = z.object({
+  schedules: z.array(staffScheduleRowSchema).max(7 * 3, 'too many schedule rows'),
+})
+
+export type StaffScheduleInput = z.infer<typeof staffScheduleInputSchema>
 
 export const errorSchema = z.object({ error: z.string(), issues: z.unknown().optional() })
 
@@ -129,6 +236,10 @@ export const auditActionSchema = z.enum([
   'STOCK_ADJUST',
   'STERILIZATION_CREATE',
   'STERILIZATION_UPDATE',
+  'STAFF_CREATE',
+  'STAFF_UPDATE',
+  'STAFF_PASSWORD_RESET',
+  'SCHEDULE_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -146,6 +257,7 @@ export const auditTargetSchema = z.enum([
   'SUPPLIER',
   'PURCHASE_ORDER',
   'STERILIZATION',
+  'SCHEDULE',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
