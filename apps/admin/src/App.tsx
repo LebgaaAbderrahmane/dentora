@@ -20,6 +20,8 @@ import {
   Truck,
   ShoppingCart,
   Bell,
+  FlaskConical,
+  Syringe,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -45,6 +47,8 @@ import { ProductsView } from './views/ProductsView'
 import { SuppliersView } from './views/SuppliersView'
 import { PurchaseOrdersView } from './views/PurchaseOrdersView'
 import { AlertsView } from './views/AlertsView'
+import { ConsumptionView } from './views/ConsumptionView'
+import { SterilizationsView } from './views/SterilizationsView'
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
   ADMIN: 'role.admin',
@@ -70,6 +74,8 @@ type View =
   | 'suppliers'
   | 'purchaseOrders'
   | 'alerts'
+  | 'consumption'
+  | 'sterilizations'
 
 export default function App() {
   const [user, setUser] = useState<SafeUser | null>(null)
@@ -236,6 +242,24 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
       ...(canViewProducts
         ? [{ id: 'alerts' as const, label: 'nav.alerts' as MessageKey, icon: Bell }]
         : []),
+      ...(canViewProducts
+        ? [
+            {
+              id: 'consumption' as const,
+              label: 'nav.consumption' as MessageKey,
+              icon: Syringe,
+            },
+          ]
+        : []),
+      ...(canViewProducts
+        ? [
+            {
+              id: 'sterilizations' as const,
+              label: 'nav.sterilizations' as MessageKey,
+              icon: FlaskConical,
+            },
+          ]
+        : []),
       ...(canManagePatients
         ? [{ id: 'patients' as const, label: 'nav.patients' as MessageKey, icon: Users }]
         : []),
@@ -317,11 +341,15 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                                   ? 'nav.purchaseOrders'
                                   : view === 'alerts'
                                     ? 'nav.alerts'
-                                    : view === 'patients'
-                                      ? 'nav.patients'
-                                      : view === 'users'
-                                        ? 'nav.users'
-                                        : 'nav.audit',
+                                    : view === 'consumption'
+                                      ? 'nav.consumption'
+                                      : view === 'sterilizations'
+                                        ? 'nav.sterilizations'
+                                        : view === 'patients'
+                                          ? 'nav.patients'
+                                          : view === 'users'
+                                            ? 'nav.users'
+                                            : 'nav.audit',
             )}
           </h1>
           <Controls />
@@ -337,6 +365,8 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         {view === 'suppliers' && canViewProducts && <SuppliersView canEdit={canEditProducts} />}
         {view === 'purchaseOrders' && canManageProcurement && <PurchaseOrdersView />}
         {view === 'alerts' && canViewProducts && <AlertsView />}
+        {view === 'consumption' && canViewProducts && <ConsumptionView />}
+        {view === 'sterilizations' && canViewProducts && <SterilizationsView />}
         {view === 'patients' && canManagePatients && <PatientsView />}
         {view === 'users' && isAdmin && <UsersView />}
         {view === 'audit' && isAdmin && <AuditView />}

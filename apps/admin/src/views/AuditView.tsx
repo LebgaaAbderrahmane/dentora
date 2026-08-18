@@ -66,6 +66,8 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   PURCHASE_ORDER_CANCEL: 'audit.actions.purchaseOrderCancel',
   STOCK_OUT: 'audit.actions.stockOut',
   STOCK_ADJUST: 'audit.actions.stockAdjust',
+  STERILIZATION_CREATE: 'audit.actions.sterilizationCreate',
+  STERILIZATION_UPDATE: 'audit.actions.sterilizationUpdate',
 }
 
 export function AuditView() {

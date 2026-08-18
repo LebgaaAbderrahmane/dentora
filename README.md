@@ -3,7 +3,7 @@
 Complete dental practice management system for a single Algerian clinic (multi-branch ready).
 Built on top of the [Dentora](https://dentora.dz) public marketing site.
 
-> **Status:** under active development — Phase 3 (clinical back-office) + demo seed. See [`PROCESS.md`](./PROCESS.md) for the full roadmap and session log.
+> **Status:** under active development — Phase 3 (clinical back-office: stock, consumption, sterilization) + demo seed. See [`PROCESS.md`](./PROCESS.md) for the full roadmap and session log.
 
 ## What's included
 

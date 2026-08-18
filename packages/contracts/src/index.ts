@@ -127,6 +127,8 @@ export const auditActionSchema = z.enum([
   'PURCHASE_ORDER_CANCEL',
   'STOCK_OUT',
   'STOCK_ADJUST',
+  'STERILIZATION_CREATE',
+  'STERILIZATION_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -143,6 +145,7 @@ export const auditTargetSchema = z.enum([
   'PRODUCT',
   'SUPPLIER',
   'PURCHASE_ORDER',
+  'STERILIZATION',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -1354,6 +1357,7 @@ export const stockEntrySchema = z.object({
   expiryDate: z.string().nullable(),
   reason: z.string().max(MAX_STOCK_REASON).nullable(),
   purchaseOrderId: z.string().nullable(),
+  appointmentId: z.string().nullable(),
   createdById: z.string().nullable(),
   createdAt: z.string(),
 })
@@ -1443,3 +1447,128 @@ export const stockAlertsSchema = z.object({
 })
 
 export type StockAlerts = z.infer<typeof stockAlertsSchema>
+
+// ---- Treatment stock consumption (3.6, ADR 026) ----
+
+// One clinical usage of a catalog product during an appointment. The API joins
+// product + patient names so the UI never has to re-resolve the catalog.
+export const treatmentConsumptionSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  appointmentId: z.string(),
+  productId: z.string(),
+  productName: z.string(),
+  unit: productUnitSchema,
+  patientName: z.string(),
+  quantity: z.number().int().min(1).max(MAX_PRODUCT_QUANTITY),
+  batch: z.string().max(MAX_STOCK_BATCH).nullable(),
+  reason: z.string().max(MAX_STOCK_REASON).nullable(),
+  consumedAt: z.string(),
+  createdByName: z.string().nullable(),
+})
+
+export type TreatmentConsumption = z.infer<typeof treatmentConsumptionSchema>
+
+export const treatmentConsumptionInputSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().int().min(1).max(MAX_PRODUCT_QUANTITY),
+  batch: z.string().trim().max(MAX_STOCK_BATCH).optional(),
+  reason: z.string().trim().max(MAX_STOCK_REASON).optional(),
+})
+
+export type TreatmentConsumptionInput = z.infer<typeof treatmentConsumptionInputSchema>
+
+export const treatmentConsumptionListSchema = z.object({
+  items: z.array(treatmentConsumptionSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type TreatmentConsumptionList = z.infer<typeof treatmentConsumptionListSchema>
+
+export const treatmentConsumptionQuerySchema = z.object({
+  appointmentId: z.string().optional(),
+  productId: z.string().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type TreatmentConsumptionQuery = z.infer<typeof treatmentConsumptionQuerySchema>
+
+export type TreatmentConsumptionQueryParams = z.input<typeof treatmentConsumptionQuerySchema>
+
+// ---- Sterilization logs (3.6, ADR 026) ----
+
+export const sterilizationMethodSchema = z.enum(['AUTOCLAVE', 'CHEMICAL', 'UV', 'OTHER'])
+
+export type SterilizationMethod = z.infer<typeof sterilizationMethodSchema>
+
+export const STERILIZATION_METHODS = sterilizationMethodSchema.options
+
+export const sterilizationStatusSchema = z.enum(['IN_PROGRESS', 'COMPLETED', 'FAILED', 'CANCELLED'])
+
+export type SterilizationStatus = z.infer<typeof sterilizationStatusSchema>
+
+export const STERILIZATION_STATUSES = sterilizationStatusSchema.options
+
+export const sterilizationLogSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  productId: z.string().nullable(),
+  instrument: z.string().min(1).max(120),
+  method: sterilizationMethodSchema,
+  cycle: z.number().int().min(1).max(9999).nullable(),
+  status: sterilizationStatusSchema,
+  startedAt: z.string(),
+  completedAt: z.string().nullable(),
+  operatorName: z.string().nullable(),
+  notes: z.string().max(500).nullable(),
+  createdByName: z.string().nullable(),
+  createdAt: z.string(),
+})
+
+export type SterilizationLog = z.infer<typeof sterilizationLogSchema>
+
+export const sterilizationInputSchema = z.object({
+  productId: z.string().min(1).optional(),
+  instrument: z.string().trim().min(1).max(120),
+  method: sterilizationMethodSchema,
+  cycle: z.number().int().min(1).max(9999).optional(),
+  startedAt: z.string().datetime().optional(),
+  operatorId: z.string().min(1).optional(),
+  notes: z.string().trim().max(500).optional(),
+})
+
+export type SterilizationInput = z.infer<typeof sterilizationInputSchema>
+
+export const sterilizationUpdateSchema = z
+  .object({
+    status: sterilizationStatusSchema.optional(),
+    notes: z.string().trim().max(500).optional(),
+    method: sterilizationMethodSchema.optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'at least one field required')
+
+export type SterilizationUpdate = z.infer<typeof sterilizationUpdateSchema>
+
+export const sterilizationListSchema = z.object({
+  items: z.array(sterilizationLogSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type SterilizationList = z.infer<typeof sterilizationListSchema>
+
+export const sterilizationQuerySchema = z.object({
+  status: sterilizationStatusSchema.optional(),
+  productId: z.string().optional(),
+  operatorId: z.string().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type SterilizationQuery = z.infer<typeof sterilizationQuerySchema>
+
+export type SterilizationQueryParams = z.input<typeof sterilizationQuerySchema>
