@@ -219,12 +219,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
 
   const navSections: NavSection[] = [
     {
-      label: 'nav.section.overview',
-      items: [{ id: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard }],
-    },
-    {
       label: 'nav.section.clinical',
       items: [
+        { id: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard },
         ...(canManagePatients
           ? [
               {
