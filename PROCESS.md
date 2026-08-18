@@ -218,10 +218,10 @@ startTime/endTime (HH:mm) + active`, multiple rows per weekday allowed, indexes 
       from/to/staffId/open-only, list + total, no per-read audit — HR data ≠ PHI),
       `GET /roster` — minimal `{id,name,role}` staff list for the dropdown (keeps `/staff`
       directory ADMIN-only), `POST /` — **write duo ADMIN + RECEPTIONIST** (201; `404
-    UNKNOWN_STAFF`; `409 ATTENDANCE_EXISTS` on the (staffId,date) unique; **422** via pure
+  UNKNOWN_STAFF`; `409 ATTENDANCE_EXISTS` on the (staffId,date) unique; **422** via pure
       `lib/attendanceMath.ts` — CHECKOUT_WITHOUT_CHECKIN/CHECKOUT_BEFORE_CHECKIN; audits
       `ATTENDANCE_CREATE`), `PATCH /:id` — write duo (nullable checkIn/checkOut/notes; `404
-    UNKNOWN_ATTENDANCE`; 422 time guard; audits `ATTENDANCE_UPDATE` **before/after**). **lib**:
+  UNKNOWN_ATTENDANCE`; 422 time guard; audits `ATTENDANCE_UPDATE` **before/after**). **lib**:
       `attendanceMath.ts` (pure, no prisma import) — `attendanceTimeError`,
       `attendanceWorkedMinutes`, `isOpenRecord`, `minutesToHoursLabel` — 8 tests (81 api).
       **Admin**: new `view AttendanceView (ClipboardCheck)` under Administration, nav gated
