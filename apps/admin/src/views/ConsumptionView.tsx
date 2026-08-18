@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ProductUnit, TreatmentConsumption } from '@dentora/contracts'
-import { useI18n } from '@dentora/i18n'
+import { useI18n, formatDateTime } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
@@ -19,7 +19,7 @@ const UNIT_KEY: Record<ProductUnit, MessageKey> = {
 }
 
 export function ConsumptionView() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { toast } = useToast()
   const [items, setItems] = useState<TreatmentConsumption[]>([])
   const [total, setTotal] = useState(0)
@@ -63,7 +63,7 @@ export function ConsumptionView() {
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate font-medium text-foreground">{c.productName}</span>
               <span className="truncate text-xs text-muted-foreground">
-                {c.patientName} · {new Date(c.consumedAt).toLocaleString()}
+                {c.patientName} · {formatDateTime(c.consumedAt, locale)}
                 {c.createdByName ? ` · ${t('consumption.by')} ${c.createdByName}` : ''}
               </span>
             </div>

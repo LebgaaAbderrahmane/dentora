@@ -6,7 +6,7 @@ import type {
   SterilizationMethod,
   SterilizationStatus,
 } from '@dentora/contracts'
-import { useI18n } from '@dentora/i18n'
+import { useI18n, formatDateTime } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
@@ -159,7 +159,7 @@ function LogRow({
   log: SterilizationLog
   onTransition: (status: SterilizationStatus) => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b py-2.5 text-sm last:border-b-0">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -180,11 +180,11 @@ function LogRow({
       </div>
       <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
         <span>
-          {t('sterilization.startedAt')} {new Date(log.startedAt).toLocaleString()}
+          {t('sterilization.startedAt')} {formatDateTime(log.startedAt, locale)}
         </span>
         {log.completedAt && (
           <span>
-            {t('sterilization.completedAt')} {new Date(log.completedAt).toLocaleString()}
+            {t('sterilization.completedAt')} {formatDateTime(log.completedAt, locale)}
           </span>
         )}
         {log.status === 'IN_PROGRESS' && (
