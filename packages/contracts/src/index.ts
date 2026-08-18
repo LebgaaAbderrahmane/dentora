@@ -266,6 +266,112 @@ export const attendanceRosterSchema = z.object({
 
 export type AttendanceRoster = z.infer<typeof attendanceRosterSchema>
 
+export const INTERN_ROTATIONS = [
+  'CONSULTATION',
+  'SURGERY',
+  'CARE',
+  'HYGIENE',
+  'PROSTHETIC_ORTHO',
+  'IMAGING',
+] as const
+
+export const internRotationSchema = z.enum(INTERN_ROTATIONS)
+
+export type InternRotation = z.infer<typeof internRotationSchema>
+
+export const INTERN_SCHOOL_MAX = 120
+export const INTERN_NOTES_MAX = 500
+export const INTERN_REQUIRED_HOURS_MAX = 4000
+
+const internDateValue = (label: string) =>
+  z.string().refine((s) => !Number.isNaN(Date.parse(s)), `${label} must be a valid date`)
+
+export const internProfileSchema = z.object({
+  id: z.string(),
+  internId: z.string(),
+  internName: z.string(),
+  internEmail: z.string(),
+  school: z.string(),
+  requiredHours: z.number().int().min(1),
+  rotation: internRotationSchema,
+  mentorId: z.string().nullable(),
+  mentorName: z.string().nullable(),
+  startDate: z.string(),
+  endDate: z.string().nullable(),
+  completedMinutes: z.number().int().min(0),
+  progressPct: z.number().int().min(0),
+  active: z.boolean(),
+  notes: z.string().nullable(),
+})
+
+export type InternProfile = z.infer<typeof internProfileSchema>
+
+export const internInputSchema = z.object({
+  internId: z.string().min(1),
+  school: z.string().trim().min(1).max(INTERN_SCHOOL_MAX, 'school too long'),
+  requiredHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(INTERN_REQUIRED_HOURS_MAX, 'required hours out of range'),
+  rotation: internRotationSchema,
+  mentorId: z.string().optional(),
+  startDate: internDateValue('startDate'),
+  endDate: internDateValue('endDate').optional(),
+  notes: z.string().trim().max(INTERN_NOTES_MAX, 'notes too long').optional(),
+})
+
+export type InternInput = z.infer<typeof internInputSchema>
+
+export const internUpdateSchema = z
+  .object({
+    school: z.string().trim().min(1).max(INTERN_SCHOOL_MAX, 'school too long').optional(),
+    requiredHours: z
+      .number()
+      .int()
+      .min(1)
+      .max(INTERN_REQUIRED_HOURS_MAX, 'required hours out of range')
+      .optional(),
+    rotation: internRotationSchema.optional(),
+    mentorId: z.string().optional().nullable(),
+    startDate: internDateValue('startDate').optional(),
+    endDate: internDateValue('endDate').optional().nullable(),
+    active: z.boolean().optional(),
+    notes: z.string().trim().max(INTERN_NOTES_MAX, 'notes too long').optional().nullable(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'nothing to update')
+
+export type InternUpdate = z.infer<typeof internUpdateSchema>
+
+export const internQuerySchema = z.object({
+  search: z.string().optional(),
+  school: z.string().optional(),
+  rotation: internRotationSchema.optional(),
+  active: z
+    .string()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true' || v === '1')),
+  mentorId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type InternQueryParams = z.infer<typeof internQuerySchema>
+
+export const internListSchema = z.object({
+  items: z.array(internProfileSchema),
+  total: z.number().int(),
+})
+
+export type InternList = z.infer<typeof internListSchema>
+
+export const internMetaSchema = z.object({
+  mentors: z.array(z.object({ id: z.string(), name: z.string(), role: staffRoleSchema })),
+  interns: z.array(z.object({ id: z.string(), name: z.string(), hasProfile: z.boolean() })),
+})
+
+export type InternMeta = z.infer<typeof internMetaSchema>
+
 export const errorSchema = z.object({ error: z.string(), issues: z.unknown().optional() })
 
 export type ApiError = z.infer<typeof errorSchema>
@@ -332,6 +438,8 @@ export const auditActionSchema = z.enum([
   'SCHEDULE_UPDATE',
   'ATTENDANCE_CREATE',
   'ATTENDANCE_UPDATE',
+  'INTERN_CREATE',
+  'INTERN_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -351,6 +459,7 @@ export const auditTargetSchema = z.enum([
   'STERILIZATION',
   'SCHEDULE',
   'ATTENDANCE',
+  'INTERN',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>

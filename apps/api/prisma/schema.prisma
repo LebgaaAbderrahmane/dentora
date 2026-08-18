@@ -28,6 +28,15 @@ enum Weekday {
   SUNDAY
 }
 
+enum InternRotation {
+  CONSULTATION
+  SURGERY
+  CARE
+  HYGIENE
+  PROSTHETIC_ORTHO
+  IMAGING
+}
+
 enum AuditAction {
   LOGIN_SUCCESS
   LOGIN_FAILURE
@@ -90,6 +99,8 @@ enum AuditAction {
   SCHEDULE_UPDATE
   ATTENDANCE_CREATE
   ATTENDANCE_UPDATE
+  INTERN_CREATE
+  INTERN_UPDATE
 }
 
 enum AuditTarget {
@@ -107,6 +118,7 @@ enum AuditTarget {
   STERILIZATION
   SCHEDULE
   ATTENDANCE
+  INTERN
 }
 
 enum AppointmentStatus {
@@ -244,6 +256,7 @@ model Branch {
   sterilizations SterilizationLog[]
   schedules   StaffSchedule[]
   attendance  AttendanceLog[]
+  internProfiles InternProfile[]
 
   @@map("branches")
 }
@@ -278,6 +291,8 @@ model User {
   schedules          StaffSchedule[]       @relation("ScheduleStaff")
   attendance         AttendanceLog[]       @relation("AttendanceStaff")
   createdAttendance  AttendanceLog[]       @relation("AttendanceCreator")
+  internProfile      InternProfile?        @relation("InternProfile")
+  mentoredInterns    InternProfile[]       @relation("InternMentor")
 
   @@index([branchId])
   @@map("users")
@@ -769,6 +784,33 @@ model AttendanceLog {
   @@unique([staffId, date])
   @@index([branchId, date])
   @@map("attendance_logs")
+}
+
+// Intern profile (ADR 029) — one row per INTERN user. `school` + `rotation` +
+// `mentorId` describe the placement; `requiredHours` is the contractual target and
+// `completedMinutes` is derived from attendance on read (4.4 payroll will sum the
+// same source). `startDate`/`endDate` bound the counting window for derived hours.
+// Corrections are edits, never deletes — deactivate via `active`.
+model InternProfile {
+  id            String         @id @default(cuid())
+  branchId      String
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  internId      String         @unique
+  intern        User           @relation("InternProfile", fields: [internId], references: [id], onDelete: Cascade)
+  school        String
+  requiredHours Int
+  rotation      InternRotation
+  mentorId      String?
+  mentor        User?          @relation("InternMentor", fields: [mentorId], references: [id])
+  startDate     DateTime       @db.Date
+  endDate       DateTime?      @db.Date
+  notes         String?
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([branchId])
+  @@map("intern_profiles")
 }
 
 model AuditLog {
