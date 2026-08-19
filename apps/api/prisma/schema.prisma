@@ -101,6 +101,9 @@ enum AuditAction {
   ATTENDANCE_UPDATE
   INTERN_CREATE
   INTERN_UPDATE
+  PAYROLL_CREATE
+  PAYROLL_UPDATE
+  PAYROLL_VOID
 }
 
 enum AuditTarget {
@@ -119,6 +122,7 @@ enum AuditTarget {
   SCHEDULE
   ATTENDANCE
   INTERN
+  PAYROLL
 }
 
 enum AppointmentStatus {
@@ -257,6 +261,7 @@ model Branch {
   schedules   StaffSchedule[]
   attendance  AttendanceLog[]
   internProfiles InternProfile[]
+  payslips   Payslip[]
 
   @@map("branches")
 }
@@ -293,6 +298,8 @@ model User {
   createdAttendance  AttendanceLog[]       @relation("AttendanceCreator")
   internProfile      InternProfile?        @relation("InternProfile")
   mentoredInterns    InternProfile[]       @relation("InternMentor")
+  payslips           Payslip[]             @relation("PayslipStaff")
+  createdPayslips    Payslip[]             @relation("PayslipCreator")
 
   @@index([branchId])
   @@map("users")
@@ -811,6 +818,34 @@ model InternProfile {
 
   @@index([branchId])
   @@map("intern_profiles")
+}
+
+// A `Payslip` records one payroll line per staff member per period (whole DZD,
+// matching ADR 017 — no cents anywhere). `workedMinutes` and `netDZD` are
+// derived on read (attendance sum in-window; net = base + bonus - deductions).
+// Soft-void via `voidedAt` — payroll is never hard-deleted.
+model Payslip {
+  id          String    @id @default(cuid())
+  branchId    String
+  branch      Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  staffId     String
+  staff       User      @relation("PayslipStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  periodStart DateTime  @db.Date
+  periodEnd   DateTime  @db.Date
+  baseDZD     Int
+  bonusDZD    Int       @default(0)
+  deductionsDZD Int     @default(0)
+  notes       String?
+  voidedAt    DateTime?
+  createdById String?
+  createdBy   User?     @relation("PayslipCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([branchId, staffId, periodStart, periodEnd])
+  @@index([branchId, periodStart, periodEnd])
+  @@index([branchId, staffId])
+  @@map("payslips")
 }
 
 model AuditLog {

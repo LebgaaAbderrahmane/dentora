@@ -53,6 +53,12 @@ import {
   type PaymentCreate,
   type PaymentList,
   type PaymentQueryParams,
+  type PayrollMeta,
+  type Payslip,
+  type PayslipInput,
+  type PayslipList,
+  type PayslipQueryParams,
+  type PayslipUpdate,
   type RefundCreate,
   type PurchaseOrderCreate,
   type PurchaseOrderDetail,
@@ -377,6 +383,30 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),
+
+  payrollMeta: () => request<PayrollMeta>('/api/payroll/meta'),
+
+  payslips: (params: Partial<PayslipQueryParams> = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    if (params.staffId) q.set('staffId', params.staffId)
+    if (params.voided !== undefined) q.set('voided', String(params.voided))
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<PayslipList>(`/api/payroll?${q.toString()}`)
+  },
+
+  createPayslip: (input: PayslipInput) =>
+    request<Payslip>('/api/payroll', { method: 'POST', body: JSON.stringify(input) }),
+
+  updatePayslip: (id: string, input: PayslipUpdate) =>
+    request<Payslip>(`/api/payroll/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+
+  voidPayslip: (id: string) => request<Payslip>(`/api/payroll/${id}/void`, { method: 'POST' }),
 
   waitlist: (params: WaitlistQueryParams = {}) => {
     const q = new URLSearchParams()

@@ -28,6 +28,7 @@ import {
   PanelLeftOpen,
   LogOut,
   Stethoscope,
+  Banknote,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,7 @@ import { SterilizationsView } from './views/SterilizationsView'
 import { StaffView } from './views/StaffView'
 import { AttendanceView } from './views/AttendanceView'
 import { InternsView } from './views/InternsView'
+import { PayrollView } from './views/PayrollView'
 
 const VIEW_TITLE: Record<View, MessageKey> = {
   dashboard: 'nav.dashboard',
@@ -78,6 +80,7 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   staff: 'nav.staff',
   attendance: 'nav.attendance',
   interns: 'nav.interns',
+  payroll: 'nav.payroll',
   audit: 'nav.audit',
 }
 
@@ -110,6 +113,7 @@ type View =
   | 'sterilizations'
   | 'attendance'
   | 'interns'
+  | 'payroll'
 
 type NavItem = {
   id: View
@@ -341,6 +345,15 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                     },
                   ]
                 : []),
+              ...(canManageFinance
+                ? [
+                    {
+                      id: 'payroll' as const,
+                      label: 'nav.payroll' as MessageKey,
+                      icon: Banknote,
+                    },
+                  ]
+                : []),
               ...(isAdmin
                 ? [
                     { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
@@ -458,6 +471,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
             <AttendanceView canEdit={canEditAttendance} />
           )}
           {view === 'interns' && canManageInterns && <InternsView canEdit={isAdmin} />}
+          {view === 'payroll' && canManageFinance && <PayrollView canEdit={isAdmin} />}
           {view === 'audit' && isAdmin && <AuditView />}
         </main>
       </div>

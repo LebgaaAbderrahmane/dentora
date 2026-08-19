@@ -1044,6 +1044,7 @@ async function main() {
   await prisma.staffSchedule.deleteMany({ where: { branchId } })
   await prisma.attendanceLog.deleteMany({ where: { branchId } })
   await prisma.internProfile.deleteMany({ where: { branchId } })
+  await prisma.payslip.deleteMany({ where: { branchId } })
   await prisma.stockLedgerEntry.deleteMany({ where: { branchId } })
   await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrder: { branchId } } })
   await prisma.purchaseOrder.deleteMany({ where: { branchId } })
@@ -1196,6 +1197,60 @@ async function main() {
       startDate: internStart,
       active: true,
     },
+  })
+
+  const payrollFrom = dateOnly(30)
+  const payrollTo = dateOnly(1)
+  // Paid staff profile: senior dentist + junior dentist + accountant +
+  // receptionist. Worked minutes are derived from the attendance logs seeded
+  // above (the two dentists and receptionist all worked within this window).
+  await prisma.payslip.createMany({
+    data: [
+      {
+        branchId,
+        staffId: dentists[0],
+        periodStart: payrollFrom,
+        periodEnd: payrollTo,
+        baseDZD: 220000,
+        bonusDZD: 20000,
+        deductionsDZD: 5000,
+        notes: 'Mois complet',
+        createdById: users[adminEmail].id,
+      },
+      {
+        branchId,
+        staffId: dentists[1],
+        periodStart: payrollFrom,
+        periodEnd: payrollTo,
+        baseDZD: 190000,
+        bonusDZD: 10000,
+        deductionsDZD: 0,
+        notes: null,
+        createdById: users[adminEmail].id,
+      },
+      {
+        branchId,
+        staffId: users['nadia@dentora.dz'].id,
+        periodStart: payrollFrom,
+        periodEnd: payrollTo,
+        baseDZD: 160000,
+        bonusDZD: 0,
+        deductionsDZD: 0,
+        notes: null,
+        createdById: users[adminEmail].id,
+      },
+      {
+        branchId,
+        staffId: users['yasmine@dentora.dz'].id,
+        periodStart: payrollFrom,
+        periodEnd: payrollTo,
+        baseDZD: 150000,
+        bonusDZD: 5000,
+        deductionsDZD: 2000,
+        notes: null,
+        createdById: users[adminEmail].id,
+      },
+    ],
   })
 
   const services = []
@@ -1566,6 +1621,7 @@ async function main() {
     schedules: await prisma.staffSchedule.count({ where: { branchId } }),
     attendance: await prisma.attendanceLog.count({ where: { branchId } }),
     interns: await prisma.internProfile.count({ where: { branchId } }),
+    payslips: await prisma.payslip.count({ where: { branchId } }),
   }
 
   console.log(`demo seed ready on branch "${branchName}"`)

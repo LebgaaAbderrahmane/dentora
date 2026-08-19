@@ -76,6 +76,9 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   ATTENDANCE_UPDATE: 'audit.actions.attendanceUpdate',
   INTERN_CREATE: 'audit.actions.internCreate',
   INTERN_UPDATE: 'audit.actions.internUpdate',
+  PAYROLL_CREATE: 'audit.actions.payrollCreate',
+  PAYROLL_UPDATE: 'audit.actions.payrollUpdate',
+  PAYROLL_VOID: 'audit.actions.payrollVoid',
 }
 
 export function AuditView() {
