@@ -156,6 +156,15 @@ import {
   portalDentistListSchema,
   portalInvoicesSchema,
   portalMeSchema,
+  notificationChannelSchema,
+  notificationConfigSchema,
+  notificationConfigUpdateSchema,
+  notificationLogListSchema,
+  notificationLogQuerySchema,
+  notificationLogSchema,
+  notificationStatusSchema,
+  notificationSweepResultSchema,
+  patientPrefsSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -2126,10 +2135,14 @@ describe('portal contracts (5.1, ADR 031)', () => {
     phone: '0550123456',
     email: 'm.bouzid@mail.dz',
     address: '12 rue Didouche Mourad, Alger',
+    notifyWhatsapp: true,
+    notifyEmail: true,
   }
 
   it('portalMeSchema validates the self-scoped profile row', () => {
     expect(portalMeSchema.parse(me)).toMatchObject({ id: 'p1' })
+    expect(portalMeSchema.parse(me).notifyWhatsapp).toBe(true)
+    expect(portalMeSchema.parse(me).notifyEmail).toBe(true)
     expect(portalMeSchema.safeParse({ ...me, gender: 'X' }).success).toBe(false)
   })
 
@@ -2224,5 +2237,105 @@ describe('portal contracts (5.1, ADR 031)', () => {
   it('auditActionSchema includes the portal access actions', () => {
     expect(auditActionSchema.options).toContain('PORTAL_ACCESS_CREATE')
     expect(auditActionSchema.options).toContain('PORTAL_ACCESS_RESET')
+  })
+})
+
+describe('notification contracts (5.2, ADR 032)', () => {
+  it('channel/status schemas expose the fixed enums', () => {
+    expect(notificationChannelSchema.options).toEqual(['WHATSAPP', 'EMAIL'])
+    expect(notificationStatusSchema.options).toEqual(['SENT', 'FAILED', 'SKIPPED'])
+    expect(notificationChannelSchema.parse('WHATSAPP')).toBe('WHATSAPP')
+    expect(() => notificationChannelSchema.parse('SMS')).toThrow()
+    expect(notificationStatusSchema.parse('FAILED')).toBe('FAILED')
+  })
+
+  it('notificationConfigSchema masks secrets behind set-flags', () => {
+    const parsed = notificationConfigSchema.parse({
+      enabled: true,
+      offsetMinutes: 1440,
+      whatsapp: {
+        enabled: true,
+        provider: 'generic',
+        apiUrl: 'https://hooks.example.com/send',
+        from: 'dentora',
+        token: { set: true },
+      },
+      email: {
+        enabled: false,
+        host: 'smtp.example.com',
+        port: 587,
+        secure: false,
+        user: 'no-reply@dentora.dz',
+        from: 'no-reply@dentora.dz',
+        pass: { set: false },
+      },
+    })
+    expect(parsed.offsetMinutes).toBe(1440)
+    expect(parsed.whatsapp.token.set).toBe(true)
+    expect(parsed.email.pass.set).toBe(false)
+    expect(notificationConfigSchema.safeParse({ enabled: true, offsetMinutes: 15 }).success).toBe(
+      false,
+    )
+    expect(notificationConfigSchema.safeParse({ ...parsed, offsetMinutes: 10081 }).success).toBe(
+      false,
+    )
+  })
+
+  it('notificationConfigUpdateSchema accepts "" secrets to mean keep-stored', () => {
+    const parsed = notificationConfigUpdateSchema.parse({
+      enabled: true,
+      offsetMinutes: 720,
+      whatsapp: { enabled: true, provider: 'generic', apiUrl: 'https://x.io', from: '', token: '' },
+      email: { enabled: true, host: 'h', port: 465, secure: true, user: 'u', from: '', pass: '' },
+    })
+    expect(parsed.whatsapp.token).toBe('')
+    expect(parsed.email.pass).toBe('')
+  })
+
+  it('notificationLogSchema validates a read row with patientName', () => {
+    const parsed = notificationLogSchema.parse({
+      id: 'n1',
+      branchId: 'b1',
+      appointmentId: 'a1',
+      patientName: 'Mohammed Bouzid',
+      channel: 'WHATSAPP',
+      status: 'SENT',
+      to: '0550123456',
+      provider: 'generic-webhook',
+      error: null,
+      sentAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    })
+    expect(parsed.status).toBe('SENT')
+    expect(notificationLogSchema.safeParse({ ...parsed, channel: 'SMS' }).success).toBe(false)
+  })
+
+  it('notificationLogQuerySchema coerces + bounds pagination', () => {
+    expect(notificationLogQuerySchema.parse({ limit: '10', channel: 'EMAIL' })).toMatchObject({
+      limit: 10,
+      channel: 'EMAIL',
+      offset: 0,
+    })
+    expect(notificationLogQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('notificationLogListSchema + sweep result validate', () => {
+    const list = notificationLogListSchema.parse({ items: [], total: 0 })
+    expect(list.total).toBe(0)
+    expect(
+      notificationSweepResultSchema.parse({ planned: 3, created: 2, sent: 2, failed: 0 }),
+    ).toMatchObject({ sent: 2 })
+  })
+
+  it('patientPrefsSchema requires both booleans', () => {
+    expect(patientPrefsSchema.parse({ notifyWhatsapp: true, notifyEmail: false })).toMatchObject({
+      notifyWhatsapp: true,
+    })
+    expect(patientPrefsSchema.safeParse({ notifyWhatsapp: true }).success).toBe(false)
+  })
+
+  it('auditActionSchema/targetSchema include the notification action + target', () => {
+    expect(auditActionSchema.options).toContain('NOTIFICATION_CONFIG_UPDATE')
+    expect(auditTargetSchema.options).toContain('NOTIFICATION')
   })
 })

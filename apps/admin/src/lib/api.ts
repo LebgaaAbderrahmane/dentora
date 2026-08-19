@@ -40,6 +40,11 @@ import {
   type InvoiceQueryParams,
   type MedicalHistoryResponse,
   type MedicalHistoryWrite,
+  type NotificationConfig,
+  type NotificationConfigUpdate,
+  type NotificationLogList,
+  type NotificationLogQueryParams,
+  type NotificationSweepResult,
   type OdontogramResponse,
   type OdontogramWrite,
   type Patient,
@@ -694,6 +699,27 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(input),
     }),
+
+  notificationConfig: () => request<NotificationConfig>('/api/notifications/config'),
+
+  updateNotificationConfig: (input: NotificationConfigUpdate) =>
+    request<NotificationConfig>(`/api/notifications/config`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+
+  notificationLogs: (params: NotificationLogQueryParams = {}) => {
+    const q = new URLSearchParams()
+    if (params.appointmentId) q.set('appointmentId', params.appointmentId)
+    if (params.channel) q.set('channel', params.channel)
+    if (params.status) q.set('status', params.status)
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
+    return request<NotificationLogList>(`/api/notifications/logs?${q.toString()}`)
+  },
+
+  runNotificationSweep: () =>
+    request<NotificationSweepResult>('/api/notifications/sweep', { method: 'POST' }),
 }
 
 export function parseConflict(e: ApiError): AppointmentConflict | null {

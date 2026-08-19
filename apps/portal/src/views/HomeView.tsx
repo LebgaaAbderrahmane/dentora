@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { formatDate, formatDateTime, useI18n } from '@dentora/i18n'
 import type { Appointment, SafeUser } from '@dentora/contracts'
-import { Button, Card } from '@dentora/ui'
-import { CalendarDays, CalendarPlus, ReceiptText } from 'lucide-react'
-import { api } from '../lib/api'
+import { Button, Card, useToast } from '@dentora/ui'
+import { BellRing, CalendarDays, CalendarPlus, ReceiptText } from 'lucide-react'
+import { api, ApiError } from '../lib/api'
 import { useProfile } from '../lib/portal'
 import { AppointmentStatusBadge } from '../components/badges'
 
@@ -139,6 +139,74 @@ export default function HomeView({
           </dl>
         </Card>
       )}
+
+      {profile && <PrefsCard />}
     </>
+  )
+}
+
+function PrefsCard() {
+  const { t } = useI18n()
+  const { toast } = useToast()
+  const [prefs, setPrefs] = useState<{ notifyWhatsapp: boolean; notifyEmail: boolean } | null>(null)
+  const [saving, setSaving] = useState<null | 'whatsapp' | 'email'>(null)
+
+  useEffect(() => {
+    api
+      .prefs()
+      .then(setPrefs)
+      .catch(() => undefined)
+  }, [])
+
+  async function toggle(key: 'whatsapp' | 'email') {
+    if (!prefs) return
+    const next =
+      key === 'whatsapp'
+        ? { ...prefs, notifyWhatsapp: !prefs.notifyWhatsapp }
+        : { ...prefs, notifyEmail: !prefs.notifyEmail }
+    setPrefs(next)
+    setSaving(key)
+    try {
+      const saved = await api.updatePrefs(next)
+      setPrefs(saved)
+      toast(t('portal.prefs.saved'), 'success')
+    } catch (err) {
+      setPrefs(prefs)
+      toast(err instanceof ApiError ? err.message : String(err), 'error')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  return (
+    <Card title={t('portal.prefs')} className="p-5">
+      <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('portal.prefsHint')}</p>
+      <div className="mt-3 flex flex-col gap-3">
+        <label className="flex items-center justify-between gap-3 rounded-lg border p-3">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <BellRing className="size-4 text-brand-500" aria-hidden="true" />
+            {t('portal.prefs.whatsapp')}
+          </span>
+          <input
+            type="checkbox"
+            checked={prefs?.notifyWhatsapp ?? false}
+            disabled={saving !== null}
+            onChange={() => void toggle('whatsapp')}
+          />
+        </label>
+        <label className="flex items-center justify-between gap-3 rounded-lg border p-3">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <BellRing className="size-4 text-brand-500" aria-hidden="true" />
+            {t('portal.prefs.email')}
+          </span>
+          <input
+            type="checkbox"
+            checked={prefs?.notifyEmail ?? false}
+            disabled={saving !== null}
+            onChange={() => void toggle('email')}
+          />
+        </label>
+      </div>
+    </Card>
   )
 }

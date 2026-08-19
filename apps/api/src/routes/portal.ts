@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import {
+  patientPrefsSchema,
   portalAppointmentsSchema,
   portalBookingSchema,
   portalBookedSchema,
@@ -53,8 +54,43 @@ router.get('/me', async (req, res) => {
       phone: patient.phone,
       email: patient.email,
       address: patient.address,
+      notifyWhatsapp: patient.notifyWhatsapp,
+      notifyEmail: patient.notifyEmail,
     }),
   )
+})
+
+router.get('/prefs', async (req, res) => {
+  const patient = await ownPatient(req)
+  if (!patient) {
+    res.status(403).json({ error: 'NO_PORTAL_PATIENT' })
+    return
+  }
+  res.json(
+    patientPrefsSchema.parse({
+      notifyWhatsapp: patient.notifyWhatsapp,
+      notifyEmail: patient.notifyEmail,
+    }),
+  )
+})
+
+router.put('/prefs', async (req, res) => {
+  const parsed = patientPrefsSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_BODY', issues: parsed.error.flatten() })
+    return
+  }
+  const patient = await ownPatient(req)
+  if (!patient) {
+    res.status(403).json({ error: 'NO_PORTAL_PATIENT' })
+    return
+  }
+  const updated = await prisma.patient.update({
+    where: { id: patient.id },
+    data: parsed.data,
+    select: { notifyWhatsapp: true, notifyEmail: true },
+  })
+  res.json(patientPrefsSchema.parse(updated))
 })
 
 router.get('/dentists', async (req, res) => {

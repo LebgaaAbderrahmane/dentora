@@ -1,5 +1,6 @@
 import type {
   InvoiceDetail,
+  PatientPrefs,
   PortalAppointments,
   PortalBooked,
   PortalBooking,
@@ -71,4 +72,9 @@ export const api = {
   invoices: () => request<PortalInvoices>('/api/portal/invoices'),
 
   invoice: (id: string) => request<InvoiceDetail>(`/api/portal/invoices/${id}`),
+
+  prefs: () => request<PatientPrefs>('/api/portal/prefs'),
+
+  updatePrefs: (prefs: PatientPrefs) =>
+    request<PatientPrefs>('/api/portal/prefs', { method: 'PUT', body: JSON.stringify(prefs) }),
 }
