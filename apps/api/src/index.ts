@@ -32,6 +32,9 @@ import sterilizationsRouter from './routes/sterilizations'
 import attendanceRouter from './routes/attendance'
 import internsRouter from './routes/interns'
 import payrollRouter from './routes/payroll'
+import portalRouter from './routes/portal'
+import notificationsRouter from './routes/notifications'
+import { runSweep } from './lib/notifications'
 
 initSentry()
 
@@ -108,6 +111,8 @@ api.use('/sterilizations', sterilizationsRouter)
 api.use('/attendance', attendanceRouter)
 api.use('/interns', internsRouter)
 api.use('/payroll', payrollRouter)
+api.use('/portal', portalRouter)
+api.use('/notifications', notificationsRouter)
 
 app.use('/api', api)
 
@@ -126,4 +131,22 @@ app.use(
 
 app.listen(port, () => {
   logger.info({ port }, 'api listening')
+
+  // Reminder sweep (ADR 032): periodic, unref'd so it never blocks shutdown;
+  // per-branch config drives whether anything is actually sent.
+  const sweepIntervalMin = Number(process.env.REMINDER_SWEEP_INTERVAL_MIN ?? 15)
+  const sweep = setInterval(() => {
+    void (async () => {
+      try {
+        const branches = await prisma.branch.findMany({ select: { id: true } })
+        for (const branch of branches) {
+          await runSweep(branch.id)
+        }
+      } catch (err) {
+        captureError(err, { extra: { context: 'reminder-sweep' } })
+        logger.error({ err }, 'reminder sweep failed')
+      }
+    })()
+  }, sweepIntervalMin * 60_000)
+  sweep.unref?.()
 })

@@ -1059,6 +1059,11 @@ async function main() {
   await prisma.patientDocument.deleteMany({ where: { branchId } })
   await prisma.patientOdontogram.deleteMany({ where: { patient: { branchId } } })
   await prisma.patientMedicalHistory.deleteMany({ where: { patient: { branchId } } })
+  await prisma.user.updateMany({
+    where: { branchId, role: 'PATIENT' },
+    data: { patientId: null },
+  })
+  await prisma.user.deleteMany({ where: { branchId, role: 'PATIENT' } })
   await prisma.patient.deleteMany({ where: { branchId } })
   await prisma.auditLog.deleteMany({ where: { branchId } })
   await prisma.setting.deleteMany({ where: { branchId } })
@@ -1311,6 +1316,30 @@ async function main() {
       })
     }
     patients.push(created)
+  }
+
+  const demoPortal = patients[0]
+  if (demoPortal?.email) {
+    await prisma.user.upsert({
+      where: { email: demoPortal.email },
+      update: {
+        passwordHash,
+        role: 'PATIENT',
+        branchId: demoPortal.branchId,
+        active: true,
+        name: `${demoPortal.firstName} ${demoPortal.lastName}`.trim(),
+        patientId: demoPortal.id,
+      },
+      create: {
+        email: demoPortal.email,
+        passwordHash,
+        name: `${demoPortal.firstName} ${demoPortal.lastName}`.trim(),
+        role: 'PATIENT',
+        branchId: demoPortal.branchId,
+        active: true,
+        patientId: demoPortal.id,
+      },
+    })
   }
 
   const appointments = []
@@ -1577,6 +1606,83 @@ async function main() {
     })
   }
 
+  // Notification pipeline demo (5.2, ADR 032): a stored config (disabled by
+  // default, secrets encrypted at rest) + a few delivery-log rows over past
+  // confirmed/completed appointments so the admin log view has a picture.
+  const notificationConfigJson = JSON.stringify({
+    enabled: false,
+    offsetMinutes: 1440,
+    whatsapp: {
+      enabled: true,
+      provider: 'generic',
+      apiUrl: 'https://example.com/whatsapp-hook',
+      from: 'DENTORA Alger',
+      token: encrypt('demo-whatsapp-token'),
+    },
+    email: {
+      enabled: true,
+      host: 'smtp.mailtrap.io',
+      port: 587,
+      secure: false,
+      user: 'demo',
+      from: 'no-reply@dentora.dz',
+      pass: encrypt('demo-smtp-pass'),
+    },
+  })
+  await prisma.setting.upsert({
+    where: { branchId_key: { branchId, key: 'notifications.config' } },
+    create: { branchId, key: 'notifications.config', value: notificationConfigJson },
+    update: { value: notificationConfigJson },
+  })
+
+  const appt12 = appointments[12]
+  const appt13 = appointments[13]
+  const appt14 = appointments[14]
+  await prisma.notificationLog.createMany({
+    data: [
+      {
+        branchId,
+        appointmentId: appt13.id,
+        channel: 'WHATSAPP',
+        status: 'SENT',
+        to: patients[3].phone,
+        provider: 'generic-webhook',
+        sentAt: appointments[13].startAt,
+      },
+      {
+        branchId,
+        appointmentId: appt12.id,
+        channel: 'EMAIL',
+        status: 'SENT',
+        to: patients[11].email!,
+        provider: 'smtp',
+        sentAt: appointments[12].startAt,
+      },
+      {
+        branchId,
+        appointmentId: appt14.id,
+        channel: 'WHATSAPP',
+        status: 'FAILED',
+        to: patients[5].phone,
+        provider: 'generic-webhook',
+        error: 'Request timed out (15s)',
+        sentAt: null,
+        createdAt: appointments[14].startAt,
+      },
+      {
+        branchId,
+        appointmentId: appt12.id,
+        channel: 'WHATSAPP',
+        status: 'SKIPPED',
+        to: patients[11].phone,
+        provider: null,
+        error: 'no-contact', // patient has no phone on file
+        sentAt: null,
+        createdAt: appointments[12].startAt,
+      },
+    ],
+  })
+
   const ledgerCount = await prisma.stockLedgerEntry.count({ where: { branchId } })
   const invariantCheck = await prisma.product.findMany({ where: { branchId } })
   let invariantOk = true
@@ -1622,6 +1728,7 @@ async function main() {
     attendance: await prisma.attendanceLog.count({ where: { branchId } }),
     interns: await prisma.internProfile.count({ where: { branchId } }),
     payslips: await prisma.payslip.count({ where: { branchId } }),
+    notificationLogs: await prisma.notificationLog.count({ where: { branchId } }),
   }
 
   console.log(`demo seed ready on branch "${branchName}"`)

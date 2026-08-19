@@ -60,6 +60,7 @@ import { StaffView } from './views/StaffView'
 import { AttendanceView } from './views/AttendanceView'
 import { InternsView } from './views/InternsView'
 import { PayrollView } from './views/PayrollView'
+import { NotificationsView } from './views/NotificationsView'
 
 const VIEW_TITLE: Record<View, MessageKey> = {
   dashboard: 'nav.dashboard',
@@ -82,6 +83,7 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   interns: 'nav.interns',
   payroll: 'nav.payroll',
   audit: 'nav.audit',
+  notifications: 'nav.notifications',
 }
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
@@ -114,6 +116,7 @@ type View =
   | 'attendance'
   | 'interns'
   | 'payroll'
+  | 'notifications'
 
 type NavItem = {
   id: View
@@ -357,6 +360,11 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
               ...(isAdmin
                 ? [
                     { id: 'staff' as const, label: 'nav.staff' as MessageKey, icon: UserCog },
+                    {
+                      id: 'notifications' as const,
+                      label: 'nav.notifications' as MessageKey,
+                      icon: Bell,
+                    },
                     { id: 'users' as const, label: 'nav.users' as MessageKey, icon: Users },
                     { id: 'audit' as const, label: 'nav.audit' as MessageKey, icon: ScrollText },
                   ]
@@ -473,6 +481,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           {view === 'interns' && canManageInterns && <InternsView canEdit={isAdmin} />}
           {view === 'payroll' && canManageFinance && <PayrollView canEdit={isAdmin} />}
           {view === 'audit' && isAdmin && <AuditView />}
+          {view === 'notifications' && isAdmin && <NotificationsView />}
         </main>
       </div>
     </div>

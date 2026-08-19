@@ -10,4 +10,18 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  optimizeDeps: {
+    // Serve workspace packages from source (see admin vite.config.ts).
+    exclude: ['@dentora/i18n', '@dentora/ui', '@dentora/contracts'],
+  },
+  server: {
+    port: 5175,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: false,
+      },
+    },
+  },
 })

@@ -97,6 +97,8 @@ enum AuditAction {
   STAFF_UPDATE
   STAFF_PASSWORD_RESET
   SCHEDULE_UPDATE
+  PORTAL_ACCESS_CREATE
+  PORTAL_ACCESS_RESET
   ATTENDANCE_CREATE
   ATTENDANCE_UPDATE
   INTERN_CREATE
@@ -104,6 +106,7 @@ enum AuditAction {
   PAYROLL_CREATE
   PAYROLL_UPDATE
   PAYROLL_VOID
+  NOTIFICATION_CONFIG_UPDATE
 }
 
 enum AuditTarget {
@@ -123,6 +126,7 @@ enum AuditTarget {
   ATTENDANCE
   INTERN
   PAYROLL
+  NOTIFICATION
 }
 
 enum AppointmentStatus {
@@ -234,6 +238,17 @@ enum SterilizationStatus {
   CANCELLED
 }
 
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model Branch {
   id           String            @id @default(cuid())
   name         String
@@ -262,6 +277,7 @@ model Branch {
   attendance  AttendanceLog[]
   internProfiles InternProfile[]
   payslips   Payslip[]
+  notifications NotificationLog[]
 
   @@map("branches")
 }
@@ -300,6 +316,8 @@ model User {
   mentoredInterns    InternProfile[]       @relation("InternMentor")
   payslips           Payslip[]             @relation("PayslipStaff")
   createdPayslips    Payslip[]             @relation("PayslipCreator")
+  patientId          String?               @unique
+  patient            Patient?              @relation("PatientUser", fields: [patientId], references: [id], onDelete: SetNull)
 
   @@index([branchId])
   @@map("users")
@@ -333,12 +351,15 @@ model Patient {
   archivedAt     DateTime?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
+  notifyWhatsapp Boolean                @default(true)
+  notifyEmail    Boolean                @default(true)
   medicalHistory PatientMedicalHistory?
   odontogram     PatientOdontogram?
   documents      PatientDocument[]
   appointments   Appointment[]
   waitlist       WaitlistEntry[]
   invoices       Invoice[]
+  user           User?              @relation("PatientUser")
 
   @@index([branchId])
   @@index([firstName, lastName])
@@ -407,12 +428,39 @@ model Appointment {
   waitlistEntry WaitlistEntry?    @relation("WaitlistAppointment")
   stockLedger   StockLedgerEntry[]
   consumptions  TreatmentStockConsumption[]
+  notifications NotificationLog[]
 
   @@index([branchId, startAt])
   @@index([branchId, status, startAt])
   @@index([branchId, dentistId, startAt])
   @@index([patientId, startAt])
   @@map("appointments")
+}
+
+// Outbound appointment-reminder delivery record (ADR 032). One row per
+// (appointment, channel) — the unique constraint double-guards the sweep against
+// duplicate sends. `status` is the terminal outcome: delivered (SENT), provider
+// error (FAILED, with the message), or not attempted (SKIPPED — channel disabled,
+// patient opted out, no contact on file). This is the operational audit trail for
+// reminders; bodies/credentials live in config, never here.
+model NotificationLog {
+  id            String             @id @default(cuid())
+  branchId      String
+  branch        Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  appointmentId String
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  channel       NotificationChannel
+  status        NotificationStatus
+  to            String // phone E.164 or email, as sent to
+  provider      String? // e.g. smtp / generic-webhook
+  error         String?
+  sentAt        DateTime?
+  createdAt     DateTime           @default(now())
+
+  @@unique([appointmentId, channel])
+  @@index([branchId, channel, createdAt])
+  @@index([branchId, status, createdAt])
+  @@map("notification_logs")
 }
 
 model WaitlistEntry {

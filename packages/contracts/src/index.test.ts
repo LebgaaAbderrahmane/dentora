@@ -147,6 +147,24 @@ import {
   sterilizationLogSchema,
   sterilizationQuerySchema,
   sterilizationUpdateSchema,
+  portalAccessInputSchema,
+  portalAccessResponseSchema,
+  portalAccessStatusSchema,
+  portalAppointmentsSchema,
+  portalBookingSchema,
+  portalBookedSchema,
+  portalDentistListSchema,
+  portalInvoicesSchema,
+  portalMeSchema,
+  notificationChannelSchema,
+  notificationConfigSchema,
+  notificationConfigUpdateSchema,
+  notificationLogListSchema,
+  notificationLogQuerySchema,
+  notificationLogSchema,
+  notificationStatusSchema,
+  notificationSweepResultSchema,
+  patientPrefsSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -178,6 +196,7 @@ describe('auth contracts', () => {
       role: 'ADMIN',
       branchId: 'b',
       active: true,
+      patientId: null,
     })
     expect(ok.success).toBe(true)
     expect(safeUserSchema.safeParse({ id: '1' }).success).toBe(false)
@@ -189,6 +208,7 @@ describe('auth contracts', () => {
         role: 'ADMIN',
         branchId: 'b',
         active: true,
+        patientId: null,
         passwordHash: 'secret',
       }).success,
     ).toBe(true)
@@ -1760,7 +1780,15 @@ describe('staff contracts (ADR 027)', () => {
   it('staffListSchema wraps items + total', () => {
     const parsed = staffListSchema.parse({
       items: [
-        { id: 'u1', email: 'a@b.dz', name: 'A', role: 'ADMIN', branchId: 'b1', active: true },
+        {
+          id: 'u1',
+          email: 'a@b.dz',
+          name: 'A',
+          role: 'ADMIN',
+          branchId: 'b1',
+          active: true,
+          patientId: null,
+        },
       ],
       total: 1,
     })
@@ -2094,5 +2122,220 @@ describe('payroll contracts (ADR 030)', () => {
     expect(auditActionSchema.options).toContain('PAYROLL_UPDATE')
     expect(auditActionSchema.options).toContain('PAYROLL_VOID')
     expect(auditTargetSchema.options).toContain('PAYROLL')
+  })
+})
+
+describe('portal contracts (5.1, ADR 031)', () => {
+  const me = {
+    id: 'p1',
+    firstName: 'Mohammed',
+    lastName: 'Bouzid',
+    gender: 'M',
+    birthDate: '1985-04-12T00:00:00.000Z',
+    phone: '0550123456',
+    email: 'm.bouzid@mail.dz',
+    address: '12 rue Didouche Mourad, Alger',
+    notifyWhatsapp: true,
+    notifyEmail: true,
+  }
+
+  it('portalMeSchema validates the self-scoped profile row', () => {
+    expect(portalMeSchema.parse(me)).toMatchObject({ id: 'p1' })
+    expect(portalMeSchema.parse(me).notifyWhatsapp).toBe(true)
+    expect(portalMeSchema.parse(me).notifyEmail).toBe(true)
+    expect(portalMeSchema.safeParse({ ...me, gender: 'X' }).success).toBe(false)
+  })
+
+  it('safeUserSchema now carries the nullable patientId link', () => {
+    const staff = safeUserSchema.parse({
+      id: 'u1',
+      email: 'karim@dentora.dz',
+      name: 'Dr. Karim Bensalem',
+      role: 'DENTIST',
+      branchId: 'b1',
+      active: true,
+      patientId: null,
+    })
+    expect(staff.patientId).toBeNull()
+    const patient = safeUserSchema.parse({ ...staff, role: 'PATIENT', patientId: 'p1' })
+    expect(patient.patientId).toBe('p1')
+  })
+
+  it('portalAppointmentsSchema wraps appointment rows', () => {
+    const row = {
+      id: 'a1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Mohammed Bouzid',
+      dentistId: 'd1',
+      dentistName: 'Dr. Karim Bensalem',
+      startAt: new Date().toISOString(),
+      endAt: new Date().toISOString(),
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    expect(portalAppointmentsSchema.parse({ items: [row] }).items[0].status).toBe('PENDING')
+  })
+
+  it('portalBookingSchema requires a future window and rejects the past', () => {
+    const future = { startAt: new Date(Date.now() + 86_400_000).toISOString(), endAt: '' }
+    future.endAt = new Date(Date.parse(future.startAt) + 3_600_000).toISOString()
+    expect(portalBookingSchema.parse({ ...future, notes: 'Révision' }).notes).toBe('Révision')
+    expect(
+      portalBookingSchema.safeParse({ startAt: future.startAt, endAt: future.startAt }).success,
+    ).toBe(false)
+    const past = { startAt: new Date(Date.now() - 3_600_000).toISOString(), endAt: '' }
+    past.endAt = new Date(Date.parse(past.startAt) + 3_600_000).toISOString()
+    expect(portalBookingSchema.safeParse(past).success).toBe(false)
+  })
+
+  it('portalBookedSchema reuses the appointment row shape', () => {
+    expect(
+      portalBookedSchema.parse({
+        id: 'a1',
+        branchId: 'b1',
+        patientId: 'p1',
+        patientName: 'Mohammed Bouzid',
+        dentistId: null,
+        dentistName: null,
+        startAt: new Date().toISOString(),
+        endAt: new Date().toISOString(),
+        status: 'CANCELLED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).status,
+    ).toBe('CANCELLED')
+  })
+
+  it('portalDentistListSchema validates the dentist roster', () => {
+    expect(
+      portalDentistListSchema.parse({ dentists: [{ id: 'd1', name: 'Dr. Karim' }] }).dentists[0]
+        .name,
+    ).toBe('Dr. Karim')
+    expect(portalDentistListSchema.safeParse({ dentists: [{ id: 'd1' }] }).success).toBe(false)
+  })
+
+  it('portalInvoicesSchema reuses the invoice list shape', () => {
+    const parsed = portalInvoicesSchema.parse({ items: [], total: 0 })
+    expect(parsed.total).toBe(0)
+  })
+
+  it('portalAccess schemas validate provisioning create/reset', () => {
+    expect(portalAccessInputSchema.parse({ action: 'create' }).action).toBe('create')
+    expect(portalAccessInputSchema.safeParse({ action: 'delete' }).success).toBe(false)
+    expect(
+      portalAccessStatusSchema.parse({ hasPortalAccess: true, email: 'x@y.dz' }),
+    ).toMatchObject({
+      hasPortalAccess: true,
+    })
+    expect(
+      portalAccessResponseSchema.parse({ email: 'x@y.dz', password: '7aBcDeFgHi' }).password,
+    ).toHaveLength(10)
+  })
+
+  it('auditActionSchema includes the portal access actions', () => {
+    expect(auditActionSchema.options).toContain('PORTAL_ACCESS_CREATE')
+    expect(auditActionSchema.options).toContain('PORTAL_ACCESS_RESET')
+  })
+})
+
+describe('notification contracts (5.2, ADR 032)', () => {
+  it('channel/status schemas expose the fixed enums', () => {
+    expect(notificationChannelSchema.options).toEqual(['WHATSAPP', 'EMAIL'])
+    expect(notificationStatusSchema.options).toEqual(['SENT', 'FAILED', 'SKIPPED'])
+    expect(notificationChannelSchema.parse('WHATSAPP')).toBe('WHATSAPP')
+    expect(() => notificationChannelSchema.parse('SMS')).toThrow()
+    expect(notificationStatusSchema.parse('FAILED')).toBe('FAILED')
+  })
+
+  it('notificationConfigSchema masks secrets behind set-flags', () => {
+    const parsed = notificationConfigSchema.parse({
+      enabled: true,
+      offsetMinutes: 1440,
+      whatsapp: {
+        enabled: true,
+        provider: 'generic',
+        apiUrl: 'https://hooks.example.com/send',
+        from: 'dentora',
+        token: { set: true },
+      },
+      email: {
+        enabled: false,
+        host: 'smtp.example.com',
+        port: 587,
+        secure: false,
+        user: 'no-reply@dentora.dz',
+        from: 'no-reply@dentora.dz',
+        pass: { set: false },
+      },
+    })
+    expect(parsed.offsetMinutes).toBe(1440)
+    expect(parsed.whatsapp.token.set).toBe(true)
+    expect(parsed.email.pass.set).toBe(false)
+    expect(notificationConfigSchema.safeParse({ enabled: true, offsetMinutes: 15 }).success).toBe(
+      false,
+    )
+    expect(notificationConfigSchema.safeParse({ ...parsed, offsetMinutes: 10081 }).success).toBe(
+      false,
+    )
+  })
+
+  it('notificationConfigUpdateSchema accepts "" secrets to mean keep-stored', () => {
+    const parsed = notificationConfigUpdateSchema.parse({
+      enabled: true,
+      offsetMinutes: 720,
+      whatsapp: { enabled: true, provider: 'generic', apiUrl: 'https://x.io', from: '', token: '' },
+      email: { enabled: true, host: 'h', port: 465, secure: true, user: 'u', from: '', pass: '' },
+    })
+    expect(parsed.whatsapp.token).toBe('')
+    expect(parsed.email.pass).toBe('')
+  })
+
+  it('notificationLogSchema validates a read row with patientName', () => {
+    const parsed = notificationLogSchema.parse({
+      id: 'n1',
+      branchId: 'b1',
+      appointmentId: 'a1',
+      patientName: 'Mohammed Bouzid',
+      channel: 'WHATSAPP',
+      status: 'SENT',
+      to: '0550123456',
+      provider: 'generic-webhook',
+      error: null,
+      sentAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    })
+    expect(parsed.status).toBe('SENT')
+    expect(notificationLogSchema.safeParse({ ...parsed, channel: 'SMS' }).success).toBe(false)
+  })
+
+  it('notificationLogQuerySchema coerces + bounds pagination', () => {
+    expect(notificationLogQuerySchema.parse({ limit: '10', channel: 'EMAIL' })).toMatchObject({
+      limit: 10,
+      channel: 'EMAIL',
+      offset: 0,
+    })
+    expect(notificationLogQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('notificationLogListSchema + sweep result validate', () => {
+    const list = notificationLogListSchema.parse({ items: [], total: 0 })
+    expect(list.total).toBe(0)
+    expect(
+      notificationSweepResultSchema.parse({ planned: 3, created: 2, sent: 2, failed: 0 }),
+    ).toMatchObject({ sent: 2 })
+  })
+
+  it('patientPrefsSchema requires both booleans', () => {
+    expect(patientPrefsSchema.parse({ notifyWhatsapp: true, notifyEmail: false })).toMatchObject({
+      notifyWhatsapp: true,
+    })
+    expect(patientPrefsSchema.safeParse({ notifyWhatsapp: true }).success).toBe(false)
+  })
+
+  it('auditActionSchema/targetSchema include the notification action + target', () => {
+    expect(auditActionSchema.options).toContain('NOTIFICATION_CONFIG_UPDATE')
+    expect(auditTargetSchema.options).toContain('NOTIFICATION')
   })
 })

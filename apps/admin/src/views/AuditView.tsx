@@ -79,6 +79,9 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   PAYROLL_CREATE: 'audit.actions.payrollCreate',
   PAYROLL_UPDATE: 'audit.actions.payrollUpdate',
   PAYROLL_VOID: 'audit.actions.payrollVoid',
+  PORTAL_ACCESS_CREATE: 'audit.actions.portalAccessCreate',
+  PORTAL_ACCESS_RESET: 'audit.actions.portalAccessReset',
+  NOTIFICATION_CONFIG_UPDATE: 'audit.actions.notificationConfigUpdate',
 }
 
 export function AuditView() {

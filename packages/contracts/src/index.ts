@@ -59,6 +59,7 @@ export const safeUserSchema = z.object({
   role: roleSchema,
   branchId: z.string(),
   active: z.boolean(),
+  patientId: z.string().nullable(),
 })
 
 export type SafeUser = z.infer<typeof safeUserSchema>
@@ -513,6 +514,8 @@ export const auditActionSchema = z.enum([
   'STAFF_UPDATE',
   'STAFF_PASSWORD_RESET',
   'SCHEDULE_UPDATE',
+  'PORTAL_ACCESS_CREATE',
+  'PORTAL_ACCESS_RESET',
   'ATTENDANCE_CREATE',
   'ATTENDANCE_UPDATE',
   'INTERN_CREATE',
@@ -520,6 +523,7 @@ export const auditActionSchema = z.enum([
   'PAYROLL_CREATE',
   'PAYROLL_UPDATE',
   'PAYROLL_VOID',
+  'NOTIFICATION_CONFIG_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -541,6 +545,7 @@ export const auditTargetSchema = z.enum([
   'ATTENDANCE',
   'INTERN',
   'PAYROLL',
+  'NOTIFICATION',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -1967,3 +1972,227 @@ export const sterilizationQuerySchema = z.object({
 export type SterilizationQuery = z.infer<typeof sterilizationQuerySchema>
 
 export type SterilizationQueryParams = z.input<typeof sterilizationQuerySchema>
+
+// ---- Patient portal (5.1, ADR 031) ----
+
+// Strictly self-scoped read of the patient's own record: the patient's portal
+// account is a PATIENT `User` linked 1:1 to a `Patient` row via `User.patientId`.
+// The API never accepts a target id from the patient — identity is the session.
+export const portalMeSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  gender: genderSchema.nullable(),
+  birthDate: z.string().nullable(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  address: z.string().nullable(),
+  notifyWhatsapp: z.boolean(),
+  notifyEmail: z.boolean(),
+})
+
+export type PortalMe = z.infer<typeof portalMeSchema>
+
+export const portalAppointmentsSchema = z.object({
+  items: z.array(appointmentSchema),
+})
+
+export type PortalAppointments = z.infer<typeof portalAppointmentsSchema>
+
+export const portalDentistSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+
+export type PortalDentist = z.infer<typeof portalDentistSchema>
+
+export const portalDentistListSchema = z.object({
+  dentists: z.array(portalDentistSchema),
+})
+
+export type PortalDentistList = z.infer<typeof portalDentistListSchema>
+
+// The patient books a real slot directly (they are known, unlike the public web
+// form): a valid future window + optional dentist + free-text reason. Status is
+// always PENDING on creation — the desk confirms as usual.
+export const portalBookingSchema = z
+  .object({
+    dentistId: z.string().min(1).nullable().optional(),
+    startAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'startAt must be a valid date-time'),
+    endAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'endAt must be a valid date-time'),
+    notes: z.string().max(APPOINTMENT_NOTES_MAX).optional(),
+  })
+  .refine((v) => Date.parse(v.endAt) > Date.parse(v.startAt), 'endAt must be after startAt')
+  .refine((v) => Date.parse(v.startAt) > Date.now(), 'startAt must be in the future')
+
+export type PortalBooking = z.infer<typeof portalBookingSchema>
+
+// Booking/cancel responses reuse the shared appointment row shape (no notes).
+export const portalBookedSchema = appointmentSchema
+
+export type PortalBooked = z.infer<typeof portalBookedSchema>
+
+export const portalInvoicesSchema = invoiceListSchema
+
+export type PortalInvoices = z.infer<typeof portalInvoicesSchema>
+
+// ---- Portal account provisioning (admin/reception desk) ----
+
+export const portalAccessInputSchema = z.object({
+  action: z.enum(['create', 'reset']),
+})
+
+export type PortalAccessInput = z.infer<typeof portalAccessInputSchema>
+
+export const portalAccessStatusSchema = z.object({
+  hasPortalAccess: z.boolean(),
+  email: z.string().nullable(),
+})
+
+export type PortalAccessStatus = z.infer<typeof portalAccessStatusSchema>
+
+// The generated password is returned exactly once (create/reset); the API never
+// returns it again — the desk copies it for the patient.
+export const portalAccessResponseSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+})
+
+export type PortalAccessResponse = z.infer<typeof portalAccessResponseSchema>
+
+// ---- Reminder notifications (5.2, ADR 032) ----
+
+// Channels and terminal outcomes of one reminder delivery. `SKIPPED` covers
+// anything the sweep chose not to send (channel disabled, patient opted out, no
+// contact on file) — recorded so the admin board explains *why* a patient got
+// nothing, and one row per (appointment, channel) keeps sends idempotent.
+export const notificationChannelSchema = z.enum(['WHATSAPP', 'EMAIL'])
+
+export type NotificationChannel = z.infer<typeof notificationChannelSchema>
+
+export const NOTIFICATION_CHANNELS = notificationChannelSchema.options
+
+export const notificationStatusSchema = z.enum(['SENT', 'FAILED', 'SKIPPED'])
+
+export type NotificationStatus = z.infer<typeof notificationStatusSchema>
+
+export const NOTIFICATION_STATUSES = notificationStatusSchema.options
+
+export const notificationProviderSchema = z.enum(['smtp', 'generic-webhook'])
+
+export type NotificationProvider = z.infer<typeof notificationProviderSchema>
+
+// WhatsApp adapter settings. `provider` selects the wire format; only `generic`
+// ships today (POST `{to,text,from}` JSON with a bearer token to `apiUrl`), the
+// enum is the seam where Meta/Twilio adapters hook in later.
+export const whatsappProviderSchema = z.enum(['generic'])
+
+export const MAX_NOTIFICATION_OFFSET_MIN = 10080 // one week
+
+// Read shape — secrets are never sent back, only their stored-ness:
+// `token: { set: true }` tells the UI a secret already exists without exposing it.
+export const notificationSecretFlagSchema = z.object({ set: z.boolean() })
+
+export const notificationConfigSchema = z.object({
+  enabled: z.boolean(),
+  offsetMinutes: z.number().int().min(30).max(MAX_NOTIFICATION_OFFSET_MIN),
+  whatsapp: z.object({
+    enabled: z.boolean(),
+    provider: whatsappProviderSchema,
+    apiUrl: z.string().max(400),
+    from: z.string().max(120),
+    token: notificationSecretFlagSchema,
+  }),
+  email: z.object({
+    enabled: z.boolean(),
+    host: z.string().max(255),
+    port: z.number().int().min(1).max(65535),
+    secure: z.boolean(),
+    user: z.string().max(255),
+    from: z.string().max(255),
+    pass: notificationSecretFlagSchema,
+  }),
+})
+
+export type NotificationConfig = z.infer<typeof notificationConfigSchema>
+
+// Update shape — secret fields accept "" to mean "keep the stored secret".
+export const notificationConfigUpdateSchema = z.object({
+  enabled: z.boolean(),
+  offsetMinutes: z.number().int().min(30).max(MAX_NOTIFICATION_OFFSET_MIN),
+  whatsapp: z.object({
+    enabled: z.boolean(),
+    provider: whatsappProviderSchema,
+    apiUrl: z.string().max(400),
+    from: z.string().max(120),
+    token: z.string().max(400),
+  }),
+  email: z.object({
+    enabled: z.boolean(),
+    host: z.string().max(255),
+    port: z.number().int().min(1).max(65535),
+    secure: z.boolean(),
+    user: z.string().max(255),
+    from: z.string().max(255),
+    pass: z.string().max(400),
+  }),
+})
+
+export type NotificationConfigUpdate = z.infer<typeof notificationConfigUpdateSchema>
+
+export const notificationLogSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  appointmentId: z.string(),
+  patientName: z.string(),
+  channel: notificationChannelSchema,
+  status: notificationStatusSchema,
+  to: z.string(),
+  provider: notificationProviderSchema.nullable(),
+  error: z.string().nullable(),
+  sentAt: z.string().nullable(),
+  createdAt: z.string(),
+})
+
+export type NotificationLog = z.infer<typeof notificationLogSchema>
+
+export const notificationLogListSchema = z.object({
+  items: z.array(notificationLogSchema),
+  total: z.number().int().nonnegative(),
+})
+
+export type NotificationLogList = z.infer<typeof notificationLogListSchema>
+
+export const notificationLogQuerySchema = z.object({
+  appointmentId: z.string().optional(),
+  channel: notificationChannelSchema.optional(),
+  status: notificationStatusSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type NotificationLogQuery = z.infer<typeof notificationLogQuerySchema>
+
+export type NotificationLogQueryParams = z.input<typeof notificationLogQuerySchema>
+
+// Manual `POST /api/notifications/sweep` result counts (a run now has no window
+// limit — one sweep covers whatever is due).
+export const notificationSweepResultSchema = z.object({
+  planned: z.number().int().nonnegative(),
+  created: z.number().int().nonnegative(),
+  sent: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+})
+
+export type NotificationSweepResult = z.infer<typeof notificationSweepResultSchema>
+
+export const patientPrefsSchema = z.object({
+  notifyWhatsapp: z.boolean(),
+  notifyEmail: z.boolean(),
+})
+
+export type PatientPrefs = z.infer<typeof patientPrefsSchema>

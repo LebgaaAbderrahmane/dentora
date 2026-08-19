@@ -484,6 +484,57 @@ Reads are open to **ADMIN + ACCOUNTANT**, writes to **ADMIN** only. Audits
 Derivation lives in pure `lib/payrollMath.ts` (unit-tested, no DB): `payrollDateError`,
 `payCheckError`, `payslipNetDZD`, `payslipWorkedMinutes`.
 
+## Patient portal (Phase 5.1, ADR 031)
+
+`/api/portal` — patient self-service. Every route is `requireAuth + requireRole('PATIENT')`;
+the scope is always the session's linked patient (`user.patientId`), never a client-supplied
+id. A `PATIENT` session whose patient link is missing gets `403 NO_PORTAL_PATIENT`.
+
+- `GET /me` — the patient's own profile row (firstName/lastName/gender/birthDate/phone/email/address + notifyWhatsapp/notifyEmail).
+- `GET /prefs`, `PUT /prefs` — the patient's own reminder preferences (`{ notifyWhatsapp, notifyEmail }`).
+- `GET /dentists` — active branch dentists `{id,name}` for the booking form.
+- `GET /appointments` — the patient's own appointments (shared normalized rows, no notes).
+- `POST /bookings` — `{ dentistId?, startAt, endAt, notes? }`; validates the dentist +
+  conflicts (shared `findConflicts`), then creates a **PENDING** appointment (desk confirms as
+  usual). Notes are encrypted and stay desk-only. Audits `APPOINTMENT_CREATE` (`source: 'portal'`).
+- `POST /appointments/:id/cancel` — own row, only before `startAt`; `404 NOT_FOUND`,
+  `400 NOT_CANCELLABLE` otherwise. Audits `APPOINTMENT_CANCEL`.
+- `GET /invoices`, `GET /invoices/:id` — the patient's own invoices (derived status +
+  paid/balance), reusing the shared invoice read model.
+
+**Portal access provisioning** — `/api/patients/:id/portal-access` (**ADMIN + RECEPTIONIST**):
+
+- `GET /:id/portal-access` — `{ hasPortalAccess, email }`.
+- `POST /:id/portal-access` — `{ action: 'create' | 'reset' }`. `create`: creates the PATIENT
+  user (login email = the patient's email), `409 PORTAL_ACCESS_EXISTS` / `409 EMAIL_IN_USE` /
+  `400 NO_EMAIL`. `reset`: re-hashes the password and **revokes all live sessions** in one
+  transaction. Both return `{ email, password }` — the generated password (`lib/password.ts`,
+  10 chars, shown once) is never stored or retrievable again. Audits
+  `PORTAL_ACCESS_CREATE`/`PORTAL_ACCESS_RESET`.
+
+## Notifications (Phase 5.2, ADR 032)
+
+`/api/notifications` — appointment reminders (WhatsApp + email). The pipeline is
+idempotency-first: a `NotificationLog` row per `(appointmentId, channel)` is _the_ guard
+against double-sends, so a crashed or overlapping sweep is safe.
+
+- `GET /config`, `PUT /config` (**ADMIN**) — the per-branch master config (`enabled`
+  kill-switch, `offsetMinutes` 30..10080), stored in a `Setting` row with secrets
+  (`whatsapp.token`, `email.pass`) AES-256-GCM encrypted at rest (ADR 006). Reads only ever
+  expose `{ set: boolean }`; on update, a `""` secret keeps the stored value. Every save
+  audits `NOTIFICATION_CONFIG_UPDATE` (target `NOTIFICATION`).
+- `GET /logs` (**ADMIN + RECEPTIONIST**) — the delivery log with patient name joined,
+  `appointmentId`/`channel`/`status` filters, `limit ≤ 200` (default 50).
+- `POST /sweep` (**ADMIN**) — runs the sweep on demand, returns `{ planned, created, sent,
+failed }` (the admin "send now" button). The API also sweeps every branch on an unref'd
+  interval (`REMINDER_SWEEP_INTERVAL_MIN`, default 15 min).
+
+Delivery is planned in pure `lib/notifyMath.ts` (`contactFor`, `planSend` skip reasons
+`disabled`/`optoff`/`no-contact`/`not-due`/`duplicate`), sent via `lib/notifications.ts`
+(WhatsApp = generic webhook `POST {to,text,from}` with Bearer token; email = nodemailer SMTP),
+logged as SENT / FAILED / SKIPPED with `to`, `provider` and `error`. Patients opt out per
+channel on `Patient.notifyWhatsapp` / `notifyEmail` (portal `/portal/prefs`).
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware
@@ -496,4 +547,5 @@ Every mutating/auth event writes a row to `audit_logs` via `src/lib/audit.ts`
 (`recordAudit` / `recordAuditFor(req)`): who, what (`action`), on which record
 (`targetType`/`targetId`), `metadata` (before/after snapshots), `ip`, `userAgent`, and `createdAt`.
 Logged today: login success/failure, logout, change-password, revoke-all, role change, revoke sessions,
-patient view/create/update/archive/restore, medical-history view/update, odontogram view/update.
+patient view/create/update/archive/restore, medical-history view/update, odontogram view/update,
+portal access create/reset, notification config update.

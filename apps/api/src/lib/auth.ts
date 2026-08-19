@@ -23,6 +23,7 @@ export interface AuthedModel {
   role: Role
   branchId: string
   active: boolean
+  patientId?: string | null
 }
 
 export function toSafeUser(user: AuthedModel): SafeUser {
@@ -33,6 +34,7 @@ export function toSafeUser(user: AuthedModel): SafeUser {
     role: user.role,
     branchId: user.branchId,
     active: user.active,
+    patientId: user.patientId ?? null,
   }
 }
 

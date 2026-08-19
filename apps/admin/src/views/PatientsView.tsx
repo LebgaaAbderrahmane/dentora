@@ -7,6 +7,8 @@ import type {
   Patient,
   PatientDetail,
   PatientInput,
+  PortalAccessResponse,
+  PortalAccessStatus,
   ToothCondition,
   ToothEntry,
   ToothStatus,
@@ -332,6 +334,7 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
   const { toast } = useToast()
   const [detail, setDetail] = useState<PatientDetail | null>(null)
   const [tab, setTab] = useState<DetailTab>('details')
+  const [portalOpen, setPortalOpen] = useState(false)
 
   useEffect(() => {
     api
@@ -417,6 +420,139 @@ function PatientDetail({ patient, onClose }: { patient: Patient; onClose: () => 
         {tab === 'medical' && <MedicalHistoryTab patientId={patient.id} />}
         {tab === 'odontogram' && <OdontogramTab patientId={patient.id} />}
         {tab === 'documents' && <DocumentsTab patientId={patient.id} />}
+        <DialogFooter className="flex justify-between">
+          <Button variant="outline" size="sm" onClick={() => setPortalOpen(true)}>
+            {t('patients.portalAccess')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            {t('patients.cancel')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+      {portalOpen && <PortalAccessModal patient={patient} onClose={() => setPortalOpen(false)} />}
+    </Dialog>
+  )
+}
+
+function PortalAccessModal({ patient, onClose }: { patient: Patient; onClose: () => void }) {
+  const { t } = useI18n()
+  const { toast } = useToast()
+  const [status, setStatus] = useState<PortalAccessStatus | null>(null)
+  const [creds, setCreds] = useState<PortalAccessResponse | null>(null)
+  const [error, setError] = useState<MessageKey | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      setStatus(await api.portalAccessStatus(patient.id))
+    } catch {
+      setError('portal.error')
+    }
+  }, [patient.id])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function provision(action: 'create' | 'reset') {
+    if (action === 'reset' && !window.confirm(t('patients.portalAccess.hint'))) return
+    setBusy(true)
+    setError(null)
+    try {
+      const response = await api.provisionPortalAccess(patient.id, action)
+      setCreds(response)
+      setStatus((s) => (s ? { ...s, hasPortalAccess: true } : s))
+      toast(
+        t(
+          action === 'create' ? 'patients.portalAccess.created' : 'patients.portalAccess.resetDone',
+        ),
+        'success',
+      )
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.message === 'EMAIL_IN_USE') setError('patients.portalAccess.emailInUse')
+        else if (err.message === 'NO_EMAIL') setError('patients.portalAccess.noEmail')
+        else if (err.message === 'PORTAL_ACCESS_EXISTS') setError('patients.portalAccess.exists')
+        else if (err.message === 'NO_PORTAL_ACCESS') setError('patients.portalAccess.noPortal')
+        else setError('portal.error')
+      } else {
+        setError('portal.error')
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copyPassword() {
+    if (!creds) return
+    try {
+      await navigator.clipboard.writeText(creds.password)
+      toast(t('patients.portalAccess.copied'), 'success')
+    } catch {
+      // clipboard unavailable — keep the box visible
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {t('patients.portalAccess')} — {patient.lastName} {patient.firstName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{t(error)}</p>}
+        <p className="text-sm text-muted-foreground">{t('patients.portalAccess.hint')}</p>
+
+        {status && (
+          <p className="text-sm">
+            {status.hasPortalAccess
+              ? t('patients.portalAccess.exists')
+              : t('patients.portalAccess.none')}
+          </p>
+        )}
+
+        {!creds && (
+          <div className="flex gap-2">
+            {!status?.hasPortalAccess && (
+              <Button size="sm" disabled={busy} onClick={() => void provision('create')}>
+                {t('patients.portalAccess.create')}
+              </Button>
+            )}
+            {status?.hasPortalAccess && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => void provision('reset')}
+              >
+                {t('patients.portalAccess.reset')}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {creds && (
+          <div className="rounded-lg border border-border bg-muted p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              {t('patients.portalAccess.credentials')}
+            </p>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="min-w-0 text-sm">
+                <p className="truncate text-foreground">{creds.email}</p>
+                <p className="font-mono text-foreground">{creds.password}</p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => void copyPassword()}>
+                {t('patients.portalAccess.copy')}
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+              {t('patients.portalAccess.passwordOnce')}
+            </p>
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>
             {t('patients.cancel')}
