@@ -372,6 +372,83 @@ export const internMetaSchema = z.object({
 
 export type InternMeta = z.infer<typeof internMetaSchema>
 
+export const PAYROLL_NOTES_MAX = 500
+export const MAX_PAYROLL_AMOUNT_DZD = 100_000_000
+
+const payrollMoney = z.number().int().min(0).max(MAX_PAYROLL_AMOUNT_DZD)
+
+export const payslipSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  staffId: z.string(),
+  staffName: z.string(),
+  staffRole: staffRoleSchema,
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  baseDZD: payrollMoney,
+  bonusDZD: payrollMoney,
+  deductionsDZD: payrollMoney,
+  netDZD: z.number().int().min(0),
+  workedMinutes: z.number().int().min(0),
+  notes: z.string().nullable(),
+  voidedAt: z.string().nullable(),
+  createdByName: z.string().nullable(),
+})
+
+export type Payslip = z.infer<typeof payslipSchema>
+
+export const payslipInputSchema = z.object({
+  staffId: z.string().min(1),
+  periodStart: internDateValue('periodStart'),
+  periodEnd: internDateValue('periodEnd'),
+  baseDZD: payrollMoney,
+  bonusDZD: payrollMoney.optional(),
+  deductionsDZD: payrollMoney.optional(),
+  notes: z.string().trim().max(PAYROLL_NOTES_MAX, 'notes too long').optional(),
+})
+
+export type PayslipInput = z.infer<typeof payslipInputSchema>
+
+export const payslipUpdateSchema = z
+  .object({
+    periodStart: internDateValue('periodStart').optional(),
+    periodEnd: internDateValue('periodEnd').optional(),
+    baseDZD: payrollMoney.optional(),
+    bonusDZD: payrollMoney.optional(),
+    deductionsDZD: payrollMoney.optional(),
+    notes: z.string().trim().max(PAYROLL_NOTES_MAX, 'notes too long').optional().nullable(),
+  })
+  .refine((v) => Object.keys(v).length > 0, 'nothing to update')
+
+export type PayslipUpdate = z.infer<typeof payslipUpdateSchema>
+
+export const payslipQuerySchema = z.object({
+  from: internDateValue('from').optional(),
+  to: internDateValue('to').optional(),
+  staffId: z.string().optional(),
+  voided: z
+    .string()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true' || v === '1')),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+
+export type PayslipQueryParams = z.infer<typeof payslipQuerySchema>
+
+export const payslipListSchema = z.object({
+  items: z.array(payslipSchema),
+  total: z.number().int(),
+})
+
+export type PayslipList = z.infer<typeof payslipListSchema>
+
+export const payrollMetaSchema = z.object({
+  staff: z.array(z.object({ id: z.string(), name: z.string(), role: staffRoleSchema })),
+})
+
+export type PayrollMeta = z.infer<typeof payrollMetaSchema>
+
 export const errorSchema = z.object({ error: z.string(), issues: z.unknown().optional() })
 
 export type ApiError = z.infer<typeof errorSchema>
@@ -440,6 +517,9 @@ export const auditActionSchema = z.enum([
   'ATTENDANCE_UPDATE',
   'INTERN_CREATE',
   'INTERN_UPDATE',
+  'PAYROLL_CREATE',
+  'PAYROLL_UPDATE',
+  'PAYROLL_VOID',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -460,6 +540,7 @@ export const auditTargetSchema = z.enum([
   'SCHEDULE',
   'ATTENDANCE',
   'INTERN',
+  'PAYROLL',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>

@@ -52,13 +52,19 @@ and the seed script live here from Phase 0.4 (`pnpm prisma:migrate`, `pnpm prism
 | POST   | `/api/interns`                       | writ§   | Create placement; **409 INTERN_PROFILE_EXISTS**, `400 UNKNOWN_MENTOR`, `422 END_BEFORE_START`                   |
 | PATCH  | `/api/interns/:id`                   | writ§   | Edit placement / toggle `active` (null clears mentor/endDate); same guards                                      |
 | PATCH  | `/api/attendance/:id`                | duo‡    | Clock-out / fix a punch (nullable times/notes); 404 UNKNOWN_ATTENDANCE; 422 time guards; audited                |
+| GET    | `/api/payroll`                       | read§   | Payslips: `from`/`to`/`staffId`/`voided`/`limit`/`offset`, derived `netDZD` + `workedMinutes`                   |
+| GET    | `/api/payroll/meta`                  | read§   | Form data: active paid staff roster (`{id,name,role}`) for the staff dropdown                                   |
+| POST   | `/api/payroll`                       | writ§   | Create payslip; **409 PAYSLIP_EXISTS**, `404` non-staff, `422 PERIOD_END_BEFORE_START`/`NEGATIVE_NET`           |
+| PATCH  | `/api/payroll/:id`                   | writ§   | Edit period/base/bonus/deductions/notes; same guards                                                            |
+| POST   | `/api/payroll/:id/void`              | writ§   | Soft-void a payslip; **409 ALREADY_VOIDED**                                                                     |
 
 `*` staff = ADMIN, DENTIST, RECEPTIONIST (branch-scoped). Patient list/search never returns
 `notes` (ADR 006); they are only decrypted on `GET /api/patients/:id`.
 
 `†` trio = ADMIN, RECEPTIONIST, ACCOUNTANT (attendance reads). `‡` duo = ADMIN, RECEPTIONIST
 (attendance writes). `§` intern read/write = ADMIN + ACCOUNTANT read, ADMIN write (HR/payroll
-desk). See "Attendance (Phase 4.2, ADR 028)" and "Interns (Phase 4.3, ADR 029)" below.
+desk). See "Attendance (Phase 4.2, ADR 028)", "Interns (Phase 4.3, ADR 029)" and "Payroll
+(Phase 4.4, ADR 030)" below.
 
 ### Documents (Phase 1.4, ADR 005 amended)
 
@@ -453,6 +459,30 @@ END_BEFORE_START`.
 
 Derivation lives in pure `lib/internMath.ts` (unit-tested, no DB): `internDateError`,
 `internCompletedMinutes`, `internRemainingMinutes`, `internProgressPct`.
+
+## Payroll (Phase 4.4, ADR 030)
+
+`/api/payroll` — monthly **payslips** (`Payslip`): `staffId` (a branch `User` — any paid role
+except `PATIENT`), `periodStart`/`periodEnd` (Postgres `DATE`), stored `baseDZD` (required) +
+`bonusDZD`/`deductionsDZD` (default `0`) + `notes` + `createdById` + `voidedAt`. `netDZD`
+(base + bonus − deductions, always ≥ 0 by the write guard) and `workedMinutes` (Σ closed
+attendance records whose `checkOut` falls inside the period, ADR 028) are **derived on read**.
+Reads are open to **ADMIN + ACCOUNTANT**, writes to **ADMIN** only. Audits
+`PAYROLL_CREATE`/`PAYROLL_UPDATE` (before/after)/`PAYROLL_VOID`.
+
+- `GET /` — `from`, `to`, `staffId`, `voided=true|false` (unset = both), `limit` ≤200,
+  `offset`; rows sorted by period then staff name.
+- `GET /meta` — active paid staff `{id,name,role}` for the create form.
+- `POST /` — `{ staffId, periodStart, periodEnd, baseDZD, bonusDZD?, deductionsDZD?, notes? }`;
+  `404` for a non-staff/non-branch user, `409 PAYSLIP_EXISTS` (one payslip per staff per
+  period), `422 PERIOD_END_BEFORE_START`, `422 NEGATIVE_NET` (deductions > base + bonus).
+- `PATCH /:id` — period/base/bonus/deductions/notes (null clears); re-checks the unique period
+  and both 422 guards.
+- `POST /:id/void` — soft-void (`voidedAt`), `409 ALREADY_VOIDED` if already voided; the row is
+  kept for history. No delete.
+
+Derivation lives in pure `lib/payrollMath.ts` (unit-tested, no DB): `payrollDateError`,
+`payCheckError`, `payslipNetDZD`, `payslipWorkedMinutes`.
 
 ## Error tracking (ADR 009, Phase 0.7)
 

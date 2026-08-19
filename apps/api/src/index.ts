@@ -31,6 +31,7 @@ import consumptionRouter from './routes/consumption'
 import sterilizationsRouter from './routes/sterilizations'
 import attendanceRouter from './routes/attendance'
 import internsRouter from './routes/interns'
+import payrollRouter from './routes/payroll'
 
 initSentry()
 
@@ -106,6 +107,7 @@ api.use('/consumption', consumptionRouter)
 api.use('/sterilizations', sterilizationsRouter)
 api.use('/attendance', attendanceRouter)
 api.use('/interns', internsRouter)
+api.use('/payroll', payrollRouter)
 
 app.use('/api', api)
 

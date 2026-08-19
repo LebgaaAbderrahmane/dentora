@@ -30,6 +30,13 @@ import {
   internRotationSchema,
   internUpdateSchema,
   INTERN_ROTATIONS,
+  MAX_PAYROLL_AMOUNT_DZD,
+  payslipInputSchema,
+  payslipListSchema,
+  payslipQuerySchema,
+  payslipSchema,
+  payslipUpdateSchema,
+  payrollMetaSchema,
   medicalHistoryResponseSchema,
   medicalHistorySchema,
   medicalHistoryWriteSchema,
@@ -1994,5 +2001,98 @@ describe('intern contracts (ADR 029)', () => {
     expect(auditActionSchema.options).toContain('INTERN_CREATE')
     expect(auditActionSchema.options).toContain('INTERN_UPDATE')
     expect(auditTargetSchema.options).toContain('INTERN')
+  })
+})
+
+describe('payroll contracts (ADR 030)', () => {
+  const valid = {
+    id: 'p1',
+    branchId: 'b1',
+    staffId: 'u1',
+    staffName: 'Dr. Karim Bensalem',
+    staffRole: 'DENTIST',
+    periodStart: '2026-07-01T00:00:00.000Z',
+    periodEnd: '2026-07-31T00:00:00.000Z',
+    baseDZD: 180000,
+    bonusDZD: 20000,
+    deductionsDZD: 5000,
+    netDZD: 195000,
+    workedMinutes: 12000,
+    notes: null,
+    voidedAt: null,
+    createdByName: 'Dr. Admin',
+  }
+
+  it('payslipSchema validates a read row with derived net + worked minutes', () => {
+    const parsed = payslipSchema.parse(valid)
+    expect(parsed.netDZD).toBe(195000)
+    expect(parsed.workedMinutes).toBe(12000)
+    expect(payslipSchema.safeParse({ ...valid, netDZD: -1 }).success).toBe(false)
+    expect(payslipSchema.safeParse({ ...valid, baseDZD: -5 }).success).toBe(false)
+  })
+
+  it('payslipInputSchema requires staffId + period + base, defaults bonus/deductions', () => {
+    const ok = payslipInputSchema.parse({
+      staffId: 'u1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      baseDZD: 180000,
+    })
+    expect(ok.bonusDZD).toBeUndefined()
+    expect(ok.deductionsDZD).toBeUndefined()
+    expect(payslipInputSchema.safeParse({ staffId: 'u1', baseDZD: 100 }).success).toBe(false)
+    expect(
+      payslipInputSchema.safeParse({
+        staffId: 'u1',
+        periodStart: 'nope',
+        periodEnd: '2026-07-31',
+        baseDZD: 100,
+      }).success,
+    ).toBe(false)
+    expect(
+      payslipInputSchema.safeParse({
+        staffId: 'u1',
+        periodStart: '2026-07-01',
+        periodEnd: '2026-07-31',
+        baseDZD: MAX_PAYROLL_AMOUNT_DZD + 1,
+      }).success,
+    ).toBe(false)
+    expect(payslipInputSchema.safeParse({ staffId: 'u1', baseDZD: -10 }).success).toBe(false)
+  })
+
+  it('payslipUpdateSchema requires at least one editable field', () => {
+    expect(payslipUpdateSchema.safeParse({}).success).toBe(false)
+    expect(payslipUpdateSchema.safeParse({ bonusDZD: 5000 }).success).toBe(true)
+    expect(payslipUpdateSchema.safeParse({ notes: null }).success).toBe(true)
+    expect(payslipUpdateSchema.safeParse({ baseDZD: 'bogus' }).success).toBe(false)
+  })
+
+  it('payslipQuerySchema coerces limit/offset and the voided flag', () => {
+    const q = payslipQuerySchema.parse({ voided: '1', staffId: 'u1', limit: '10' })
+    expect(q.voided).toBe(true)
+    expect(q.limit).toBe(10)
+    expect(payslipQuerySchema.parse({ voided: 'false' }).voided).toBe(false)
+    expect(payslipQuerySchema.safeParse({ limit: '9999' }).success).toBe(false)
+  })
+
+  it('payslipListSchema wraps items + total', () => {
+    const parsed = payslipListSchema.parse({ items: [valid], total: 1 })
+    expect(parsed.items[0].staffName).toBe('Dr. Karim Bensalem')
+    expect(parsed.total).toBe(1)
+  })
+
+  it('payrollMetaSchema validates the staff roster', () => {
+    const parsed = payrollMetaSchema.parse({
+      staff: [{ id: 'u1', name: 'Dr. Karim Bensalem', role: 'DENTIST' }],
+    })
+    expect(parsed.staff[0].role).toBe('DENTIST')
+    expect(payrollMetaSchema.safeParse({ staff: [{ id: 'u1', name: 'x' }] }).success).toBe(false)
+  })
+
+  it('auditActionSchema includes payroll actions and PAYROLL target', () => {
+    expect(auditActionSchema.options).toContain('PAYROLL_CREATE')
+    expect(auditActionSchema.options).toContain('PAYROLL_UPDATE')
+    expect(auditActionSchema.options).toContain('PAYROLL_VOID')
+    expect(auditTargetSchema.options).toContain('PAYROLL')
   })
 })
