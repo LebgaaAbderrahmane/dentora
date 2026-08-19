@@ -10,6 +10,12 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  optimizeDeps: {
+    // Serve workspace packages from source so i18n/contracts/ui edits are always
+    // picked up (a stale pre-bundled @dentora/i18n cached at server start showed
+    // raw keys like `nav.notifications` after new keys were added).
+    exclude: ['@dentora/i18n', '@dentora/ui', '@dentora/contracts'],
+  },
   server: {
     port: 5174,
     strictPort: true,
