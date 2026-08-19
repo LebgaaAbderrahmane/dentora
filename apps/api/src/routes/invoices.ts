@@ -31,7 +31,7 @@ type LineRow = {
   quantity: number
 }
 
-type InvoiceRow = {
+export type InvoiceRow = {
   id: string
   branchId: string
   patientId: string
@@ -44,7 +44,24 @@ type InvoiceRow = {
   lines?: LineRow[]
 }
 
-function totals(lines: Pick<LineRow, 'priceDZD' | 'quantity'>[]): {
+export type InvoiceDetailRow = InvoiceRow & {
+  lines: LineRow[]
+  payments: Array<{
+    id: string
+    invoiceId: string
+    kind: 'RECEIPT' | 'REFUND'
+    method: string
+    amountDZD: number
+    reference: string | null
+    notes: string | null
+    receivedAt: Date
+    refundsId: string | null
+    createdAt: Date
+    createdById: string | null
+  }>
+}
+
+export function totals(lines: Pick<LineRow, 'priceDZD' | 'quantity'>[]): {
   subtotalDZD: number
   totalDZD: number
 } {
@@ -52,11 +69,11 @@ function totals(lines: Pick<LineRow, 'priceDZD' | 'quantity'>[]): {
   return { subtotalDZD, totalDZD: subtotalDZD }
 }
 
-function toPatientName(p: InvoiceRow['patient']): string {
+export function toPatientName(p: InvoiceRow['patient']): string {
   return `${p.firstName} ${p.lastName}`.trim()
 }
 
-function toInvoice(row: InvoiceRow, lines: LineRow[], paidDZD = 0) {
+export function toInvoice(row: InvoiceRow, lines: LineRow[], paidDZD = 0) {
   const { subtotalDZD, totalDZD } = totals(lines)
   return invoiceSchema.parse({
     id: row.id,
@@ -155,6 +172,40 @@ router.get('/', async (req, res) => {
   )
 })
 
+// Full detail (lines + derived payments ledger) shared by the staff and the
+// patient portal so both surface the same figures.
+export function toInvoiceDetail(row: InvoiceDetailRow) {
+  const lines = row.lines.map((l) =>
+    invoiceLineSchema.parse({
+      id: l.id,
+      serviceId: l.serviceId,
+      serviceName: l.serviceName,
+      priceDZD: l.priceDZD,
+      quantity: l.quantity,
+    }),
+  )
+  const paidDZD = netPaid(row.payments)
+  const { totalDZD } = totals(lines)
+  return invoiceDetailSchema.parse({
+    ...toInvoice(row, lines, paidDZD),
+    lines,
+    paidDZD,
+    balanceDZD: balanceDue(totalDZD, paidDZD),
+    payments: row.payments.map((p) =>
+      toPayment({
+        ...p,
+        method: p.method as never,
+        receivedAt: p.receivedAt,
+        createdAt: p.createdAt,
+        reference: p.reference,
+        notes: p.notes,
+        refundsId: p.refundsId,
+        createdById: p.createdById,
+      }),
+    ),
+  })
+}
+
 router.get('/:id', async (req, res) => {
   const { branchId } = assertAuth(req).user
   const row = await prisma.invoice.findFirst({
@@ -169,37 +220,7 @@ router.get('/:id', async (req, res) => {
     res.status(404).json({ error: 'NOT_FOUND' })
     return
   }
-  const lines = row.lines.map((l) =>
-    invoiceLineSchema.parse({
-      id: l.id,
-      serviceId: l.serviceId,
-      serviceName: l.serviceName,
-      priceDZD: l.priceDZD,
-      quantity: l.quantity,
-    }),
-  )
-  const paidDZD = netPaid(row.payments)
-  const { totalDZD } = totals(lines)
-  res.json(
-    invoiceDetailSchema.parse({
-      ...toInvoice(row, lines, paidDZD),
-      lines,
-      paidDZD,
-      balanceDZD: balanceDue(totalDZD, paidDZD),
-      payments: row.payments.map((p) =>
-        toPayment({
-          ...p,
-          method: p.method as never,
-          receivedAt: p.receivedAt,
-          createdAt: p.createdAt,
-          reference: p.reference,
-          notes: p.notes,
-          refundsId: p.refundsId,
-          createdById: p.createdById,
-        }),
-      ),
-    }),
-  )
+  res.json(toInvoiceDetail(row))
 })
 
 router.post('/', canWrite, async (req, res) => {

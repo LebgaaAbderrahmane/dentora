@@ -59,6 +59,8 @@ import {
   type PayslipList,
   type PayslipQueryParams,
   type PayslipUpdate,
+  type PortalAccessResponse,
+  type PortalAccessStatus,
   type RefundCreate,
   type PurchaseOrderCreate,
   type PurchaseOrderDetail,
@@ -211,6 +213,15 @@ export const api = {
 
   restorePatient: (id: string) =>
     request<Patient>(`/api/patients/${id}/restore`, { method: 'POST' }),
+
+  portalAccessStatus: (id: string) =>
+    request<PortalAccessStatus>(`/api/patients/${id}/portal-access`),
+
+  provisionPortalAccess: (id: string, action: 'create' | 'reset') =>
+    request<PortalAccessResponse>(`/api/patients/${id}/portal-access`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    }),
 
   medicalHistory: (id: string) =>
     request<MedicalHistoryResponse>(`/api/patients/${id}/medical-history`),

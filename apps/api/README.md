@@ -484,6 +484,33 @@ Reads are open to **ADMIN + ACCOUNTANT**, writes to **ADMIN** only. Audits
 Derivation lives in pure `lib/payrollMath.ts` (unit-tested, no DB): `payrollDateError`,
 `payCheckError`, `payslipNetDZD`, `payslipWorkedMinutes`.
 
+## Patient portal (Phase 5.1, ADR 031)
+
+`/api/portal` — patient self-service. Every route is `requireAuth + requireRole('PATIENT')`;
+the scope is always the session's linked patient (`user.patientId`), never a client-supplied
+id. A `PATIENT` session whose patient link is missing gets `403 NO_PORTAL_PATIENT`.
+
+- `GET /me` — the patient's own profile row (firstName/lastName/gender/birthDate/phone/email/address).
+- `GET /dentists` — active branch dentists `{id,name}` for the booking form.
+- `GET /appointments` — the patient's own appointments (shared normalized rows, no notes).
+- `POST /bookings` — `{ dentistId?, startAt, endAt, notes? }`; validates the dentist +
+  conflicts (shared `findConflicts`), then creates a **PENDING** appointment (desk confirms as
+  usual). Notes are encrypted and stay desk-only. Audits `APPOINTMENT_CREATE` (`source: 'portal'`).
+- `POST /appointments/:id/cancel` — own row, only before `startAt`; `404 NOT_FOUND`,
+  `400 NOT_CANCELLABLE` otherwise. Audits `APPOINTMENT_CANCEL`.
+- `GET /invoices`, `GET /invoices/:id` — the patient's own invoices (derived status +
+  paid/balance), reusing the shared invoice read model.
+
+**Portal access provisioning** — `/api/patients/:id/portal-access` (**ADMIN + RECEPTIONIST**):
+
+- `GET /:id/portal-access` — `{ hasPortalAccess, email }`.
+- `POST /:id/portal-access` — `{ action: 'create' | 'reset' }`. `create`: creates the PATIENT
+  user (login email = the patient's email), `409 PORTAL_ACCESS_EXISTS` / `409 EMAIL_IN_USE` /
+  `400 NO_EMAIL`. `reset`: re-hashes the password and **revokes all live sessions** in one
+  transaction. Both return `{ email, password }` — the generated password (`lib/password.ts`,
+  10 chars, shown once) is never stored or retrievable again. Audits
+  `PORTAL_ACCESS_CREATE`/`PORTAL_ACCESS_RESET`.
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

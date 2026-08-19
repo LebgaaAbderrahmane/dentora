@@ -147,6 +147,15 @@ import {
   sterilizationLogSchema,
   sterilizationQuerySchema,
   sterilizationUpdateSchema,
+  portalAccessInputSchema,
+  portalAccessResponseSchema,
+  portalAccessStatusSchema,
+  portalAppointmentsSchema,
+  portalBookingSchema,
+  portalBookedSchema,
+  portalDentistListSchema,
+  portalInvoicesSchema,
+  portalMeSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -178,6 +187,7 @@ describe('auth contracts', () => {
       role: 'ADMIN',
       branchId: 'b',
       active: true,
+      patientId: null,
     })
     expect(ok.success).toBe(true)
     expect(safeUserSchema.safeParse({ id: '1' }).success).toBe(false)
@@ -189,6 +199,7 @@ describe('auth contracts', () => {
         role: 'ADMIN',
         branchId: 'b',
         active: true,
+        patientId: null,
         passwordHash: 'secret',
       }).success,
     ).toBe(true)
@@ -1760,7 +1771,15 @@ describe('staff contracts (ADR 027)', () => {
   it('staffListSchema wraps items + total', () => {
     const parsed = staffListSchema.parse({
       items: [
-        { id: 'u1', email: 'a@b.dz', name: 'A', role: 'ADMIN', branchId: 'b1', active: true },
+        {
+          id: 'u1',
+          email: 'a@b.dz',
+          name: 'A',
+          role: 'ADMIN',
+          branchId: 'b1',
+          active: true,
+          patientId: null,
+        },
       ],
       total: 1,
     })
@@ -2094,5 +2113,116 @@ describe('payroll contracts (ADR 030)', () => {
     expect(auditActionSchema.options).toContain('PAYROLL_UPDATE')
     expect(auditActionSchema.options).toContain('PAYROLL_VOID')
     expect(auditTargetSchema.options).toContain('PAYROLL')
+  })
+})
+
+describe('portal contracts (5.1, ADR 031)', () => {
+  const me = {
+    id: 'p1',
+    firstName: 'Mohammed',
+    lastName: 'Bouzid',
+    gender: 'M',
+    birthDate: '1985-04-12T00:00:00.000Z',
+    phone: '0550123456',
+    email: 'm.bouzid@mail.dz',
+    address: '12 rue Didouche Mourad, Alger',
+  }
+
+  it('portalMeSchema validates the self-scoped profile row', () => {
+    expect(portalMeSchema.parse(me)).toMatchObject({ id: 'p1' })
+    expect(portalMeSchema.safeParse({ ...me, gender: 'X' }).success).toBe(false)
+  })
+
+  it('safeUserSchema now carries the nullable patientId link', () => {
+    const staff = safeUserSchema.parse({
+      id: 'u1',
+      email: 'karim@dentora.dz',
+      name: 'Dr. Karim Bensalem',
+      role: 'DENTIST',
+      branchId: 'b1',
+      active: true,
+      patientId: null,
+    })
+    expect(staff.patientId).toBeNull()
+    const patient = safeUserSchema.parse({ ...staff, role: 'PATIENT', patientId: 'p1' })
+    expect(patient.patientId).toBe('p1')
+  })
+
+  it('portalAppointmentsSchema wraps appointment rows', () => {
+    const row = {
+      id: 'a1',
+      branchId: 'b1',
+      patientId: 'p1',
+      patientName: 'Mohammed Bouzid',
+      dentistId: 'd1',
+      dentistName: 'Dr. Karim Bensalem',
+      startAt: new Date().toISOString(),
+      endAt: new Date().toISOString(),
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    expect(portalAppointmentsSchema.parse({ items: [row] }).items[0].status).toBe('PENDING')
+  })
+
+  it('portalBookingSchema requires a future window and rejects the past', () => {
+    const future = { startAt: new Date(Date.now() + 86_400_000).toISOString(), endAt: '' }
+    future.endAt = new Date(Date.parse(future.startAt) + 3_600_000).toISOString()
+    expect(portalBookingSchema.parse({ ...future, notes: 'Révision' }).notes).toBe('Révision')
+    expect(
+      portalBookingSchema.safeParse({ startAt: future.startAt, endAt: future.startAt }).success,
+    ).toBe(false)
+    const past = { startAt: new Date(Date.now() - 3_600_000).toISOString(), endAt: '' }
+    past.endAt = new Date(Date.parse(past.startAt) + 3_600_000).toISOString()
+    expect(portalBookingSchema.safeParse(past).success).toBe(false)
+  })
+
+  it('portalBookedSchema reuses the appointment row shape', () => {
+    expect(
+      portalBookedSchema.parse({
+        id: 'a1',
+        branchId: 'b1',
+        patientId: 'p1',
+        patientName: 'Mohammed Bouzid',
+        dentistId: null,
+        dentistName: null,
+        startAt: new Date().toISOString(),
+        endAt: new Date().toISOString(),
+        status: 'CANCELLED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).status,
+    ).toBe('CANCELLED')
+  })
+
+  it('portalDentistListSchema validates the dentist roster', () => {
+    expect(
+      portalDentistListSchema.parse({ dentists: [{ id: 'd1', name: 'Dr. Karim' }] }).dentists[0]
+        .name,
+    ).toBe('Dr. Karim')
+    expect(portalDentistListSchema.safeParse({ dentists: [{ id: 'd1' }] }).success).toBe(false)
+  })
+
+  it('portalInvoicesSchema reuses the invoice list shape', () => {
+    const parsed = portalInvoicesSchema.parse({ items: [], total: 0 })
+    expect(parsed.total).toBe(0)
+  })
+
+  it('portalAccess schemas validate provisioning create/reset', () => {
+    expect(portalAccessInputSchema.parse({ action: 'create' }).action).toBe('create')
+    expect(portalAccessInputSchema.safeParse({ action: 'delete' }).success).toBe(false)
+    expect(
+      portalAccessStatusSchema.parse({ hasPortalAccess: true, email: 'x@y.dz' }),
+    ).toMatchObject({
+      hasPortalAccess: true,
+    })
+    expect(
+      portalAccessResponseSchema.parse({ email: 'x@y.dz', password: '7aBcDeFgHi' }).password,
+    ).toHaveLength(10)
+  })
+
+  it('auditActionSchema includes the portal access actions', () => {
+    expect(auditActionSchema.options).toContain('PORTAL_ACCESS_CREATE')
+    expect(auditActionSchema.options).toContain('PORTAL_ACCESS_RESET')
   })
 })

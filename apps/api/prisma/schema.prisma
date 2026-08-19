@@ -97,6 +97,8 @@ enum AuditAction {
   STAFF_UPDATE
   STAFF_PASSWORD_RESET
   SCHEDULE_UPDATE
+  PORTAL_ACCESS_CREATE
+  PORTAL_ACCESS_RESET
   ATTENDANCE_CREATE
   ATTENDANCE_UPDATE
   INTERN_CREATE
@@ -300,6 +302,8 @@ model User {
   mentoredInterns    InternProfile[]       @relation("InternMentor")
   payslips           Payslip[]             @relation("PayslipStaff")
   createdPayslips    Payslip[]             @relation("PayslipCreator")
+  patientId          String?               @unique
+  patient            Patient?              @relation("PatientUser", fields: [patientId], references: [id], onDelete: SetNull)
 
   @@index([branchId])
   @@map("users")
@@ -339,6 +343,7 @@ model Patient {
   appointments   Appointment[]
   waitlist       WaitlistEntry[]
   invoices       Invoice[]
+  user           User?              @relation("PatientUser")
 
   @@index([branchId])
   @@index([firstName, lastName])

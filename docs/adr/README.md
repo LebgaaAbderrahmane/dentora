@@ -32,3 +32,4 @@ Format follows [Michael Nygard's template](https://cognitect.com/blog/2011/11/15
 | [0028](0028-attendance.md)                    | Accepted | Daily attendance logs: one punch record per staff per business day, hours derived on read             |
 | [0029](0029-intern-profiles.md)               | Accepted | Intern placement profiles (school, rotation, mentor, required hours); hours derived from attendance   |
 | [0030](0030-payroll-payslips.md)              | Accepted | Payroll payslips (base + bonus − deductions): net + worked minutes derived on read, finance-desk RBAC |
+| [0031](0031-patient-portal.md)                | Accepted | Patient portal: `User.patientId` link, desk-provisioned login, self-scoped history/booking/cancel     |

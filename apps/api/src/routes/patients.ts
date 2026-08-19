@@ -1,6 +1,7 @@
 import { Router, type Request as ExpressRequest, type Response as ExpressResponse } from 'express'
 import express from 'express'
 import { randomUUID } from 'node:crypto'
+import { hash } from 'bcryptjs'
 import { z } from 'zod'
 import {
   type AuditAction,
@@ -20,6 +21,9 @@ import {
   patientQuerySchema,
   patientSchema,
   patientUpdateSchema,
+  portalAccessInputSchema,
+  portalAccessResponseSchema,
+  portalAccessStatusSchema,
 } from '@dentora/contracts'
 import { Prisma } from '../generated/prisma/client'
 import { assertAuth, requireAuth, requireRole } from '../lib/auth'
@@ -28,6 +32,7 @@ import { recordAuditFor } from '../lib/audit'
 import { decrypt, encrypt } from '../lib/encryption'
 import { decryptDocument, encryptDocument } from '../lib/encryption'
 import { noShowStats } from '../lib/noShow'
+import { generateTemporaryPassword } from '../lib/password'
 import {
   getEncryptedObject,
   getClient,
@@ -546,5 +551,118 @@ router.put(
       parseData: (raw) => odontogramSchema.parse(JSON.parse(decrypt(raw))),
     }),
 )
+
+// ---- Patient portal account provisioning (5.1, ADR 031) ----
+//
+// The portal is PATIENT-role logins (one `User` per `Patient`, linked via
+// `User.patientId`). The desk creates or resets that account from the patient
+// detail screen; the generated password is returned exactly once, never stored
+// or retrievable again. Login email = the patient's own email.
+
+const canProvisionPortal = requireRole('ADMIN', 'RECEPTIONIST')
+
+router.get('/:id/portal-access', canProvisionPortal, async (req, res) => {
+  const { branchId } = assertAuth(req).user
+  const patient = await prisma.patient.findFirst({
+    where: { id: req.params.id as string, branchId },
+    select: { id: true, email: true, user: { select: { id: true } } },
+  })
+  if (!patient) {
+    res.status(404).json({ error: 'NOT_FOUND' })
+    return
+  }
+  res.json(
+    portalAccessStatusSchema.parse({
+      hasPortalAccess: patient.user !== null,
+      email: patient.email,
+    }),
+  )
+})
+
+router.post('/:id/portal-access', canProvisionPortal, async (req, res) => {
+  const parsed = portalAccessInputSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_BODY', issues: parsed.error.flatten() })
+    return
+  }
+  const { branchId } = assertAuth(req).user
+  const patient = await prisma.patient.findFirst({
+    where: { id: req.params.id as string, branchId },
+    select: {
+      id: true,
+      branchId: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      user: { select: { id: true } },
+    },
+  })
+  if (!patient) {
+    res.status(404).json({ error: 'NOT_FOUND' })
+    return
+  }
+  const email = (patient.email ?? '').trim().toLowerCase()
+  if (!email) {
+    res.status(400).json({ error: 'NO_EMAIL' })
+    return
+  }
+
+  const password = generateTemporaryPassword()
+  const passwordHash = await hash(password, 12)
+  const { action } = parsed.data
+
+  if (action === 'create') {
+    if (patient.user) {
+      res.status(409).json({ error: 'PORTAL_ACCESS_EXISTS' })
+      return
+    }
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) {
+      res.status(409).json({ error: 'EMAIL_IN_USE' })
+      return
+    }
+    const created = await prisma.user.create({
+      data: {
+        branchId: patient.branchId,
+        email,
+        passwordHash,
+        name: `${patient.firstName} ${patient.lastName}`.trim(),
+        role: 'PATIENT',
+        active: true,
+        patientId: patient.id,
+      },
+    })
+    await recordAuditFor(req)({
+      action: 'PORTAL_ACCESS_CREATE',
+      targetType: 'USER',
+      targetId: created.id,
+      metadata: { patientId: patient.id, email },
+    })
+    res.status(201).json(portalAccessResponseSchema.parse({ email, password }))
+    return
+  }
+
+  const portalUser = await prisma.user.findFirst({
+    where: { id: patient.user?.id ?? '', branchId, role: 'PATIENT' },
+  })
+  if (!portalUser) {
+    res.status(404).json({ error: 'NO_PORTAL_ACCESS' })
+    return
+  }
+  const [updated, revoked] = await prisma.$transaction([
+    prisma.user.update({ where: { id: portalUser.id }, data: { passwordHash } }),
+    prisma.session.updateMany({
+      where: { userId: portalUser.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ])
+  await recordAuditFor(req)({
+    action: 'PORTAL_ACCESS_RESET',
+    targetType: 'USER',
+    targetId: updated.id,
+    metadata: { patientId: patient.id, email, revokedSessions: revoked.count },
+  })
+  res.json(portalAccessResponseSchema.parse({ email, password }))
+})
 
 export default router

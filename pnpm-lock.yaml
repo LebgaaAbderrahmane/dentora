@@ -172,6 +172,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@dentora/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@dentora/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -181,6 +184,9 @@ importers:
       '@sentry/react':
         specifier: ^10.70.0
         version: 10.70.0(react@19.2.8)
+      lucide-react:
+        specifier: ^1.30.0
+        version: 1.30.0(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8

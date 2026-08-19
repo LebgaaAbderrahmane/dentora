@@ -22,7 +22,7 @@ router.use(requireAuth, requireRole('ADMIN', 'DENTIST', 'RECEPTIONIST'))
 // statuses that occupy a real time-slot and participate in double-booking checks
 const BLOCKING_STATUSES: AppointmentStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED']
 
-type AppointmentRow = {
+export type AppointmentRow = {
   id: string
   branchId: string
   patientId: string
@@ -36,7 +36,7 @@ type AppointmentRow = {
   updatedAt: Date
 }
 
-function toAppointment(row: AppointmentRow) {
+export function toAppointment(row: AppointmentRow) {
   return appointmentSchema.parse({
     id: row.id,
     branchId: row.branchId,
@@ -53,7 +53,7 @@ function toAppointment(row: AppointmentRow) {
 }
 
 // the shape Prisma returns when we select appointment scalars + names
-type AppointmentWithNames = {
+export type AppointmentWithNames = {
   id: string
   branchId: string
   patientId: string
@@ -70,7 +70,7 @@ type AppointmentWithNames = {
 
 // always select the scalar columns + display names so list rows never carry
 // decrypted notes and detail rows can decrypt on demand
-const APPOINTMENT_SELECT = {
+export const APPOINTMENT_SELECT = {
   id: true,
   branchId: true,
   patientId: true,
@@ -85,7 +85,7 @@ const APPOINTMENT_SELECT = {
   updatedAt: true,
 } as const
 
-function mapNames(row: AppointmentWithNames): AppointmentRow {
+export function mapNames(row: AppointmentWithNames): AppointmentRow {
   return {
     id: row.id,
     branchId: row.branchId,
@@ -108,7 +108,7 @@ function toDetail(row: AppointmentWithNames) {
   })
 }
 
-type Overlap = {
+export type Overlap = {
   id: string
   startAt: string
   endAt: string
@@ -119,7 +119,7 @@ type Overlap = {
 // find overlapping blocking appointments for the given dentist AND patient in
 // the [startAt, endAt) window. Terminal statuses (CANCELLED/NOSHOW) never
 // participate and therefore never block rebooking the slot.
-async function findConflicts(
+export async function findConflicts(
   branchId: string,
   window: { startAt: Date; endAt: Date; dentistId: string | null; patientId: string },
   excludeId?: string,
@@ -187,7 +187,7 @@ async function assertDentistInBranch(
   return true
 }
 
-function sendConflict(res: ExpressResponse, overlaps: Overlap[]): void {
+export function sendConflict(res: ExpressResponse, overlaps: Overlap[]): void {
   res.status(409).json(
     appointmentConflictSchema.parse({
       error: 'CONFLICT',

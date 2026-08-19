@@ -59,6 +59,7 @@ export const safeUserSchema = z.object({
   role: roleSchema,
   branchId: z.string(),
   active: z.boolean(),
+  patientId: z.string().nullable(),
 })
 
 export type SafeUser = z.infer<typeof safeUserSchema>
@@ -513,6 +514,8 @@ export const auditActionSchema = z.enum([
   'STAFF_UPDATE',
   'STAFF_PASSWORD_RESET',
   'SCHEDULE_UPDATE',
+  'PORTAL_ACCESS_CREATE',
+  'PORTAL_ACCESS_RESET',
   'ATTENDANCE_CREATE',
   'ATTENDANCE_UPDATE',
   'INTERN_CREATE',
@@ -1967,3 +1970,92 @@ export const sterilizationQuerySchema = z.object({
 export type SterilizationQuery = z.infer<typeof sterilizationQuerySchema>
 
 export type SterilizationQueryParams = z.input<typeof sterilizationQuerySchema>
+
+// ---- Patient portal (5.1, ADR 031) ----
+
+// Strictly self-scoped read of the patient's own record: the patient's portal
+// account is a PATIENT `User` linked 1:1 to a `Patient` row via `User.patientId`.
+// The API never accepts a target id from the patient — identity is the session.
+export const portalMeSchema = z.object({
+  id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  gender: genderSchema.nullable(),
+  birthDate: z.string().nullable(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  address: z.string().nullable(),
+})
+
+export type PortalMe = z.infer<typeof portalMeSchema>
+
+export const portalAppointmentsSchema = z.object({
+  items: z.array(appointmentSchema),
+})
+
+export type PortalAppointments = z.infer<typeof portalAppointmentsSchema>
+
+export const portalDentistSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+
+export type PortalDentist = z.infer<typeof portalDentistSchema>
+
+export const portalDentistListSchema = z.object({
+  dentists: z.array(portalDentistSchema),
+})
+
+export type PortalDentistList = z.infer<typeof portalDentistListSchema>
+
+// The patient books a real slot directly (they are known, unlike the public web
+// form): a valid future window + optional dentist + free-text reason. Status is
+// always PENDING on creation — the desk confirms as usual.
+export const portalBookingSchema = z
+  .object({
+    dentistId: z.string().min(1).nullable().optional(),
+    startAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'startAt must be a valid date-time'),
+    endAt: z
+      .string()
+      .refine((s) => !Number.isNaN(Date.parse(s)), 'endAt must be a valid date-time'),
+    notes: z.string().max(APPOINTMENT_NOTES_MAX).optional(),
+  })
+  .refine((v) => Date.parse(v.endAt) > Date.parse(v.startAt), 'endAt must be after startAt')
+  .refine((v) => Date.parse(v.startAt) > Date.now(), 'startAt must be in the future')
+
+export type PortalBooking = z.infer<typeof portalBookingSchema>
+
+// Booking/cancel responses reuse the shared appointment row shape (no notes).
+export const portalBookedSchema = appointmentSchema
+
+export type PortalBooked = z.infer<typeof portalBookedSchema>
+
+export const portalInvoicesSchema = invoiceListSchema
+
+export type PortalInvoices = z.infer<typeof portalInvoicesSchema>
+
+// ---- Portal account provisioning (admin/reception desk) ----
+
+export const portalAccessInputSchema = z.object({
+  action: z.enum(['create', 'reset']),
+})
+
+export type PortalAccessInput = z.infer<typeof portalAccessInputSchema>
+
+export const portalAccessStatusSchema = z.object({
+  hasPortalAccess: z.boolean(),
+  email: z.string().nullable(),
+})
+
+export type PortalAccessStatus = z.infer<typeof portalAccessStatusSchema>
+
+// The generated password is returned exactly once (create/reset); the API never
+// returns it again — the desk copies it for the patient.
+export const portalAccessResponseSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+})
+
+export type PortalAccessResponse = z.infer<typeof portalAccessResponseSchema>

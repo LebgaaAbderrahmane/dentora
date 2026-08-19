@@ -1059,6 +1059,11 @@ async function main() {
   await prisma.patientDocument.deleteMany({ where: { branchId } })
   await prisma.patientOdontogram.deleteMany({ where: { patient: { branchId } } })
   await prisma.patientMedicalHistory.deleteMany({ where: { patient: { branchId } } })
+  await prisma.user.updateMany({
+    where: { branchId, role: 'PATIENT' },
+    data: { patientId: null },
+  })
+  await prisma.user.deleteMany({ where: { branchId, role: 'PATIENT' } })
   await prisma.patient.deleteMany({ where: { branchId } })
   await prisma.auditLog.deleteMany({ where: { branchId } })
   await prisma.setting.deleteMany({ where: { branchId } })
@@ -1311,6 +1316,30 @@ async function main() {
       })
     }
     patients.push(created)
+  }
+
+  const demoPortal = patients[0]
+  if (demoPortal?.email) {
+    await prisma.user.upsert({
+      where: { email: demoPortal.email },
+      update: {
+        passwordHash,
+        role: 'PATIENT',
+        branchId: demoPortal.branchId,
+        active: true,
+        name: `${demoPortal.firstName} ${demoPortal.lastName}`.trim(),
+        patientId: demoPortal.id,
+      },
+      create: {
+        email: demoPortal.email,
+        passwordHash,
+        name: `${demoPortal.firstName} ${demoPortal.lastName}`.trim(),
+        role: 'PATIENT',
+        branchId: demoPortal.branchId,
+        active: true,
+        patientId: demoPortal.id,
+      },
+    })
   }
 
   const appointments = []
