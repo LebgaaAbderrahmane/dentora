@@ -107,6 +107,7 @@ enum AuditAction {
   PAYROLL_UPDATE
   PAYROLL_VOID
   NOTIFICATION_CONFIG_UPDATE
+  AUDIT_RETENTION_UPDATE
 }
 
 enum AuditTarget {
@@ -127,6 +128,7 @@ enum AuditTarget {
   INTERN
   PAYROLL
   NOTIFICATION
+  AUDIT
 }
 
 enum AppointmentStatus {

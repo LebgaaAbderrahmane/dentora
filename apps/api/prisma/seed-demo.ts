@@ -1635,6 +1635,21 @@ async function main() {
     update: { value: notificationConfigJson },
   })
 
+  // Audit retention (6.2, ADR 034): a stored (disabled-by-default) policy so the
+  // admin Audit view is populated; the interval + manual purge are no-ops until
+  // the desk turns `enabled` on.
+  await prisma.setting.upsert({
+    where: { branchId_key: { branchId, key: 'audit.retention' } },
+    create: {
+      branchId,
+      key: 'audit.retention',
+      value: JSON.stringify({ enabled: false, days: 365, lastPurgedAt: null }),
+    },
+    update: {
+      value: JSON.stringify({ enabled: false, days: 365, lastPurgedAt: null }),
+    },
+  })
+
   const appt12 = appointments[12]
   const appt13 = appointments[13]
   const appt14 = appointments[14]
