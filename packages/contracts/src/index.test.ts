@@ -14,6 +14,10 @@ import {
   auditActionSchema,
   auditEntrySchema,
   auditQuerySchema,
+  auditRetentionSchema,
+  auditRetentionUpdateSchema,
+  auditPurgeResultSchema,
+  MAX_AUDIT_RETENTION_DAYS,
   loginSchema,
   auditTargetSchema,
   attendanceInputSchema,
@@ -2341,6 +2345,61 @@ describe('notification contracts (5.2, ADR 032)', () => {
   it('auditActionSchema/targetSchema include the notification action + target', () => {
     expect(auditActionSchema.options).toContain('NOTIFICATION_CONFIG_UPDATE')
     expect(auditTargetSchema.options).toContain('NOTIFICATION')
+  })
+})
+
+describe('audit retention contracts (6.2, ADR 034)', () => {
+  it('auditActionSchema/targetSchema include the retention action + AUDIT target', () => {
+    expect(auditActionSchema.options).toContain('AUDIT_RETENTION_UPDATE')
+    expect(auditTargetSchema.options).toContain('AUDIT')
+  })
+
+  it('auditRetentionSchema validates a read shape and clamps bounds', () => {
+    expect(
+      auditRetentionSchema.parse({
+        enabled: true,
+        days: 365,
+        lastPurgedAt: '2026-08-20T00:00:00.000Z',
+      }),
+    ).toMatchObject({ enabled: true, days: 365 })
+    expect(() => auditRetentionSchema.parse({ enabled: true, days: 0 })).toThrow()
+    expect(() =>
+      auditRetentionSchema.parse({ enabled: true, days: MAX_AUDIT_RETENTION_DAYS + 1 }),
+    ).toThrow()
+    expect(
+      auditRetentionSchema.parse({ enabled: false, days: 1, lastPurgedAt: null }).lastPurgedAt,
+    ).toBeNull()
+  })
+
+  it('auditRetentionUpdateSchema requires both fields', () => {
+    expect(auditRetentionUpdateSchema.parse({ enabled: true, days: 30 })).toMatchObject({
+      enabled: true,
+      days: 30,
+    })
+    expect(() => auditRetentionUpdateSchema.parse({ enabled: true })).toThrow()
+    expect(() => auditRetentionUpdateSchema.parse({ days: 30 })).toThrow()
+  })
+
+  it('auditPurgeResultSchema validates the sweep result', () => {
+    expect(
+      auditPurgeResultSchema.parse({ deleted: 12, cutoff: '2026-07-21T00:00:00.000Z' }),
+    ).toMatchObject({ deleted: 12 })
+    expect(() =>
+      auditPurgeResultSchema.parse({ deleted: -1, cutoff: '2026-07-21T00:00:00.000Z' }),
+    ).toThrow()
+  })
+
+  it('auditQuerySchema accepts the new from/to date-range filters', () => {
+    const q = auditQuerySchema.parse({
+      from: '2026-08-01T00:00:00.000Z',
+      to: '2026-08-20T00:00:00.000Z',
+      targetType: 'PATIENT',
+      actorEmail: 'nora',
+    })
+    expect(q.from).toBe('2026-08-01T00:00:00.000Z')
+    expect(q.to).toBe('2026-08-20T00:00:00.000Z')
+    expect(q.targetType).toBe('PATIENT')
+    expect(auditQuerySchema.safeParse({ from: '2026-08-01' }).success).toBe(false)
   })
 })
 

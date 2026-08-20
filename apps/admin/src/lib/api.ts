@@ -14,6 +14,10 @@ import {
   type AttendanceUpdate,
   type AuditAction,
   type AuditList,
+  type AuditPurgeResult,
+  type AuditRetention,
+  type AuditRetentionUpdate,
+  type AuditTarget,
   type AuthResponse,
   type DashboardKpis,
   type DashboardKpisQueryParams,
@@ -175,12 +179,39 @@ export const api = {
       revokeSessionsSchema.parse(r),
     ),
 
-  audit: (params: { limit?: number; action?: AuditAction } = {}) => {
+  audit: (
+    params: {
+      limit?: number
+      offset?: number
+      action?: AuditAction
+      targetType?: AuditTarget
+      actorEmail?: string
+      from?: string
+      to?: string
+    } = {},
+  ) => {
     const q = new URLSearchParams()
     if (params.limit) q.set('limit', String(params.limit))
+    if (params.offset) q.set('offset', String(params.offset))
     if (params.action) q.set('action', params.action)
+    if (params.targetType) q.set('targetType', params.targetType)
+    if (params.actorEmail) q.set('actorEmail', params.actorEmail)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
     return request<AuditList>(`/api/audit?${q.toString()}`)
   },
+
+  auditRetention: () => request<AuditRetention>('/api/audit/retention'),
+
+  updateAuditRetention: (update: AuditRetentionUpdate) =>
+    request<AuditRetention>('/api/audit/retention', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(update),
+    }),
+
+  purgeAuditRetention: () =>
+    request<AuditPurgeResult>('/api/audit/retention/purge', { method: 'POST' }),
 
   systemStatus: () => request<SystemStatus>('/api/system/status'),
 

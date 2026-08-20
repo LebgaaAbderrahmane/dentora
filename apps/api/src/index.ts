@@ -36,6 +36,7 @@ import portalRouter from './routes/portal'
 import notificationsRouter from './routes/notifications'
 import reportsRouter from './routes/reports'
 import { runSweep } from './lib/notifications'
+import { loadStoredRetention, purgeAuditLogs, saveStoredRetention } from './lib/auditRetention'
 
 initSentry()
 
@@ -151,4 +152,30 @@ app.listen(port, () => {
     })()
   }, sweepIntervalMin * 60_000)
   sweep.unref?.()
+
+  // Audit retention sweep (ADR 034): periodic purge of expired audit rows,
+  // per-branch config (`audit.retention` Setting) gates it — a no-op while
+  // disabled. Default daily; `AUDIT_RETENTION_INTERVAL_MIN` overrides.
+  const retentionIntervalMin = Number(process.env.AUDIT_RETENTION_INTERVAL_MIN ?? 1440)
+  const retention = setInterval(() => {
+    void (async () => {
+      try {
+        const branches = await prisma.branch.findMany({ select: { id: true } })
+        for (const branch of branches) {
+          const stored = await loadStoredRetention(branch.id)
+          if (stored.enabled) {
+            await purgeAuditLogs(branch.id, stored)
+            await saveStoredRetention(branch.id, {
+              ...stored,
+              lastPurgedAt: new Date().toISOString(),
+            })
+          }
+        }
+      } catch (err) {
+        captureError(err, { extra: { context: 'audit-retention-sweep' } })
+        logger.error({ err }, 'audit retention sweep failed')
+      }
+    })()
+  }, retentionIntervalMin * 60_000)
+  retention.unref?.()
 })

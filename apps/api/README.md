@@ -574,3 +574,24 @@ Every mutating/auth event writes a row to `audit_logs` via `src/lib/audit.ts`
 Logged today: login success/failure, logout, change-password, revoke-all, role change, revoke sessions,
 patient view/create/update/archive/restore, medical-history view/update, odontogram view/update,
 portal access create/reset, notification config update.
+
+The read surface (Phase 6.2, ADR 034) — all **ADMIN only**:
+
+- `GET /api/audit?action&targetType&actorEmail&from&to&limit&offset` — filters per
+  action / target / actor-email (substring, case-insensitive) / `from`+`to` ISO window
+  (`limit` default 50, max 200), branch-scoped to the requester, newest first.
+  Reads are **not** audited (no infinite loop: reading the log writes nothing).
+- `GET /api/audit/retention` — the per-branch retention policy (`audit.retention`
+  `Setting` row, clamped read): `{ enabled, days, lastPurgedAt }`.
+- `PUT /api/audit/retention` — full-replace `{ enabled, days }` (days 1..3650,
+  `MAX_AUDIT_RETENTION_DAYS`); every save audits `AUDIT_RETENTION_UPDATE` (target
+  `AUDIT`), so policy changes survive their own purge window.
+- `POST /api/audit/retention/purge` — runs the purge now (same code path as the
+  interval); returns `{ deleted, cutoff }`, or `409 AUDIT_RETENTION_DISABLED` while
+  the kill-switch is off.
+
+The purge is safe by construction: it only ever deletes **this branch's** rows older
+than `days` (`retentionPurgeWhere` in pure `lib/auditMath.ts` — clamped 1..3650 so a
+typo can't wipe history). The API also sweeps every branch on an unref'd interval
+(`AUDIT_RETENTION_INTERVAL_MIN`, default 1440 = daily) that is a no-op while
+`enabled` is false — the same kill-switch semantics as the reminder sweep (ADR 032).

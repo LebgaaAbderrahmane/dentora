@@ -524,6 +524,7 @@ export const auditActionSchema = z.enum([
   'PAYROLL_UPDATE',
   'PAYROLL_VOID',
   'NOTIFICATION_CONFIG_UPDATE',
+  'AUDIT_RETENTION_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -546,6 +547,7 @@ export const auditTargetSchema = z.enum([
   'INTERN',
   'PAYROLL',
   'NOTIFICATION',
+  'AUDIT',
 ])
 
 export type AuditTarget = z.infer<typeof auditTargetSchema>
@@ -576,11 +578,44 @@ export const auditQuerySchema = z.object({
   action: auditActionSchema.optional(),
   targetType: auditTargetSchema.optional(),
   actorEmail: z.string().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 })
 
 export type AuditQuery = z.infer<typeof auditQuerySchema>
+
+// ---- Audit retention (6.2, ADR 034) ----
+// A per-branch `Setting` row (`audit.retention`) drives a periodic purge of old
+// audit rows. `enabled` is the kill-switch; `days` is how long entries are kept
+// before the sweep deletes them (bounded 1..MAX so a typo can't wipe history);
+// `lastPurgedAt` is bookkeeping surfaced in the admin UI, never a policy input.
+export const MAX_AUDIT_RETENTION_DAYS = 3650 // 10 years, upper clamp for retention
+
+export const auditRetentionSchema = z.object({
+  enabled: z.boolean(),
+  days: z.number().int().min(1).max(MAX_AUDIT_RETENTION_DAYS),
+  lastPurgedAt: z.string().datetime().nullable(),
+})
+
+export type AuditRetention = z.infer<typeof auditRetentionSchema>
+
+// Full-replace update (mirrors the notification-config precedent, ADR 032): the
+// client always submits both fields.
+export const auditRetentionUpdateSchema = z.object({
+  enabled: z.boolean(),
+  days: z.number().int().min(1).max(MAX_AUDIT_RETENTION_DAYS),
+})
+
+export type AuditRetentionUpdate = z.infer<typeof auditRetentionUpdateSchema>
+
+export const auditPurgeResultSchema = z.object({
+  deleted: z.number().int().nonnegative(),
+  cutoff: z.string().datetime(),
+})
+
+export type AuditPurgeResult = z.infer<typeof auditPurgeResultSchema>
 
 export const genderSchema = z.enum(['M', 'F', 'UNSPECIFIED'])
 
