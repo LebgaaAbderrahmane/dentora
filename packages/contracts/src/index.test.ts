@@ -165,6 +165,10 @@ import {
   notificationStatusSchema,
   notificationSweepResultSchema,
   patientPrefsSchema,
+  occupancyReportSchema,
+  reportExportQuerySchema,
+  stockValuationQuerySchema,
+  stockValuationReportSchema,
 } from './index'
 
 describe('auth contracts', () => {
@@ -2337,5 +2341,91 @@ describe('notification contracts (5.2, ADR 032)', () => {
   it('auditActionSchema/targetSchema include the notification action + target', () => {
     expect(auditActionSchema.options).toContain('NOTIFICATION_CONFIG_UPDATE')
     expect(auditTargetSchema.options).toContain('NOTIFICATION')
+  })
+})
+
+describe('reports contracts (6.1, ADR 033)', () => {
+  it('occupancyReportSchema validates a full report and rejects a bad rate', () => {
+    const report = occupancyReportSchema.parse({
+      from: '2026-08-17T00:00:00.000Z',
+      to: '2026-08-18T00:00:00.000Z',
+      days: [
+        {
+          start: '2026-08-17T00:00:00.000Z',
+          planned: 2,
+          kept: 1,
+          noShow: 1,
+          cancelled: 0,
+          utilization: 0.5,
+        },
+      ],
+      byDentist: [
+        {
+          dentistId: null,
+          dentistName: null,
+          planned: 2,
+          kept: 1,
+          noShow: 1,
+          cancelled: 0,
+          utilization: 0.5,
+        },
+      ],
+      summary: { planned: 2, kept: 1, noShow: 1, cancelled: 0, showRate: 0.5, utilization: 0.5 },
+    })
+    expect(report.summary.utilization).toBe(0.5)
+    expect(
+      occupancyReportSchema.safeParse({ ...report, summary: { ...report.summary, utilization: 2 } })
+        .success,
+    ).toBe(false)
+  })
+
+  it('reportExportQuerySchema defaults format to csv and coerces windows', () => {
+    expect(reportExportQuerySchema.parse({}).format).toBe('csv')
+    expect(reportExportQuerySchema.parse({ format: 'pdf' }).format).toBe('pdf')
+    expect(reportExportQuerySchema.safeParse({ format: 'xlsx' }).success).toBe(false)
+  })
+
+  it('stockValuationReportSchema validates rows + summary and defaults archived to exclude', () => {
+    const parsed = stockValuationQuerySchema.parse({})
+    expect(parsed.archived).toBe('exclude')
+    const report = stockValuationReportSchema.parse({
+      generatedAt: '2026-08-17T00:00:00.000Z',
+      summary: {
+        totalValueDZD: 600,
+        products: 1,
+        costedProducts: 1,
+        byCategory: {
+          DISPOSABLES: 600,
+          ANESTHETICS: 0,
+          MATERIALS: 0,
+          INSTRUMENTS: 0,
+          EQUIPMENT: 0,
+          MEDICATIONS: 0,
+          LABORATORY: 0,
+          STATIONERY: 0,
+          OTHER: 0,
+        },
+      },
+      rows: [
+        {
+          productId: 'a',
+          name: 'Anesthésique',
+          code: 'A-1',
+          category: 'ANESTHETICS',
+          unit: 'BOX',
+          quantityOnHand: 6,
+          unitCostDZD: 100,
+          valueDZD: 600,
+          hasCost: true,
+        },
+      ],
+    })
+    expect(report.summary.totalValueDZD).toBe(600)
+    expect(
+      stockValuationReportSchema.safeParse({
+        ...report,
+        rows: [{ ...report.rows[0], valueDZD: -1 }],
+      }).success,
+    ).toBe(false)
   })
 })

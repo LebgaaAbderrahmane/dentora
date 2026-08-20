@@ -45,6 +45,7 @@ import {
   type NotificationLogList,
   type NotificationLogQueryParams,
   type NotificationSweepResult,
+  type OccupancyReport,
   type OdontogramResponse,
   type OdontogramWrite,
   type Patient,
@@ -98,6 +99,7 @@ import {
   type StockList,
   type StockOutInput,
   type StockQueryParams,
+  type StockValuationReport,
   type StockAlerts,
   type TreatmentConsumption,
   type TreatmentConsumptionInput,
@@ -551,6 +553,38 @@ export const api = {
     if (params.from) q.set('from', params.from)
     if (params.to) q.set('to', params.to)
     return request<FinanceReport>(`/api/finance/report?${q.toString()}`)
+  },
+
+  occupancyReport: (params: { from?: string; to?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    return request<OccupancyReport>(`/api/reports/occupancy?${q.toString()}`)
+  },
+
+  stockValuation: (includeArchived = false) => {
+    const q = new URLSearchParams()
+    if (includeArchived) q.set('archived', 'include')
+    return request<StockValuationReport>(`/api/reports/stock-valuation?${q.toString()}`)
+  },
+
+  revenueReport: (params: { from?: string; to?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    return request<FinanceReport>(`/api/reports/revenue?${q.toString()}`)
+  },
+
+  reportExportUrl: (
+    slug: 'occupancy' | 'stock-valuation' | 'revenue',
+    format: 'csv' | 'pdf',
+    params: { from?: string; to?: string } = {},
+  ) => {
+    const q = new URLSearchParams()
+    q.set('format', format)
+    if (params.from) q.set('from', params.from)
+    if (params.to) q.set('to', params.to)
+    return `/api/reports/${slug}/export?${q.toString()}`
   },
 
   products: (params: ProductQueryParams = {}) => {

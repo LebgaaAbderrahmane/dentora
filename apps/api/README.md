@@ -535,6 +535,31 @@ Delivery is planned in pure `lib/notifyMath.ts` (`contactFor`, `planSend` skip r
 logged as SENT / FAILED / SKIPPED with `to`, `provider` and `error`. Patients opt out per
 channel on `Patient.notifyWhatsapp` / `notifyEmail` (portal `/portal/prefs`).
 
+## Reports & export (Phase 6.1, ADR 033)
+
+All reports are **derived on read** (nothing stored) from appointment / payment / ledger
+history — no schema change. No per-read audit rows: reports carry no PHI/PII (no patient
+names) and the export is a document, not a row write.
+
+- `GET /api/reports/occupancy?from&to` — **ADMIN + DENTIST + RECEPTIONIST**. Day grid (24h
+  buckets) + per-dentist breakdown + summary. `planned` = non-cancelled bookings
+  (PENDING/CONFIRMED/COMPLETED/NOSHOW), `kept` = COMPLETED, `abandoned` = NOSHOW + CANCELLED,
+  `utilization` = kept / planned, `showRate` = kept / (kept + NOSHOW). CANCELLED slots are
+  reported but excluded from the denominator (the slot was released).
+- `GET /api/reports/stock-valuation?archived=exclude|include` — **ADMIN + ACCOUNTANT**. Every
+  product (`quantityOnHand`, weighted-average `unitCostDZD` or null, `valueDZD`) + category and
+  global totals. Cost = weighted average of all costed (OPENING/IN) ledger movements, rounded
+  to whole dinars; uncosted rows show `hasCost: false` and value 0.
+- `GET /api/reports/revenue?from&to` — **ADMIN + ACCOUNTANT**. Same engine (`buildFinanceReport`)
+  as `/api/finance/report` (ADR 021) so the reports and finance screens never diverge.
+
+Time-bounded reports default to the server-local today for both `from` and `to`. Exports:
+
+- `GET …/export?format=csv|pdf` — same RBAC + window as the JSON route. CSV = UTF-8 BOM, CRLF
+  lines, RFC-4180 quoting; PDF = a **dependency-free** writer (`lib/pdf.ts`): A4, Helvetica,
+  grey header bars, right-aligned numeric columns, page footers (`DENTORA — n/N`) and a valid
+  xref table. File labels are French constants in `lib/reportMath.ts` (documents, not UI).
+
 ## Error tracking (ADR 009, Phase 0.7)
 
 - `Sentry.init` runs when `SENTRY_DSN` is set (empty = disabled); API error middleware

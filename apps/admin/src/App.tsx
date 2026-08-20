@@ -29,6 +29,7 @@ import {
   LogOut,
   Stethoscope,
   Banknote,
+  BarChart3,
 } from 'lucide-react'
 import { api, ApiError } from './lib/api'
 import { Button } from '@/components/ui/button'
@@ -61,6 +62,7 @@ import { AttendanceView } from './views/AttendanceView'
 import { InternsView } from './views/InternsView'
 import { PayrollView } from './views/PayrollView'
 import { NotificationsView } from './views/NotificationsView'
+import { ReportsView } from './views/ReportsView'
 
 const VIEW_TITLE: Record<View, MessageKey> = {
   dashboard: 'nav.dashboard',
@@ -84,6 +86,7 @@ const VIEW_TITLE: Record<View, MessageKey> = {
   payroll: 'nav.payroll',
   audit: 'nav.audit',
   notifications: 'nav.notifications',
+  reports: 'nav.reports',
 }
 
 const ROLE_KEY: Record<SafeUser['role'], MessageKey> = {
@@ -117,6 +120,7 @@ type View =
   | 'interns'
   | 'payroll'
   | 'notifications'
+  | 'reports'
 
 type NavItem = {
   id: View
@@ -254,6 +258,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
   const canViewAttendance = ['ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
   const canEditAttendance = ['ADMIN', 'RECEPTIONIST'].includes(user.role)
   const canManageInterns = ['ADMIN', 'ACCOUNTANT'].includes(user.role)
+  const canViewReports = ['ADMIN', 'DENTIST', 'RECEPTIONIST', 'ACCOUNTANT'].includes(user.role)
 
   const navSections: NavSection[] = [
     {
@@ -322,6 +327,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           : []),
         ...(canManageFinance
           ? [{ id: 'finance' as const, label: 'nav.finance' as MessageKey, icon: LineChart }]
+          : []),
+        ...(canViewReports
+          ? [{ id: 'reports' as const, label: 'nav.reports' as MessageKey, icon: BarChart3 }]
           : []),
       ],
     },
@@ -482,6 +490,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           {view === 'payroll' && canManageFinance && <PayrollView canEdit={isAdmin} />}
           {view === 'audit' && isAdmin && <AuditView />}
           {view === 'notifications' && isAdmin && <NotificationsView />}
+          {view === 'reports' && canViewReports && <ReportsView canFinances={canManageFinance} />}
         </main>
       </div>
     </div>
