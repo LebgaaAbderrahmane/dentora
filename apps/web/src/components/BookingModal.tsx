@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { Check, Info, Send, X } from 'lucide-react'
+import { Check, CloudOff, Info, Send, X } from 'lucide-react'
 import { publicBookingResponseSchema, type PublicBooking } from '@dentora/contracts'
 import { useBooking } from '@/providers/booking'
+import { useOffline } from '@/providers/offline'
 import { EMERGENCY_PHONE } from '@/data/content'
 
-type View = 'form' | 'done' | 'already'
+type View = 'form' | 'done' | 'already' | 'queued'
 
 export function BookingModal() {
   const { t } = useTranslation()
   const { open, service, closeBooking } = useBooking()
+  const { enqueue } = useOffline()
   const [view, setView] = useState<View>('form')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -83,7 +85,11 @@ export function BookingModal() {
       }
       setError(t('booking.error'))
     } catch {
-      setError(t('booking.error'))
+      // Network failure (navigator offline or fetch threw): queue the request
+      // locally so it is flushed automatically when the connection returns
+      // (6.3, ADR 035).
+      enqueue(body)
+      setView('queued')
     } finally {
       setSubmitting(false)
     }
@@ -231,20 +237,38 @@ export function BookingModal() {
                   >
                     <span
                       className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${
-                        view === 'done' ? 'bg-[hsl(var(--primary-soft))]' : 'bg-amber-100'
+                        view === 'done'
+                          ? 'bg-[hsl(var(--primary-soft))]'
+                          : view === 'queued'
+                            ? 'bg-sky-100'
+                            : 'bg-amber-100'
                       }`}
                     >
                       {view === 'done' ? (
                         <Check className="h-8 w-8 text-[hsl(var(--primary))]" />
+                      ) : view === 'queued' ? (
+                        <CloudOff className="h-8 w-8 text-sky-600" />
                       ) : (
                         <Info className="h-8 w-8 text-amber-600" />
                       )}
                     </span>
                     <h3 className="text-[1.1rem] font-bold text-[hsl(var(--heading))]">
-                      {t(view === 'done' ? 'booking.success' : 'booking.already')}
+                      {t(
+                        view === 'done'
+                          ? 'booking.success'
+                          : view === 'queued'
+                            ? 'booking.queued'
+                            : 'booking.already',
+                      )}
                     </h3>
                     <p className="mt-2 text-[0.85rem] font-light leading-relaxed text-[hsl(var(--muted-foreground))]">
-                      {t(view === 'done' ? 'booking.successNote' : 'booking.alreadyNote')}
+                      {t(
+                        view === 'done'
+                          ? 'booking.successNote'
+                          : view === 'queued'
+                            ? 'booking.queuedNote'
+                            : 'booking.alreadyNote',
+                      )}
                     </p>
                     <a
                       href={whatsappHref()}

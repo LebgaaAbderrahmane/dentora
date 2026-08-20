@@ -248,6 +248,9 @@ export const fr: EnDictionary = {
     error: 'Une erreur s\u2019est produite. Veuillez réessayer.',
     already: 'Nous vous avons déjà contacté !',
     alreadyNote: 'Une demande est déjà en cours pour ce numéro. Notre équipe vous rappellera.',
+    queued: 'Nous nous occupons de votre demande !',
+    queuedNote:
+      'Votre appareil est hors ligne. Votre demande a été enregistrée et sera envoyée automatiquement dès le retour de la connexion.',
     success: 'Merci ! Votre demande a été reçue.',
     successNote: 'Notre équipe vous appellera prochainement pour confirmer.',
     whatsapp: 'Envoyer via WhatsApp',
@@ -329,5 +332,9 @@ export const fr: EnDictionary = {
         },
       ],
     },
+  },
+  offline: {
+    offline: 'Vous êtes hors ligne — le site continue de fonctionner.',
+    queued: 'Demande hors ligne enregistrée. Elle sera envoyée automatiquement à la reconnexion.',
   },
 }
