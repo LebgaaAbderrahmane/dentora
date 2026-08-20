@@ -240,6 +240,9 @@ export const en = {
     error: 'Something went wrong. Please try again.',
     already: 'We have already been in touch!',
     alreadyNote: 'A request is already pending for this number. Our team will call you back.',
+    queued: 'We will take care of your request!',
+    queuedNote:
+      'Your device is offline. Your request has been saved and will be sent automatically as soon as your connection returns.',
     success: 'Thank you! Your request has been received.',
     successNote: 'Our team will call you shortly to confirm.',
     whatsapp: 'Send via WhatsApp',
@@ -321,6 +324,10 @@ export const en = {
         },
       ],
     },
+  },
+  offline: {
+    offline: 'You are offline — the site keeps working.',
+    queued: 'Offline request saved. It will be sent automatically when you reconnect.',
   },
 }
 

@@ -12,6 +12,7 @@ import { FinalCta } from '@/components/FinalCta'
 import { Footer } from '@/components/Footer'
 import { BookingModal } from '@/components/BookingModal'
 import { LegalPage, type LegalKind } from '@/components/LegalPage'
+import { OfflineBanner } from '@/components/OfflineBanner'
 
 function App() {
   const [legal, setLegal] = useState<LegalKind | null>(null)
@@ -23,6 +24,7 @@ function App() {
   if (legal) {
     return (
       <main className="min-h-screen bg-[hsl(var(--background))]">
+        <OfflineBanner />
         <LegalPage kind={legal} onBack={() => setLegal(null)} onOpenLegal={setLegal} />
       </main>
     )
@@ -30,6 +32,7 @@ function App() {
 
   return (
     <main className="min-h-screen bg-[hsl(var(--background))]">
+      <OfflineBanner />
       <Navbar />
       <Hero />
       <About />
