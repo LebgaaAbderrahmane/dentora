@@ -2196,3 +2196,126 @@ export const patientPrefsSchema = z.object({
 })
 
 export type PatientPrefs = z.infer<typeof patientPrefsSchema>
+
+// ---- Reports (6.1, ADR 033) ----
+
+export const reportFormatSchema = z.enum(['csv', 'pdf'])
+
+export type ReportFormat = z.infer<typeof reportFormatSchema>
+
+// Shared window for every time-bounded report: from/to are absolute-instant ISO
+// strings, optional; defaults to the server-local today (ADR 021-style), so every
+// endpoint is a usable default out of the box. Everything derived on read.
+export const reportWindowQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+})
+
+export type ReportWindowQuery = z.infer<typeof reportWindowQuerySchema>
+
+export type ReportWindowQueryParams = z.input<typeof reportWindowQuerySchema>
+
+// Export form: `?format=csv|pdf` on top of the report window.
+export const reportExportQuerySchema = reportWindowQuerySchema.extend({
+  format: reportFormatSchema.default('csv'),
+})
+
+export type ReportExportQuery = z.infer<typeof reportExportQuerySchema>
+
+export type ReportExportQueryParams = z.input<typeof reportExportQuerySchema>
+
+// ---- Occupancy report (ADR 033) ----
+// One row per 24h bucket in the window. Slot-based metrics derived entirely from
+// immutable appointment history: `planned` = slots that were booked
+// (PENDING/CONFIRMED/COMPLETED/NOSHOW), `kept` = treatments actually performed
+// (COMPLETED), `abandoned` = CANCELLED + NOSHOW. `utilization` = kept / planned —
+// the share of booked slots that produced a real treatment. All counters derive on
+// read; nothing is stored.
+export const occupancyDaySchema = z.object({
+  start: z.string(),
+  planned: z.number().int().nonnegative(),
+  kept: z.number().int().nonnegative(),
+  noShow: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+  utilization: z.number().min(0).max(1),
+})
+
+export type OccupancyDay = z.infer<typeof occupancyDaySchema>
+
+export const occupancyDentistSchema = z.object({
+  dentistId: z.string().nullable(),
+  dentistName: z.string().nullable(),
+  planned: z.number().int().nonnegative(),
+  kept: z.number().int().nonnegative(),
+  noShow: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+  utilization: z.number().min(0).max(1),
+})
+
+export type OccupancyDentist = z.infer<typeof occupancyDentistSchema>
+
+export const occupancySummarySchema = z.object({
+  planned: z.number().int().nonnegative(),
+  kept: z.number().int().nonnegative(),
+  noShow: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+  // kept / (kept + noShow) — share of attended+missed appointments that produced care.
+  showRate: z.number().min(0).max(1),
+  utilization: z.number().min(0).max(1),
+})
+
+export type OccupancySummary = z.infer<typeof occupancySummarySchema>
+
+export const occupancyReportSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  days: z.array(occupancyDaySchema),
+  byDentist: z.array(occupancyDentistSchema),
+  summary: occupancySummarySchema,
+})
+
+export type OccupancyReport = z.infer<typeof occupancyReportSchema>
+
+// ---- Stock valuation report (ADR 033) ----
+// Current inventory value, derived on read: value = quantityOnHand × weighted-
+// average unit cost from the ledger's costed OPENING/IN movements; rows without a
+// costed movement value at 0 and expose `hasCost: false` so the desk can fill the
+// cost gap. Category totals sum the (rounded) row values.
+export const stockValuationRowSchema = z.object({
+  productId: z.string(),
+  name: z.string(),
+  code: z.string().nullable(),
+  category: productCategorySchema,
+  unit: productUnitSchema,
+  quantityOnHand: z.number().int().nonnegative(),
+  unitCostDZD: z.number().int().nonnegative().nullable(),
+  valueDZD: z.number().int().nonnegative(),
+  hasCost: z.boolean(),
+})
+
+export type StockValuationRow = z.infer<typeof stockValuationRowSchema>
+
+export const stockValuationSummarySchema = z.object({
+  totalValueDZD: z.number().int().nonnegative(),
+  products: z.number().int().nonnegative(),
+  costedProducts: z.number().int().nonnegative(),
+  byCategory: z.record(productCategorySchema, z.number().int().nonnegative()),
+})
+
+export type StockValuationSummary = z.infer<typeof stockValuationSummarySchema>
+
+export const stockValuationReportSchema = z.object({
+  generatedAt: z.string(),
+  summary: stockValuationSummarySchema,
+  rows: z.array(stockValuationRowSchema),
+})
+
+export type StockValuationReport = z.infer<typeof stockValuationReportSchema>
+
+export const stockValuationQuerySchema = z.object({
+  archived: z.enum(['exclude', 'include']).default('exclude'),
+})
+
+export type StockValuationQuery = z.infer<typeof stockValuationQuerySchema>
+
+export type StockValuationQueryParams = z.input<typeof stockValuationQuerySchema>

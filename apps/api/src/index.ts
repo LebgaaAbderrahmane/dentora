@@ -34,6 +34,7 @@ import internsRouter from './routes/interns'
 import payrollRouter from './routes/payroll'
 import portalRouter from './routes/portal'
 import notificationsRouter from './routes/notifications'
+import reportsRouter from './routes/reports'
 import { runSweep } from './lib/notifications'
 
 initSentry()
@@ -113,6 +114,7 @@ api.use('/interns', internsRouter)
 api.use('/payroll', payrollRouter)
 api.use('/portal', portalRouter)
 api.use('/notifications', notificationsRouter)
+api.use('/reports', reportsRouter)
 
 app.use('/api', api)
 
