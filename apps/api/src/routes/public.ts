@@ -15,9 +15,9 @@ const router = Router()
 // never creates appointments: it produces a PENDING WaitlistEntry that the
 // staff board already knows how to contact/book (ADR 016). Branch is resolved
 // from PUBLIC_BRANCH_ID or the clinic's first branch (single-clinic model).
+// Rate-limit key: req.ip honors `trust proxy`, so the client address comes from
+// the one trusted proxy hop instead of a spoofable raw header.
 function publicIp(req: import('express').Request): string {
-  const forwarded = req.headers['x-forwarded-for']
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim()
   return req.ip ?? 'unknown'
 }
 

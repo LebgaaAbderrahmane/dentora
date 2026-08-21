@@ -50,21 +50,29 @@
 ## Network & infra
 
 - Non-root containers; caddy terminates TLS (Let's Encrypt, automatic renewal).
-- Rate limiting and helmet on the API.
-- Backups are encrypted and off-host (ADR 010).
+- **Helmet** on the API (6.5): default security headers, `crossOriginResourcePolicy: same-site`;
+  CSP defaults on, COEP off (same-origin SPA + API behind one host).
+- **`trust proxy = 1`** (6.5): the API sits behind exactly one nginx/Caddy hop, so `req.ip`
+  is the real client address — used as the rate-limit key instead of a spoofable raw
+  `X-Forwarded-For` header.
+- Rate limiting: in-memory fixed window (`lib/rateLimit.ts`, 5/hour per IP,
+  `PUBLIC_RATE_MAX` overrides) on the public booking endpoint; login throttling added
+  in 6.5. Edge-level enforcement (Caddy/nginx) remains the place for global limits.
+- Backups are host-local today; off-host copy is tracked as a gap below (ADR 010 follow-up).
 
 ## Incident visibility (ADR 009)
 
-- Sentry wired on `api` + `admin`/`portal` in Phase 0.7 — DSN from environment (`SENTRY_DSN`,
-  `VITE_SENTRY_DSN` at build time); disabled when empty.
+- Sentry wired on `api` + `admin`/`portal` — DSN from environment (`SENTRY_DSN`,
+  `VITE_SENTRY_DSN` at build time); disabled when empty. Public web SPA wired in 6.5.
 - API also logs structured JSON (pino) per request + on errors (`LOG_LEVEL`).
 - API error events carry route/method and the signed-in user when available.
-- Restore drill and security/perf audit in Phase 6.5.
 
 ## Threat notes to revisit before launch
 
-- Brute-force protection on login (rate limit already listed).
+- ~~Brute-force protection on login~~ — done in 6.5: per-IP+email fixed-window throttle
+  on `POST /api/auth/login` (10/hour, `LOGIN_RATE_MAX` overrides), failures still audited.
 - File type/size validation on document uploads.
 - S3/MinIO credential scoping (separate access key per bucket).
 - Session expiry / idle timeout policy.
-- Dependency scanning in CI (e.g. `pnpm audit`) — add in Phase 6.
+- ~~Dependency scanning~~ — `pnpm audit` run in 6.5 (see PROCESS §14); CI wiring in 6.6.
+- Off-host backup copies + `pg_stat_archiver` alerting (see `docs/backup-restore.md`).
