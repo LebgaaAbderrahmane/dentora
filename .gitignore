@@ -46,3 +46,7 @@ screenshots
 
 # Database backups (sensitive)
 infra/backups/
+
+# Playwright e2e artifacts
+test-results/
+playwright-report/
