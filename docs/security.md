@@ -66,6 +66,10 @@
   `VITE_SENTRY_DSN` at build time); disabled when empty. Public web SPA wired in 6.5.
 - API also logs structured JSON (pino) per request + on errors (`LOG_LEVEL`).
 - API error events carry route/method and the signed-in user when available.
+- **6.5 dashboard review**: all projects are errors-only (`tracesSampleRate: 0`) by
+  design — perf data comes from pino request logs, not APM. Watch items going into
+  launch: API error rate by route, SPA `ApiError` clusters (auth vs server), and
+  `pg_stat_archiver.failed_count` (no automated alert yet — tracked with CD in 6.6).
 
 ## Threat notes to revisit before launch
 
