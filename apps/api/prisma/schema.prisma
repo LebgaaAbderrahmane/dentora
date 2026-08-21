@@ -365,6 +365,7 @@ model Patient {
 
   @@index([branchId])
   @@index([firstName, lastName])
+  @@index([branchId, phone])
   @@map("patients")
 }
 
