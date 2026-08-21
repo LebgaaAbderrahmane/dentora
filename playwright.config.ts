@@ -44,10 +44,10 @@ export default defineConfig({
       port: API_PORT,
       reuseExistingServer: true,
       timeout: 30_000,
-      // The public booking endpoint rate-limits per IP (5/hour default); e2e
-      // submits more than that from 127.0.0.1, so raise the cap for the
-      // suite-started server.
-      env: { PUBLIC_RATE_MAX: '1000' },
+      // The public booking endpoint rate-limits per IP (5/hour default) and
+      // login throttles per IP+email (10/hour default); the suites exceed both
+      // from 127.0.0.1, so raise the caps for the suite-started server.
+      env: { PUBLIC_RATE_MAX: '1000', LOGIN_RATE_MAX: '1000' },
     },
     {
       command: `pnpm --filter @dentora/web dev --port ${WEB_PORT} --strictPort`,
