@@ -1,4 +1,5 @@
 import express from 'express'
+import helmet from 'helmet'
 import {
   healthSchema,
   systemStatusSchema,
@@ -42,6 +43,22 @@ initSentry()
 
 const app = express()
 const port = Number(process.env.PORT ?? 4000)
+
+// The API always sits behind the nginx/Caddy reverse proxy in deployment, so
+// trust one proxy hop: req.ip is then the real client address (rate-limit keys,
+// audit metadata) instead of the proxy IP. Never trust more hops.
+app.set('trust proxy', 1)
+
+// Security headers (6.5): sane defaults; cross-origin isolation is not needed
+// (same-origin SPA + API behind one host), so COEP stays off. In dev the SPAs
+// call the API cross-origin via the Vite proxy — still same-origin to the browser.
+app.use(
+  helmet({
+    contentSecurityPolicy: { useDefaults: true },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'same-site' },
+  }),
+)
 
 app.use(express.json())
 

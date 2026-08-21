@@ -122,6 +122,13 @@ recovery point`. Pick the newest base whose redo ≤ target.
    values are back and the incident row is absent.
 6. `docker rm -f dentora-restore`; drop `pitr_drill`; note the measured RTO.
 
+## DR drill log
+
+| Date       | Result | Base (redo)  | Target LSN   | Assert                                                                         | RTO (throwaway, incl. extract + replay + promote)                                                                                                                                                              |
+| ---------- | ------ | ------------ | ------------ | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-15 | PASS   | —            | `0/41020028` | pre-incident state back, incident row absent                                   | ~2 s (replay only, warm instance)                                                                                                                                                                              |
+| 2026-08-21 | PASS   | `0/E9000028` | `0/E9200028` | 2 pre-incident rows back, incident row absent, promoted read-write (`users=9`) | ~25 s wall clock end-to-end on the dev host (base extraction dominates; replay itself seconds). Phase 6.5 checklist run: table + distractors → backup → switch/incident → re-sync → `--pitr --lsn T --verify`. |
+
 ## Off-site copies
 
 `backups/` is host-local — a dead host still loses everything. Copy `daily/`, `wal/`,

@@ -16,10 +16,24 @@ import {
   setSessionCookie,
   SESSION_TTL_MS,
 } from '../lib/session'
+import { allowRequest } from '../lib/rateLimit'
 
 const router = Router()
 
+// 10 login attempts per hour per (IP, email) — enough for humans, useless for
+// credential stuffing. `LOGIN_RATE_MAX` overrides (e2e suites raise it).
+const LOGIN_RATE_MAX = Number(process.env.LOGIN_RATE_MAX ?? 10)
+
 router.post('/login', async (req, res) => {
+  // Brute-force throttle (6.5): fixed window per client IP + attempted email,
+  // so an attacker can't lock out a victim by spamming one bucket. Failures
+  // stay audited below; successful logins are unaffected (throttle checked first).
+  const attemptEmail =
+    typeof req.body?.email === 'string' ? req.body.email.toLowerCase().slice(0, 200) : '?'
+  if (!allowRequest(`login:${req.ip ?? 'unknown'}:${attemptEmail}`, LOGIN_RATE_MAX)) {
+    res.status(429).json({ error: 'TOO_MANY_REQUESTS' })
+    return
+  }
   const parsed = loginSchema.safeParse(req.body)
   if (!parsed.success) {
     res.status(400).json({ error: 'INVALID_BODY', issues: parsed.error.flatten() })

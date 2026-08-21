@@ -4,3 +4,8 @@ packages:
 
 # Private monorepo with only trusted postinstall scripts (esbuild, tailwind oxide).
 dangerouslyAllowAllBuilds: true
+
+# Security overrides (6.5 audit): force patched transitive versions.
+overrides:
+  nanoid: ^3.3.18
+  deepmerge-ts: ^8.0.0
