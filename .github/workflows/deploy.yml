@@ -1,0 +1,65 @@
+name: Deploy
+
+# ADR 036: deploys are deliberate, operator-triggered acts — never auto-deploy on
+# merge. This workflow runs the documented runbook steps (docs/deploy.md) in order:
+# backup sanity → pull → build → migrate deploy → up → verify. Rollback stays manual
+# per the runbook (tagged images + restore).
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: runbook → production host
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run deploy runbook over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -eu
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "==> [0/5] backup sanity: archiver must be healthy before any change"
+            docker compose exec -T postgres psql -U dentora -d dentora -c \
+              "SELECT archived_count, failed_count FROM pg_stat_archiver;"
+            FAILED=$(docker compose exec -T postgres psql -U dentora -d dentora -tAc \
+              "SELECT failed_count FROM pg_stat_archiver;")
+            if [ "$FAILED" != "0" ] && [ "$FAILED" != "" ]; then
+              echo "pg_stat_archiver.failed_count=$FAILED — WAL archiving is broken; fix backups before deploying."
+              exit 1
+            fi
+
+            echo "==> [1/5] fresh logical dump of the current state"
+            ./infra/backup/backup.sh
+
+            echo "==> [2/5] pull"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "==> [3/5] build images (api, nginx SPAs, caddy)"
+            docker compose build
+
+            echo "==> [4/5] apply migrations from checkout, then start"
+            set -a; . ./infra/.env; set +a   # POSTGRES_* for the migration URL
+            cd apps/api
+            DATABASE_URL="postgresql://${POSTGRES_USER:-dentora}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB:-dentora}?schema=public" \
+              pnpm exec prisma migrate deploy
+            cd ../..
+            docker compose up -d
+
+            echo "==> [5/5] verify"
+            sleep 3
+            docker compose ps
+            docker compose exec -T postgres psql -U dentora -d dentora -c "SELECT 1;"
+            docker compose logs --tail=20 api
+            # Human checks remain per docs/deploy.md § Verify:
+            # https://api.<domain>/api/system/status, SPA smoke, archiver rising.

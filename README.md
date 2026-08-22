@@ -3,7 +3,9 @@
 Complete dental practice management system for a single Algerian clinic (multi-branch ready).
 Built on top of the [Dentora](https://dentora.dz) public marketing site.
 
-> **Status:** under active development — Phase 3 (clinical back-office: stock, consumption, sterilization) + demo seed. See [`PROCESS.md`](./PROCESS.md) for the full roadmap and session log.
+> **Status:** Phase 6 (hardening) complete — reports & exports, audit retention, PWA
+> offline, Playwright e2e in CI, security/perf audit + PITR drill, CI/CD finalized.
+> See [`PROCESS.md`](./PROCESS.md) for the full roadmap and session log.
 
 ## What's included
 
@@ -25,10 +27,9 @@ Monorepo: pnpm workspaces. Everything runs through root scripts.
 
 ## Stack
 
-- **Frontend:** React 19 · Vite 8 · Tailwind CSS 4 · React Router v7 · TanStack Query · Zustand
-- **Backend:** Express 5 · Prisma · PostgreSQL · Zod
-- **Infra:** Docker Compose (postgres + minio + nginx + caddy) · manual deploy runbook (see [docs/deploy.md](docs/deploy.md))
-- **Language/locale:** fr / ar / en (RTL), DZD currency
+- **Frontend:** React 19 · Vite 8 · Tailwind CSS 4 · fr/ar/en (RTL), DZD currency; public site is an installable PWA with offline booking
+- **Backend:** Express 5 · Prisma · PostgreSQL · Zod · MinIO
+- **Infra:** Docker Compose (postgres + minio + nginx + caddy) · GitHub Actions CI incl. Playwright e2e · manual-trigger deploy workflow (see [ADR 036](docs/adr/0036-ci-cd-decision.md))
 
 ## Quickstart
 
@@ -39,6 +40,7 @@ pnpm build        # build all workspaces
 pnpm lint         # oxlint
 pnpm typecheck    # tsc across all workspaces
 pnpm test         # vitest across all workspaces
+pnpm test:e2e     # Playwright (needs docker postgres + seeded demo data; see e2e/)
 pnpm format       # prettier --write .
 ```
 
@@ -65,12 +67,15 @@ features.
 - [`PROCESS.md`](./PROCESS.md) — roadmap, decisions, session log (read this first)
 - [`docs/setup.md`](docs/setup.md) — dev environment
 - [`docs/conventions.md`](docs/conventions.md) — code standards & git workflow
-- [`docs/security.md`](docs/security.md) — encryption, auth, audit model
-- [`docs/deploy.md`](docs/deploy.md) — deploy runbook (Phase 0.9)
-- [`docs/backup-restore.md`](docs/backup-restore.md) — backups & PITR (Phase 0.9)
-- [`docs/adr/`](docs/adr/) — architecture decision records
+- [`docs/security.md`](docs/security.md) — encryption, auth, audit, hardening notes
+- [`docs/deploy.md`](docs/deploy.md) — deploy runbook (executed by the deploy workflow)
+- [`docs/backup-restore.md`](docs/backup-restore.md) — backups & PITR + drill log
+- [`docs/perf.md`](docs/perf.md) — performance notes from the 6.5 audit
+- [`docs/adr/`](docs/adr/) — architecture decision records (ADR 0002–0036)
 
 ## Git workflow
 
-Commits land on feature branches (`feat/<phase>-<slug>`, `fix/<slug>`), verified by CI, then merged to `main`.
-`main` always stays deployable. See docs/conventions.md.
+Commits land on feature branches (`feat/<phase>-<slug>`, `fix/<slug>`), verified by CI
+(format, lint, typecheck, unit tests, build, Playwright e2e against a real Postgres),
+then merged to `main`. `main` always stays deployable; deploys are manual-trigger via
+the `Deploy` workflow (ADR 036). See docs/conventions.md.

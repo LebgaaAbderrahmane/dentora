@@ -1,8 +1,12 @@
-# Deploy runbook (ADR 011 — manual initially; CD decisions in 6.6)
+# Deploy runbook (ADR 011 → ADR 036)
 
 Single-host docker-compose stack (`infra/`). Conventions: branches + PRs only, never
 commit to `main`; add a PROCESS.md §9/§14 entry per deploy. **Backup before destructive
 migrations** (see `docs/backup-restore.md`).
+
+Since ADR 036 these steps are executed by the manual-trigger **Deploy** workflow
+(`.github/workflows/deploy.yml`, requires `DEPLOY_HOST/USER/SSH_KEY/PATH` secrets).
+This document remains the source of truth — the workflow is the runbook, scripted.
 
 ## Prerequisites (first boot)
 
