@@ -148,3 +148,9 @@ html {
 .fc .fc-daygrid-day-frame {
   height: 100%;
 }
+/* Time-grid views: taller hour lanes so appointments get more room.
+   FullCalendar positions events off measured slot heights, so pure CSS
+   is enough. */
+.fc .fc-timegrid-slot {
+  height: 2.5em;
+}
