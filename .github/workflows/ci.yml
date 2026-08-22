@@ -46,3 +46,68 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # Playwright against a real Postgres (ADR 036): the same suite developers run
+  # via `pnpm test:e2e`. The playwright.config webServer blocks start api +
+  # web/admin/portal themselves; DATABASE_URL/ENCRYPTION_KEY are inherited.
+  e2e:
+    name: playwright (web · admin · portal)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: dentora
+          POSTGRES_USER: dentora
+          POSTGRES_PASSWORD: dentora-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dentora -d dentora"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://dentora:dentora-ci@localhost:5432/dentora?schema=public
+      # CI-only AES-256-GCM key (openssl rand -hex 32); never used for real data.
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @dentora/api prisma:generate
+
+      - name: Apply migrations
+        run: pnpm --filter @dentora/api prisma:deploy
+
+      - name: Seed demo dataset
+        run: pnpm --filter @dentora/api db:seed:demo
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: pnpm test:e2e
+
+      - name: Upload e2e artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
