@@ -108,17 +108,14 @@ export function ExpensesView() {
           onChange={setQ}
         />
         <Select
-          value={category ?? ''}
-          onValueChange={(v) => setCategory(v ? (v as ExpenseCategory) : undefined)}
+          value={category ?? '*'}
+          onValueChange={(v) => setCategory(v === '*' ? undefined : (v as ExpenseCategory))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">
-              {t('common.filter.category')}&nbsp;·&nbsp;
-            </span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('expenses.allCategories')}</SelectItem>
+            <SelectItem value="*">{t('expenses.allCategories')}</SelectItem>
             {EXPENSE_CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
                 {t(CATEGORY_KEY[c])}
@@ -127,15 +124,14 @@ export function ExpensesView() {
           </SelectContent>
         </Select>
         <Select
-          value={voided ?? ''}
-          onValueChange={(v) => setVoided(v ? (v as 'exclude' | 'only') : undefined)}
+          value={voided ?? '*'}
+          onValueChange={(v) => setVoided(v === '*' ? undefined : (v as 'exclude' | 'only'))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">{t('common.filter.voided')}&nbsp;·&nbsp;</span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('expenses.active')}</SelectItem>
+            <SelectItem value="*">{t('expenses.active')}</SelectItem>
             <SelectItem value="only">{t('expenses.voidedOnly')}</SelectItem>
           </SelectContent>
         </Select>

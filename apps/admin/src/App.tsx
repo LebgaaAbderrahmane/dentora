@@ -238,6 +238,11 @@ function Login({ onLoggedIn }: { onLoggedIn: (user: SafeUser) => void }) {
 function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void }) {
   const { t } = useI18n()
   const [view, setView] = useState<View>('dashboard')
+  // Dashboard quick actions navigate to a view AND auto-open its create
+  // dialog; cleared on any sidebar navigation so dialogs only open once.
+  const [quickAction, setQuickAction] = useState<'appointments' | 'patients' | 'invoices' | null>(
+    null,
+  )
   const [collapsed, setCollapsed] = useState(
     () => window.localStorage.getItem(COLLAPSED_KEY) === '1',
   )
@@ -424,7 +429,10 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                 {section.items.map((v) => (
                   <button
                     key={v.id}
-                    onClick={() => setView(v.id)}
+                    onClick={() => {
+                      setQuickAction(null)
+                      setView(v.id)
+                    }}
                     title={collapsed ? t(v.label) : undefined}
                     className={
                       collapsed
@@ -473,13 +481,27 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
       <div className="flex min-w-0 flex-1 flex-col">
         <AppBar view={view} user={user} onLoggedOut={onLoggedOut} />
         <main className="flex-1 overflow-y-auto p-6">
-          {view === 'dashboard' && <DashboardView />}
+          {view === 'dashboard' && (
+            <DashboardView
+              showClinicalActions={canManagePatients}
+              showBillingActions={canManageBilling}
+              onQuickAction={(target) => {
+                setQuickAction(target)
+                setView(target)
+              }}
+            />
+          )}
           {view === 'appointments' && canManagePatients && (
-            <AppointmentsView canEditSchedule={isAdmin} />
+            <AppointmentsView
+              canEditSchedule={isAdmin}
+              initialNew={quickAction === 'appointments'}
+            />
           )}
           {view === 'waitlist' && canManagePatients && <WaitlistView />}
           {view === 'catalog' && canManagePatients && <CatalogView canEdit={isAdmin} />}
-          {view === 'invoices' && canManageBilling && <InvoicesView canEdit={canEditInvoices} />}
+          {view === 'invoices' && canManageBilling && (
+            <InvoicesView canEdit={canEditInvoices} initialNew={quickAction === 'invoices'} />
+          )}
           {view === 'expenses' && canManageExpenses && <ExpensesView />}
           {view === 'finance' && canManageFinance && <FinanceView />}
           {view === 'products' && canViewProducts && <ProductsView canEdit={canEditProducts} />}
@@ -488,7 +510,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
           {view === 'alerts' && canViewProducts && <AlertsView />}
           {view === 'consumption' && canViewProducts && <ConsumptionView />}
           {view === 'sterilizations' && canViewProducts && <SterilizationsView />}
-          {view === 'patients' && canManagePatients && <PatientsView />}
+          {view === 'patients' && canManagePatients && (
+            <PatientsView initialNew={quickAction === 'patients'} />
+          )}
           {view === 'users' && isAdmin && <UsersView />}
           {view === 'staff' && isAdmin && <StaffView />}
           {view === 'attendance' && canViewAttendance && (

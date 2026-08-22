@@ -72,14 +72,30 @@ function fromLocalInputValue(value: string): string {
 
 type Editing = { detail: AppointmentDetail } | { new: { start: Date; end: Date } } | null
 
-export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean }) {
+// Next free 30-minute slot from now — used when the dashboard quick action
+// opens the create dialog directly.
+function nextSlot(): { start: Date; end: Date } {
+  const d = new Date()
+  d.setSeconds(0, 0)
+  const step = 30 - (d.getMinutes() % 30)
+  d.setMinutes(d.getMinutes() + step)
+  return { start: d, end: new Date(d.getTime() + 30 * 60 * 1000) }
+}
+
+export function AppointmentsView({
+  canEditSchedule,
+  initialNew = false,
+}: {
+  canEditSchedule: boolean
+  initialNew?: boolean
+}) {
   const { t, locale } = useI18n()
   const { toast } = useToast()
   const calendarRef = useRef<FullCalendar | null>(null)
   const [range, setRange] = useState<{ start: Date; end: Date } | null>(null)
   const [events, setEvents] = useState<Appointment[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('timeGridWeek')
-  const [editing, setEditing] = useState<Editing>(null)
+  const [editing, setEditing] = useState<Editing>(() => (initialNew ? { new: nextSlot() } : null))
   const [consuming, setConsuming] = useState<AppointmentDetail | null>(null)
   const [patients, setPatients] = useState<Patient[]>([])
   const [dentists, setDentists] = useState<StaffDentist[]>([])
@@ -140,8 +156,6 @@ export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean
         : true,
     [schedule],
   )
-
-  const allDaySlot = viewMode !== 'dayGridMonth'
 
   function openCreateFromSelect(sel: DateSelectArg) {
     if (!sel.start) return
@@ -265,7 +279,7 @@ export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean
           initialView={viewMode}
           headerToolbar={false}
           height="100%"
-          allDaySlot={allDaySlot}
+          allDaySlot={false}
           slotMinTime={schedule?.openTime ?? '00:00'}
           slotMaxTime={schedule?.closeTime ?? '24:00'}
           hiddenDays={hiddenDays}

@@ -59,7 +59,17 @@ function formatUptime(seconds: number): string {
   return `${hrs}h ${mins % 60}min`
 }
 
-export function DashboardView() {
+type QuickActionTarget = 'appointments' | 'patients' | 'invoices'
+
+export function DashboardView({
+  showClinicalActions,
+  showBillingActions,
+  onQuickAction,
+}: {
+  showClinicalActions: boolean
+  showBillingActions: boolean
+  onQuickAction: (target: QuickActionTarget) => void
+}) {
   const { t } = useI18n()
   const { toast } = useToast()
   const [status, setStatus] = useState<SystemStatus | null>(null)
@@ -106,10 +116,30 @@ export function DashboardView() {
             <span className="text-muted-foreground">· {formatUptime(status.uptimeSeconds)}</span>
           )}
         </span>
-        <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
-          <RefreshCw className="size-3.5" aria-hidden="true" />
-          {t('dashboard.refresh')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {showClinicalActions && (
+            <Button size="sm" onClick={() => onQuickAction('appointments')}>
+              <CalendarDays className="size-3.5" aria-hidden="true" />
+              {t('appointments.new')}
+            </Button>
+          )}
+          {showClinicalActions && (
+            <Button variant="outline" size="sm" onClick={() => onQuickAction('patients')}>
+              <Users className="size-3.5" aria-hidden="true" />
+              {t('patients.newPatient')}
+            </Button>
+          )}
+          {showBillingActions && (
+            <Button variant="outline" size="sm" onClick={() => onQuickAction('invoices')}>
+              <CircleDollarSign className="size-3.5" aria-hidden="true" />
+              {t('invoices.create')}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            {t('dashboard.refresh')}
+          </Button>
+        </div>
       </div>
 
       {kpis && (

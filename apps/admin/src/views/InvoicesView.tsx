@@ -48,7 +48,13 @@ const STATUS_BADGE: Record<string, string> = {
   VOID: tint(toneFor('VOID')),
 }
 
-export function InvoicesView({ canEdit }: { canEdit: boolean }) {
+export function InvoicesView({
+  canEdit,
+  initialNew = false,
+}: {
+  canEdit: boolean
+  initialNew?: boolean
+}) {
   const { t } = useI18n()
   const { toast } = useToast()
   const [items, setItems] = useState<Invoice[]>([])
@@ -57,7 +63,7 @@ export function InvoicesView({ canEdit }: { canEdit: boolean }) {
   const [q, setQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>(undefined)
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState(canEdit && initialNew)
   const [detail, setDetail] = useState<InvoiceDetail | null>(null)
 
   useEffect(() => {
@@ -116,15 +122,14 @@ export function InvoicesView({ canEdit }: { canEdit: boolean }) {
           onChange={setQ}
         />
         <Select
-          value={statusFilter ?? ''}
-          onValueChange={(v) => setStatusFilter(v ? (v as InvoiceStatus) : undefined)}
+          value={statusFilter ?? '*'}
+          onValueChange={(v) => setStatusFilter(v === '*' ? undefined : (v as InvoiceStatus))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">{t('common.filter.status')}&nbsp;·&nbsp;</span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('invoices.all')}</SelectItem>
+            <SelectItem value="*">{t('invoices.all')}</SelectItem>
             {(['UNPAID', 'PARTIAL', 'PAID', 'VOID'] as InvoiceStatus[]).map((s) => (
               <SelectItem key={s} value={s}>
                 {t(STATUS_KEY[s])}

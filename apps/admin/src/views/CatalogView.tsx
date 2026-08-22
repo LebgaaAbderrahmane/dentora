@@ -94,17 +94,14 @@ export function CatalogView({ canEdit }: { canEdit: boolean }) {
           onChange={setQ}
         />
         <Select
-          value={category ?? ''}
-          onValueChange={(v) => setCategory(v ? (v as ServiceCategory) : undefined)}
+          value={category ?? '*'}
+          onValueChange={(v) => setCategory(v === '*' ? undefined : (v as ServiceCategory))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">
-              {t('common.filter.category')}&nbsp;·&nbsp;
-            </span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('catalog.all')}</SelectItem>
+            <SelectItem value="*">{t('catalog.all')}</SelectItem>
             {CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
                 {t(CATEGORY_KEY[c])}
@@ -113,17 +110,14 @@ export function CatalogView({ canEdit }: { canEdit: boolean }) {
           </SelectContent>
         </Select>
         <Select
-          value={archived ?? ''}
-          onValueChange={(v) => setArchived(v ? (v as 'exclude' | 'only') : undefined)}
+          value={archived ?? '*'}
+          onValueChange={(v) => setArchived(v === '*' ? undefined : (v as 'exclude' | 'only'))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">
-              {t('common.filter.archived')}&nbsp;·&nbsp;
-            </span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('catalog.active')}</SelectItem>
+            <SelectItem value="*">{t('catalog.active')}</SelectItem>
             <SelectItem value="only">{t('catalog.archivedOnly')}</SelectItem>
           </SelectContent>
         </Select>

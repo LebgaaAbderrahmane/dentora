@@ -50,7 +50,7 @@ const GENDER_KEY: Record<Gender, MessageKey> = {
 
 type ArchivedFilter = 'exclude' | 'include' | 'only'
 
-export function PatientsView() {
+export function PatientsView({ initialNew = false }: { initialNew?: boolean }) {
   const { t } = useI18n()
   const { toast } = useToast()
   const [patients, setPatients] = useState<Patient[]>([])
@@ -59,7 +59,7 @@ export function PatientsView() {
   const [q, setQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
   const [archived, setArchived] = useState<ArchivedFilter>('exclude')
-  const [editing, setEditing] = useState<Patient | 'new' | null>(null)
+  const [editing, setEditing] = useState<Patient | 'new' | null>(initialNew ? 'new' : null)
   const [viewing, setViewing] = useState<Patient | null>(null)
 
   useEffect(() => {
