@@ -36,6 +36,7 @@ import payrollRouter from './routes/payroll'
 import portalRouter from './routes/portal'
 import notificationsRouter from './routes/notifications'
 import reportsRouter from './routes/reports'
+import scheduleRouter from './routes/schedule'
 import { runSweep } from './lib/notifications'
 import { loadStoredRetention, purgeAuditLogs, saveStoredRetention } from './lib/auditRetention'
 
@@ -133,6 +134,7 @@ api.use('/payroll', payrollRouter)
 api.use('/portal', portalRouter)
 api.use('/notifications', notificationsRouter)
 api.use('/reports', reportsRouter)
+api.use('/schedule', scheduleRouter)
 
 app.use('/api', api)
 
