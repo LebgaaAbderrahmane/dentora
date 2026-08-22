@@ -12,6 +12,7 @@ import {
   type InternUpdate,
 } from '@dentora/contracts'
 import { api, ApiError } from '../lib/api'
+import { SearchInput } from '@/components/ui/search-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -107,12 +108,11 @@ export function InternsView({ canEdit }: { canEdit: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Input
+        <SearchInput
           aria-label={t('intern.search')}
           placeholder={t('intern.search')}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs"
+          onChange={setQ}
         />
         <Select value={rotation} onValueChange={(v) => setRotation(v as InternRotation | '')}>
           <SelectTrigger className="w-[190px]">

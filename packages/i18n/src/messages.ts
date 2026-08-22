@@ -955,6 +955,10 @@ const fr = {
   'locale.en': 'English',
   'common.close': 'Fermer',
   'common.save': 'Enregistrer',
+  'common.filter.status': 'Statut',
+  'common.filter.category': 'Catégorie',
+  'common.filter.archived': 'Archivage',
+  'common.filter.voided': 'Annulation',
 }
 
 export type MessageKey = keyof typeof fr
@@ -1910,6 +1914,10 @@ const en: Record<MessageKey, string> = {
   'locale.en': 'English',
   'common.close': 'Close',
   'common.save': 'Save',
+  'common.filter.status': 'Status',
+  'common.filter.category': 'Category',
+  'common.filter.archived': 'Archive',
+  'common.filter.voided': 'Voided',
 }
 
 const ar: Record<MessageKey, string> = {
@@ -2858,6 +2866,10 @@ const ar: Record<MessageKey, string> = {
   'locale.en': 'English',
   'common.close': 'إغلاق',
   'common.save': 'حفظ',
+  'common.filter.status': 'الحالة',
+  'common.filter.category': 'الفئة',
+  'common.filter.archived': 'الأرشفة',
+  'common.filter.voided': 'الإلغاء',
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { fr, en, ar }

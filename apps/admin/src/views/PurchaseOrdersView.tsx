@@ -12,6 +12,7 @@ import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
+import { SearchInput } from '@/components/ui/search-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -111,29 +112,33 @@ export function PurchaseOrdersView() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Input
+        <SearchInput
           aria-label={t('purchaseOrders.search')}
           placeholder={t('purchaseOrders.search')}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs"
+          onChange={setQ}
         />
-        <Select
-          value={status ?? ''}
-          onValueChange={(v) => setStatus(v ? (v as PurchaseOrderStatus) : undefined)}
-        >
-          <SelectTrigger className="w-fit text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">{t('purchaseOrders.allStatuses')}</SelectItem>
-            {Object.keys(STATUS_KEY).map((s) => (
-              <SelectItem key={s} value={s}>
-                {t(STATUS_KEY[s as PurchaseOrderStatus])}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
+            {t('common.filter.status')}
+          </span>
+          <Select
+            value={status ?? ''}
+            onValueChange={(v) => setStatus(v ? (v as PurchaseOrderStatus) : undefined)}
+          >
+            <SelectTrigger className="w-fit text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">{t('purchaseOrders.allStatuses')}</SelectItem>
+              {Object.keys(STATUS_KEY).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {t(STATUS_KEY[s as PurchaseOrderStatus])}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <span className="text-xs text-muted-foreground">
           {total} {t('purchaseOrders.lines')}
         </span>

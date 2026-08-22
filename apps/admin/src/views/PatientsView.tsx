@@ -21,6 +21,7 @@ import { api, ApiError } from '../lib/api'
 import { DocumentsTab } from './DocumentsTab'
 import { OdontogramChart } from '../components/OdontogramChart'
 import { TOOTH_CONDITIONS, TOOTH_STATUSES, TOOTH_SURFACES } from '../components/odontogram'
+import { SearchInput } from '@/components/ui/search-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -96,12 +97,11 @@ export function PatientsView() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Input
+        <SearchInput
           aria-label={t('patients.search')}
           placeholder={t('patients.search')}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs"
+          onChange={setQ}
         />
         <Select value={archived} onValueChange={(v) => setArchived(v as ArchivedFilter)}>
           <SelectTrigger className="w-fit text-xs">
