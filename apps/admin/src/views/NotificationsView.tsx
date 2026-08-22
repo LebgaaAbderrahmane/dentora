@@ -10,6 +10,7 @@ import type {
 import { useI18n, formatDateTime } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
 import type { MessageKey } from '@dentora/i18n'
+import { tint, toneFor } from '../lib/badges'
 import { api, ApiError } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,9 +35,9 @@ const STATUS_KEY: Record<NotificationStatus, MessageKey> = {
   SKIPPED: 'notifications.status.skipped',
 }
 
-const STATUS_BADGE: Record<NotificationStatus, string> = {
-  SENT: 'border-green-500/30 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300',
-  FAILED: 'border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300',
+const STATUS_BADGE: Record<string, string> = {
+  SENT: tint(toneFor('SENT')),
+  FAILED: tint(toneFor('FAILED')),
   SKIPPED:
     'border-neutral-400/30 bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
 }
@@ -198,7 +199,7 @@ export function NotificationsView() {
                     {t('notifications.enabled')}
                   </label>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       draft.enabled
                         ? 'border-green-500/30 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
                         : 'border-neutral-400/30 bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'
@@ -294,7 +295,7 @@ export function NotificationsView() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-foreground">{log.patientName}</span>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE[log.status]}`}
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE[log.status]}`}
                   >
                     {t(STATUS_KEY[log.status])}
                   </span>

@@ -10,6 +10,7 @@ import type {
 import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
+import { tint, toneFor } from '../lib/badges'
 import { api, ApiError, parseConflict } from '../lib/api'
 import { SearchInput } from '@/components/ui/search-input'
 import { Button } from '@/components/ui/button'
@@ -38,12 +39,12 @@ const STATUS_KEY: Record<WaitlistStatus, MessageKey> = {
   EXPIRED: 'waitlist.status.expired',
 }
 
-const STATUS_BADGE: Record<WaitlistStatus, string> = {
-  PENDING: 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300',
-  CONTACTED: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  BOOKED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-  EXPIRED: 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: tint(toneFor('PENDING')),
+  CONTACTED: tint(toneFor('CONTACTED')),
+  BOOKED: tint(toneFor('BOOKED')),
+  CANCELLED: tint(toneFor('CANCELLED')),
+  EXPIRED: tint(toneFor('EXPIRED')),
 }
 
 const ACTIVE: WaitlistStatus[] = ['PENDING', 'CONTACTED']

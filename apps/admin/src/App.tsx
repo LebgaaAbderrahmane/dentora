@@ -185,6 +185,9 @@ function Login({ onLoggedIn }: { onLoggedIn: (user: SafeUser) => void }) {
         onSubmit={(e) => void handleSubmit(e)}
         className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 text-white">
+          <Stethoscope className="h-6 w-6" aria-hidden="true" />
+        </div>
         <h1 className="text-xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
           {t('app.name')}
         </h1>
@@ -427,15 +430,18 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                       collapsed
                         ? `mx-2 flex h-10 items-center justify-center rounded-lg ${
                             view === v.id
-                              ? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
+                              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
                               : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
                           }`
                         : view === v.id
-                          ? 'flex items-center gap-3 rounded-lg bg-neutral-100 px-3 py-2 text-start text-sm font-medium text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
+                          ? 'flex items-center gap-3 rounded-lg bg-brand-50 px-3 py-2 text-start text-sm font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300'
                           : 'flex items-center gap-3 rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
                     }
                   >
-                    <v.icon className="size-4 shrink-0" aria-hidden="true" />
+                    <v.icon
+                      className={`size-4 shrink-0 ${view === v.id ? 'text-brand-600 dark:text-brand-400' : ''}`}
+                      aria-hidden="true"
+                    />
                     {!collapsed && t(v.label)}
                   </button>
                 ))}

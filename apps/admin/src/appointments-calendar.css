@@ -21,7 +21,7 @@
   --fc-event-resizer-dot-total-width: 8px;
   --fc-event-resizer-dot-border-width: 1px;
   --fc-non-business-color: var(--muted);
-  --fc-bg-event-color: var(--brand-500, oklch(0.6 0.118 184.704));
+  --fc-bg-event-color: var(--primary);
   --fc-bg-event-opacity: 0.3;
   --fc-highlight-color: color-mix(in oklab, var(--ring) 20%, transparent);
   --fc-today-bg-color: color-mix(in oklab, var(--ring) 8%, transparent);

@@ -13,6 +13,7 @@ import { PAYMENT_METHODS } from '@dentora/contracts'
 import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
+import { tint, toneFor } from '../lib/badges'
 import { api, ApiError } from '../lib/api'
 import { SearchInput } from '@/components/ui/search-input'
 import { Button } from '@/components/ui/button'
@@ -40,11 +41,11 @@ const STATUS_KEY: Record<InvoiceStatus, MessageKey> = {
   VOID: 'invoices.status.void',
 }
 
-const STATUS_BADGE: Record<InvoiceStatus, string> = {
-  UNPAID: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-  PARTIAL: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  PAID: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  VOID: 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
+const STATUS_BADGE: Record<string, string> = {
+  UNPAID: tint(toneFor('UNPAID')),
+  PARTIAL: tint(toneFor('PARTIAL')),
+  PAID: tint(toneFor('PAID')),
+  VOID: tint(toneFor('VOID')),
 }
 
 export function InvoicesView({ canEdit }: { canEdit: boolean }) {
