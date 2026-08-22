@@ -80,23 +80,21 @@ export function SuppliersView({ canEdit }: { canEdit: boolean }) {
           value={q}
           onChange={setQ}
         />
-        <div className="flex flex-col gap-1">
-          <span className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-            {t('common.filter.archived')}
-          </span>
-          <Select
-            value={archived ?? ''}
-            onValueChange={(v) => setArchived(v ? (v as 'exclude' | 'only') : undefined)}
-          >
-            <SelectTrigger className="w-fit text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">{t('suppliers.active')}</SelectItem>
-              <SelectItem value="only">{t('suppliers.archivedOnly')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={archived ?? ''}
+          onValueChange={(v) => setArchived(v ? (v as 'exclude' | 'only') : undefined)}
+        >
+          <SelectTrigger className="w-fit text-xs">
+            <span className="text-muted-foreground">
+              {t('common.filter.archived')}&nbsp;·&nbsp;
+            </span>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{t('suppliers.active')}</SelectItem>
+            <SelectItem value="only">{t('suppliers.archivedOnly')}</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground">
           {total} {t('patients.total')}
         </span>

@@ -270,6 +270,9 @@ export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean
           slotMaxTime={schedule?.closeTime ?? '24:00'}
           hiddenDays={hiddenDays}
           businessHours={businessHours}
+          // Cap per-day events in month view ("+N more" popover) so every week
+          // row renders at the same height regardless of how busy it is.
+          dayMaxEventRows={3}
           selectable
           selectMirror
           unselectAuto={false}

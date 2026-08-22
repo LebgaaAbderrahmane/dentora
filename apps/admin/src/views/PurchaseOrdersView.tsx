@@ -118,27 +118,23 @@ export function PurchaseOrdersView() {
           value={q}
           onChange={setQ}
         />
-        <div className="flex flex-col gap-1">
-          <span className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-            {t('common.filter.status')}
-          </span>
-          <Select
-            value={status ?? ''}
-            onValueChange={(v) => setStatus(v ? (v as PurchaseOrderStatus) : undefined)}
-          >
-            <SelectTrigger className="w-fit text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">{t('purchaseOrders.allStatuses')}</SelectItem>
-              {Object.keys(STATUS_KEY).map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(STATUS_KEY[s as PurchaseOrderStatus])}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={status ?? ''}
+          onValueChange={(v) => setStatus(v ? (v as PurchaseOrderStatus) : undefined)}
+        >
+          <SelectTrigger className="w-fit text-xs">
+            <span className="text-muted-foreground">{t('common.filter.status')}&nbsp;·&nbsp;</span>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{t('purchaseOrders.allStatuses')}</SelectItem>
+            {Object.keys(STATUS_KEY).map((s) => (
+              <SelectItem key={s} value={s}>
+                {t(STATUS_KEY[s as PurchaseOrderStatus])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground">
           {total} {t('purchaseOrders.lines')}
         </span>

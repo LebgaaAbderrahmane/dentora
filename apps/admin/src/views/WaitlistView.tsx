@@ -118,26 +118,22 @@ export function WaitlistView() {
           value={q}
           onChange={setQ}
         />
-        <div className="flex flex-col gap-1">
-          <span className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-            {t('common.filter.status')}
-          </span>
-          <Select
-            value={statusFilter ?? ''}
-            onValueChange={(v) => setStatusFilter(v ? (v as WaitlistStatus) : undefined)}
-          >
-            <SelectTrigger className="w-fit text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {filters.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={statusFilter ?? ''}
+          onValueChange={(v) => setStatusFilter(v ? (v as WaitlistStatus) : undefined)}
+        >
+          <SelectTrigger className="w-fit text-xs">
+            <span className="text-muted-foreground">{t('common.filter.status')}&nbsp;·&nbsp;</span>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {filters.map((f) => (
+              <SelectItem key={f.value} value={f.value}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground">
           {total} {t('patients.total')}
         </span>
