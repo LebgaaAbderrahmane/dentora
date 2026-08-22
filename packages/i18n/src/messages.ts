@@ -797,6 +797,14 @@ const fr = {
   'appointments.status.completed': 'Terminé',
   'appointments.status.cancelled': 'Annulé',
   'appointments.status.noshow': 'Non honoré',
+  'appointments.schedule.title': 'Horaires de la clinique',
+  'appointments.schedule.open': 'Ouverture',
+  'appointments.schedule.close': 'Fermeture',
+  'appointments.schedule.days': 'Jours ouvrés',
+  'appointments.schedule.saved': 'Horaires enregistrés.',
+  'appointments.schedule.hint':
+    'Le calendrier affiche la journée entre ces heures ; les jours fermés sont masqués.',
+  'appointments.outsideHours': 'En dehors des horaires d’ouverture — enregistré quand même.',
   'waitlist.title': 'Liste d’attente',
   'waitlist.add': 'Ajouter à la liste d’attente',
   'waitlist.patient': 'Patient',
@@ -889,6 +897,7 @@ const fr = {
   'audit.actions.portalAccessReset': 'Accès portail réinitialisé',
   'audit.actions.notificationConfigUpdate': 'Configuration notifications mise à jour',
   'audit.actions.auditRetentionUpdate': 'Rétention d’audit mise à jour',
+  'audit.actions.clinicScheduleUpdate': 'Horaires de la clinique mis à jour',
   'nav.notifications': 'Notifications',
   'notifications.config': 'Configuration des rappels',
   'notifications.configHint': 'Rappels automatiques (WhatsApp / email) avant chaque rendez-vous.',
@@ -945,6 +954,7 @@ const fr = {
   'locale.ar': 'العربية',
   'locale.en': 'English',
   'common.close': 'Fermer',
+  'common.save': 'Enregistrer',
 }
 
 export type MessageKey = keyof typeof fr
@@ -1742,6 +1752,14 @@ const en: Record<MessageKey, string> = {
   'appointments.status.completed': 'Completed',
   'appointments.status.cancelled': 'Cancelled',
   'appointments.status.noshow': 'No-show',
+  'appointments.schedule.title': 'Clinic hours',
+  'appointments.schedule.open': 'Opens at',
+  'appointments.schedule.close': 'Closes at',
+  'appointments.schedule.days': 'Working days',
+  'appointments.schedule.saved': 'Schedule saved.',
+  'appointments.schedule.hint':
+    'The calendar renders the day between these hours; closed days are hidden.',
+  'appointments.outsideHours': 'Outside opening hours — saved anyway.',
   'waitlist.title': 'Waiting list',
   'waitlist.add': 'Add to waiting list',
   'waitlist.patient': 'Patient',
@@ -1834,6 +1852,7 @@ const en: Record<MessageKey, string> = {
   'audit.actions.portalAccessReset': 'Portal access reset',
   'audit.actions.notificationConfigUpdate': 'Notification settings updated',
   'audit.actions.auditRetentionUpdate': 'Audit retention updated',
+  'audit.actions.clinicScheduleUpdate': 'Clinic schedule updated',
   'nav.notifications': 'Notifications',
   'notifications.config': 'Reminder settings',
   'notifications.configHint': 'Automatic WhatsApp / email reminders before each appointment.',
@@ -1890,6 +1909,7 @@ const en: Record<MessageKey, string> = {
   'locale.ar': 'العربية',
   'locale.en': 'English',
   'common.close': 'Close',
+  'common.save': 'Save',
 }
 
 const ar: Record<MessageKey, string> = {
@@ -2682,6 +2702,13 @@ const ar: Record<MessageKey, string> = {
   'appointments.status.completed': 'مكتمل',
   'appointments.status.cancelled': 'ملغى',
   'appointments.status.noshow': 'غير مُحترم',
+  'appointments.schedule.title': 'ساعات العمل',
+  'appointments.schedule.open': 'الافتتاح',
+  'appointments.schedule.close': 'الإغلاق',
+  'appointments.schedule.days': 'أيام العمل',
+  'appointments.schedule.saved': 'تم حفظ ساعات العمل.',
+  'appointments.schedule.hint': 'يعرض التقويم اليوم بين هاتين الساعتين؛ تُخفى أيام الإغلاق.',
+  'appointments.outsideHours': 'خارج ساعات العمل — تم الحفظ على أي حال.',
   'waitlist.title': 'قائمة الانتظار',
   'waitlist.add': 'إضافة إلى قائمة الانتظار',
   'waitlist.patient': 'المريض',
@@ -2774,6 +2801,7 @@ const ar: Record<MessageKey, string> = {
   'audit.actions.portalAccessReset': 'تمت إعادة تعيين وصول البوابة',
   'audit.actions.notificationConfigUpdate': 'تم تحديث إعدادات الإشعارات',
   'audit.actions.auditRetentionUpdate': 'تم تحديث الاحتفاظ بسجل التدقيق',
+  'audit.actions.clinicScheduleUpdate': 'تم تحديث ساعات العمل',
   'nav.notifications': 'الإشعارات',
   'notifications.config': 'إعدادات التذكيرات',
   'notifications.configHint': 'تذكيرات تلقائية (واتساب / بريد) قبل كل موعد.',
@@ -2829,6 +2857,7 @@ const ar: Record<MessageKey, string> = {
   'locale.ar': 'العربية',
   'locale.en': 'English',
   'common.close': 'إغلاق',
+  'common.save': 'حفظ',
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { fr, en, ar }

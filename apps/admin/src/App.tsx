@@ -468,7 +468,9 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
         <AppBar view={view} user={user} onLoggedOut={onLoggedOut} />
         <main className="flex-1 overflow-y-auto p-6">
           {view === 'dashboard' && <DashboardView />}
-          {view === 'appointments' && canManagePatients && <AppointmentsView />}
+          {view === 'appointments' && canManagePatients && (
+            <AppointmentsView canEditSchedule={isAdmin} />
+          )}
           {view === 'waitlist' && canManagePatients && <WaitlistView />}
           {view === 'catalog' && canManagePatients && <CatalogView canEdit={isAdmin} />}
           {view === 'invoices' && canManageBilling && <InvoicesView canEdit={canEditInvoices} />}

@@ -90,6 +90,7 @@ const ACTION_KEY: Record<AuditAction, MessageKey> = {
   PORTAL_ACCESS_RESET: 'audit.actions.portalAccessReset',
   NOTIFICATION_CONFIG_UPDATE: 'audit.actions.notificationConfigUpdate',
   AUDIT_RETENTION_UPDATE: 'audit.actions.auditRetentionUpdate',
+  CLINIC_SCHEDULE_UPDATE: 'audit.actions.clinicScheduleUpdate',
 }
 
 const TARGET_KEY: Record<AuditTarget, MessageKey> = {
