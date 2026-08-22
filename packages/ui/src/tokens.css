@@ -13,6 +13,7 @@
   --color-brand-700: #047857;
   --color-brand-800: #065f46;
   --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
 }
 
 /* Arabic falls back to Tajawal (see docs/adr/0012-design-foundations.md);

@@ -434,7 +434,7 @@ function Shell({ user, onLoggedOut }: { user: SafeUser; onLoggedOut: () => void 
                               : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
                           }`
                         : view === v.id
-                          ? 'flex items-center gap-3 rounded-lg bg-brand-50 px-3 py-2 text-start text-sm font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+                          ? 'flex items-center gap-3  bg-brand-50 px-3 py-2 text-start text-sm font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300'
                           : 'flex items-center gap-3 rounded-lg px-3 py-2 text-start text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'
                     }
                   >
