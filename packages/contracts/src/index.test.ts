@@ -788,6 +788,11 @@ describe('dashboard contracts', () => {
     noShow: { today: 1, rate30d: 0.25 },
     waitlist: { active: 2 },
     patients: { total: 120, new30d: 7 },
+    receivables: { totalBalanceDZD: 4500, unpaidCount: 2 },
+    alerts: { lowStockCount: 3, expiringCount: 1 },
+    onDuty: {
+      staff: [{ staffName: 'Dr. Meziane', checkInAt: '2026-08-16T08:00:00.000Z' }],
+    },
   }
 
   it('dashboardKpisSchema parses the full payload', () => {
@@ -798,6 +803,20 @@ describe('dashboard contracts', () => {
     expect(parsed.noShow.rate30d).toBe(0.25)
     expect(parsed.waitlist.active).toBe(2)
     expect(parsed.patients.new30d).toBe(7)
+    expect(parsed.receivables?.totalBalanceDZD).toBe(4500)
+    expect(parsed.alerts.lowStockCount).toBe(3)
+    expect(parsed.onDuty?.staff[0].staffName).toBe('Dr. Meziane')
+  })
+
+  it('dashboardKpisSchema allows null role-gated sections (dentist view)', () => {
+    const dentistView = dashboardKpisSchema.parse({
+      ...fullKpis,
+      receivables: null,
+      onDuty: null,
+    })
+    expect(dentistView.receivables).toBeNull()
+    expect(dentistView.onDuty).toBeNull()
+    expect(dentistView.alerts.expiringCount).toBe(1)
   })
 
   it('dashboardKpisSchema rejects a negative or out-of-range value', () => {

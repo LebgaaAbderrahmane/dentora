@@ -856,7 +856,7 @@ a.fc-event:hover {
 }
 .fc .fc-timegrid-slot {
   border-bottom: 0;
-  height: 1.5em;
+  height: 32px;
 }
 .fc .fc-timegrid-slot:empty:before {
   content: '\00a0';
@@ -1217,4 +1217,15 @@ a.fc-event:hover {
 }
 .fc-media-print .fc-multimonth {
   overflow: visible;
+}
+
+/* Uniform calendar rows: fixed slot height above + eventLimit caps month-view
+   cells, so week rows never stretch with content. Floor the day cells so
+   sparse weeks match the distributed row height. */
+.fc .fc-daygrid-day-events {
+  max-height: 5.5em;
+  overflow: hidden;
+}
+.fc .fc-daygrid-day-frame {
+  min-height: 88px;
 }

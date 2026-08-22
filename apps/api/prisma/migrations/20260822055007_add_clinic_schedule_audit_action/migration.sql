@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AuditAction" ADD VALUE 'CLINIC_SCHEDULE_UPDATE';

@@ -525,6 +525,7 @@ export const auditActionSchema = z.enum([
   'PAYROLL_VOID',
   'NOTIFICATION_CONFIG_UPDATE',
   'AUDIT_RETENTION_UPDATE',
+  'CLINIC_SCHEDULE_UPDATE',
 ])
 
 export type AuditAction = z.infer<typeof auditActionSchema>
@@ -614,6 +615,33 @@ export const auditPurgeResultSchema = z.object({
   deleted: z.number().int().nonnegative(),
   cutoff: z.string().datetime(),
 })
+
+// Clinic schedule (per-branch Setting `clinic.schedule`): the day window the
+// appointments calendar renders and the days the clinic opens. Times are local
+// wall-clock HH:mm — the calendar is a planning surface, not an instant math
+// problem, so no timezone conversion happens here. Weekday numbers follow
+// FullCalendar/JS convention: 0 = Sunday … 6 = Saturday.
+export const WEEKDAY_NUMBERS = [0, 1, 2, 3, 4, 5, 6] as const
+
+export const clinicScheduleSchema = z
+  .object({
+    openTime: z.string().regex(TIME_HHMM_RE, 'openTime must be HH:mm'),
+    closeTime: z.string().regex(TIME_HHMM_RE, 'closeTime must be HH:mm'),
+    // FullCalendar/JS weekday numbers: 0 = Sunday … 6 = Saturday.
+    workingDays: z.array(z.number().int().min(0).max(6)).min(1),
+  })
+  .refine((s) => s.openTime < s.closeTime, {
+    message: 'openTime must be before closeTime',
+    path: ['closeTime'],
+  })
+
+export type ClinicSchedule = z.infer<typeof clinicScheduleSchema>
+
+// Full-replace update (audit-retention precedent): the client always submits
+// all three fields.
+export const clinicScheduleUpdateSchema = clinicScheduleSchema
+
+export type ClinicScheduleUpdate = ClinicSchedule
 
 export type AuditPurgeResult = z.infer<typeof auditPurgeResultSchema>
 
@@ -1097,11 +1125,43 @@ export const dashboardPatientsSchema = z.object({
 
 export type DashboardPatients = z.infer<typeof dashboardPatientsSchema>
 
+// Role-gated extras (6.5-style derived-on-read): null when the caller's role
+// cannot see that domain (a DENTIST gets no finance/attendance figures).
+export const dashboardReceivablesSchema = z.object({
+  totalBalanceDZD: z.number().int().min(0),
+  unpaidCount: z.number().int().min(0),
+})
+
+export type DashboardReceivables = z.infer<typeof dashboardReceivablesSchema>
+
+export const dashboardAlertsSchema = z.object({
+  lowStockCount: z.number().int().min(0),
+  expiringCount: z.number().int().min(0), // lots expiring within 30 days
+})
+
+export type DashboardAlerts = z.infer<typeof dashboardAlertsSchema>
+
+export const dashboardOnDutyEntrySchema = z.object({
+  staffName: z.string(),
+  checkInAt: z.string(),
+})
+
+export type DashboardOnDutyEntry = z.infer<typeof dashboardOnDutyEntrySchema>
+
+export const dashboardOnDutySchema = z.object({
+  staff: z.array(dashboardOnDutyEntrySchema).max(20),
+})
+
+export type DashboardOnDuty = z.infer<typeof dashboardOnDutySchema>
+
 export const dashboardKpisSchema = z.object({
   visits: dashboardVisitsSchema,
   noShow: dashboardNoShowSchema,
   waitlist: dashboardWaitlistSchema,
   patients: dashboardPatientsSchema,
+  receivables: dashboardReceivablesSchema.nullable(),
+  alerts: dashboardAlertsSchema,
+  onDuty: dashboardOnDutySchema.nullable(),
 })
 
 export type DashboardKpis = z.infer<typeof dashboardKpisSchema>

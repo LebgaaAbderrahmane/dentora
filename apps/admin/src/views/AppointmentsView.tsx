@@ -12,6 +12,7 @@ import type {
   AppointmentInput,
   AppointmentStatus,
   AppointmentUpdate,
+  ClinicSchedule,
 } from '@dentora/contracts'
 import { useI18n } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
@@ -19,9 +20,11 @@ import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError, parseConflict } from '../lib/api'
 import type { Patient, StaffDentist } from '@dentora/contracts'
 import { ConsumptionModal } from './ConsumptionModal'
+import { ClinicScheduleDialog } from './ClinicScheduleDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Settings2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -69,7 +72,7 @@ function fromLocalInputValue(value: string): string {
 
 type Editing = { detail: AppointmentDetail } | { new: { start: Date; end: Date } } | null
 
-export function AppointmentsView() {
+export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean }) {
   const { t, locale } = useI18n()
   const { toast } = useToast()
   const calendarRef = useRef<FullCalendar | null>(null)
@@ -80,12 +83,15 @@ export function AppointmentsView() {
   const [consuming, setConsuming] = useState<AppointmentDetail | null>(null)
   const [patients, setPatients] = useState<Patient[]>([])
   const [dentists, setDentists] = useState<StaffDentist[]>([])
+  const [schedule, setSchedule] = useState<ClinicSchedule | null>(null)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
 
   useEffect(() => {
-    Promise.all([api.patients({ limit: 200 }), api.dentists()])
-      .then(([pr, dentists]) => {
+    Promise.all([api.patients({ limit: 200 }), api.dentists(), api.clinicSchedule()])
+      .then(([pr, dentists, schedule]) => {
         setPatients(pr.patients)
         setDentists(dentists)
+        setSchedule(schedule)
       })
       .catch(() => toast(t('auth.serverError'), 'error'))
   }, [t, toast])
@@ -116,14 +122,34 @@ export function AppointmentsView() {
     [events],
   )
 
+  // Stable references: FullCalendar re-applies options whenever these props
+  // change identity, which refires datesSet — inline literals here would loop
+  // forever (setRange → render → new array → resetOptions → datesSet …).
+  const hiddenDays = useMemo(
+    () => (schedule ? [0, 1, 2, 3, 4, 5, 6].filter((d) => !schedule.workingDays.includes(d)) : []),
+    [schedule],
+  )
+  const businessHours = useMemo(
+    () =>
+      schedule
+        ? {
+            daysOfWeek: schedule.workingDays,
+            startTime: schedule.openTime,
+            endTime: schedule.closeTime,
+          }
+        : true,
+    [schedule],
+  )
+
   const allDaySlot = viewMode !== 'dayGridMonth'
 
   function openCreateFromSelect(sel: DateSelectArg) {
     if (!sel.start) return
     if (sel.allDay) {
-      // a whole-day (or all-day gutter) selection — create a 9:00–9:30 slot for that day
+      // a whole-day selection — default to the clinic's opening time, 30 min slot
+      const [h, m] = (schedule?.openTime ?? '09:00').split(':').map(Number)
       const start = new Date(sel.start)
-      start.setHours(9, 0, 0, 0)
+      start.setHours(h, m, 0, 0)
       setEditing({ new: { start, end: new Date(start.getTime() + 30 * 60 * 1000) } })
       return
     }
@@ -210,6 +236,15 @@ export function AppointmentsView() {
           </Button>
         </div>
         <div className="ms-auto flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setScheduleOpen(true)}
+            aria-label={t('appointments.schedule.title')}
+            title={t('appointments.schedule.title')}
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
           <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
             <SelectTrigger className="w-fit text-xs">
               <SelectValue />
@@ -223,7 +258,7 @@ export function AppointmentsView() {
         </div>
       </div>
 
-      <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+      <div className="h-[calc(100dvh-11rem)] min-h-[480px] overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -231,6 +266,13 @@ export function AppointmentsView() {
           headerToolbar={false}
           height="100%"
           allDaySlot={allDaySlot}
+          slotMinTime={schedule?.openTime ?? '00:00'}
+          slotMaxTime={schedule?.closeTime ?? '24:00'}
+          hiddenDays={hiddenDays}
+          businessHours={businessHours}
+          // Cap per-day events in month view ("+N more" popover) so every week
+          // row renders at the same height regardless of how busy it is.
+          dayMaxEventRows={3}
           selectable
           selectMirror
           unselectAuto={false}
@@ -238,13 +280,33 @@ export function AppointmentsView() {
           eventDurationEditable
           events={fcEvents}
           locale={calendarLocale}
-          datesSet={(info) => setRange({ start: info.start, end: info.end })}
+          datesSet={(info) =>
+            setRange((prev) =>
+              prev &&
+              prev.start.getTime() === info.start.getTime() &&
+              prev.end.getTime() === info.end.getTime()
+                ? prev
+                : { start: info.start, end: info.end },
+            )
+          }
           select={openCreateFromSelect}
           eventClick={handleEventClick}
           eventDrop={handleDrop}
           eventResize={handleResize}
         />
       </div>
+
+      {scheduleOpen && schedule && (
+        <ClinicScheduleDialog
+          schedule={schedule}
+          canEdit={canEditSchedule}
+          onClose={() => setScheduleOpen(false)}
+          onSaved={(next) => {
+            setSchedule(next)
+            setScheduleOpen(false)
+          }}
+        />
+      )}
 
       {editing && (
         <AppointmentDialog
@@ -253,6 +315,7 @@ export function AppointmentsView() {
             : { defaultStart: editing.new.start, defaultEnd: editing.new.end })}
           patients={patients}
           dentists={dentists}
+          schedule={schedule}
           onClose={() => setEditing(null)}
           onStartConsumption={(d) => {
             setEditing(null)
@@ -283,6 +346,7 @@ function AppointmentDialog({
   defaultEnd,
   patients,
   dentists,
+  schedule,
   onClose,
   onStartConsumption,
   onSaved,
@@ -292,6 +356,7 @@ function AppointmentDialog({
   defaultEnd?: Date
   patients: Patient[]
   dentists: StaffDentist[]
+  schedule: ClinicSchedule | null
   onClose: () => void
   onStartConsumption?: (detail: AppointmentDetail) => void
   onSaved: () => void
@@ -330,6 +395,17 @@ function AppointmentDialog({
     if (new Date(endAt) <= new Date(startAt)) {
       toast(t('appointments.savedError'), 'error')
       return
+    }
+    // Warn (but allow) when the appointment falls outside the clinic's opening
+    // window — the schedule frames planning; real desks sometimes book off-hours.
+    if (schedule) {
+      const start = new Date(startAt)
+      const dayOk = schedule.workingDays.includes(start.getDay())
+      const minutes = start.getHours() * 60 + start.getMinutes()
+      const [oh, om] = schedule.openTime.split(':').map(Number)
+      const [ch, cm] = schedule.closeTime.split(':').map(Number)
+      const timeOk = minutes >= oh * 60 + om && minutes < ch * 60 + cm
+      if (!dayOk || !timeOk) toast(t('appointments.outsideHours'), 'info')
     }
     setSaving(true)
     const common = {

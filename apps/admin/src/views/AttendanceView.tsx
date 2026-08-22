@@ -185,7 +185,7 @@ export function AttendanceView({ canEdit }: { canEdit: boolean }) {
       </div>
 
       {canEdit && (
-        <Card>
+        <Card className="sticky top-0 z-20 shadow-md">
           <CardHeader>
             <CardTitle>{t('attendance.checkInNow')}</CardTitle>
           </CardHeader>

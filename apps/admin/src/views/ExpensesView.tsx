@@ -6,6 +6,7 @@ import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
 import { api, ApiError } from '../lib/api'
+import { SearchInput } from '@/components/ui/search-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -100,18 +101,20 @@ export function ExpensesView() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Input
+        <SearchInput
           aria-label={t('expenses.search')}
           placeholder={t('expenses.search')}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs"
+          onChange={setQ}
         />
         <Select
           value={category ?? ''}
           onValueChange={(v) => setCategory(v ? (v as ExpenseCategory) : undefined)}
         >
           <SelectTrigger className="w-fit text-xs">
+            <span className="text-muted-foreground">
+              {t('common.filter.category')}&nbsp;·&nbsp;
+            </span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -128,6 +131,7 @@ export function ExpensesView() {
           onValueChange={(v) => setVoided(v ? (v as 'exclude' | 'only') : undefined)}
         >
           <SelectTrigger className="w-fit text-xs">
+            <span className="text-muted-foreground">{t('common.filter.voided')}&nbsp;·&nbsp;</span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

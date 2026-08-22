@@ -19,6 +19,8 @@ import {
   type AuditRetentionUpdate,
   type AuditTarget,
   type AuthResponse,
+  type ClinicSchedule,
+  type ClinicScheduleUpdate,
   type DashboardKpis,
   type DashboardKpisQueryParams,
   type Expense,
@@ -212,6 +214,15 @@ export const api = {
 
   purgeAuditRetention: () =>
     request<AuditPurgeResult>('/api/audit/retention/purge', { method: 'POST' }),
+
+  clinicSchedule: () => request<ClinicSchedule>('/api/schedule'),
+
+  updateClinicSchedule: (update: ClinicScheduleUpdate) =>
+    request<ClinicSchedule>('/api/schedule', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(update),
+    }),
 
   systemStatus: () => request<SystemStatus>('/api/system/status'),
 
