@@ -122,6 +122,25 @@ export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean
     [events],
   )
 
+  // Stable references: FullCalendar re-applies options whenever these props
+  // change identity, which refires datesSet — inline literals here would loop
+  // forever (setRange → render → new array → resetOptions → datesSet …).
+  const hiddenDays = useMemo(
+    () => (schedule ? [0, 1, 2, 3, 4, 5, 6].filter((d) => !schedule.workingDays.includes(d)) : []),
+    [schedule],
+  )
+  const businessHours = useMemo(
+    () =>
+      schedule
+        ? {
+            daysOfWeek: schedule.workingDays,
+            startTime: schedule.openTime,
+            endTime: schedule.closeTime,
+          }
+        : true,
+    [schedule],
+  )
+
   const allDaySlot = viewMode !== 'dayGridMonth'
 
   function openCreateFromSelect(sel: DateSelectArg) {
@@ -249,18 +268,8 @@ export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean
           allDaySlot={allDaySlot}
           slotMinTime={schedule?.openTime ?? '00:00'}
           slotMaxTime={schedule?.closeTime ?? '24:00'}
-          hiddenDays={
-            schedule ? [0, 1, 2, 3, 4, 5, 6].filter((d) => !schedule.workingDays.includes(d)) : []
-          }
-          businessHours={
-            schedule
-              ? {
-                  daysOfWeek: schedule.workingDays,
-                  startTime: schedule.openTime,
-                  endTime: schedule.closeTime,
-                }
-              : true
-          }
+          hiddenDays={hiddenDays}
+          businessHours={businessHours}
           selectable
           selectMirror
           unselectAuto={false}
@@ -268,7 +277,15 @@ export function AppointmentsView({ canEditSchedule }: { canEditSchedule: boolean
           eventDurationEditable
           events={fcEvents}
           locale={calendarLocale}
-          datesSet={(info) => setRange({ start: info.start, end: info.end })}
+          datesSet={(info) =>
+            setRange((prev) =>
+              prev &&
+              prev.start.getTime() === info.start.getTime() &&
+              prev.end.getTime() === info.end.getTime()
+                ? prev
+                : { start: info.start, end: info.end },
+            )
+          }
           select={openCreateFromSelect}
           eventClick={handleEventClick}
           eventDrop={handleDrop}
