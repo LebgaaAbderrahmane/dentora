@@ -330,12 +330,19 @@ export function AppointmentsView({
           patients={patients}
           dentists={dentists}
           schedule={schedule}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            // unselectAuto is off, so the drag selection must be cleared
+            // manually or the blue highlight lingers after cancelling.
+            calendarRef.current?.getApi().unselect()
+            setEditing(null)
+          }}
           onStartConsumption={(d) => {
+            calendarRef.current?.getApi().unselect()
             setEditing(null)
             setConsuming(d)
           }}
           onSaved={() => {
+            calendarRef.current?.getApi().unselect()
             setEditing(null)
             refetchRange()
           }}
