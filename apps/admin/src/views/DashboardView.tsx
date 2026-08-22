@@ -4,7 +4,16 @@ import type { AppointmentStatus, DashboardKpis, SystemStatus } from '@dentora/co
 import type { MessageKey } from '@dentora/i18n'
 import { useI18n } from '@dentora/i18n'
 import { useToast } from '@dentora/ui'
-import { Ban, CalendarDays, ListTodo, RefreshCw, Users } from 'lucide-react'
+import {
+  Ban,
+  CalendarDays,
+  CircleDollarSign,
+  ListTodo,
+  PackageSearch,
+  RefreshCw,
+  UserCheck,
+  Users,
+} from 'lucide-react'
 import { api } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -129,6 +138,45 @@ export function DashboardView() {
               value={String(kpis.patients.total)}
               hint={t('dashboard.newPatients30d', { count: kpis.patients.new30d })}
             />
+          </div>
+
+          {/* Role-gated second row: money + attendance figures are null for
+              roles whose nav hides those sections; alerts ship for everyone. */}
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+            {kpis.receivables && (
+              <KpiCard
+                icon={CircleDollarSign}
+                label={t('dashboard.receivables')}
+                value={`${kpis.receivables.totalBalanceDZD.toLocaleString('fr-FR')} DA`}
+                hint={t('dashboard.receivablesHint', { count: kpis.receivables.unpaidCount })}
+              />
+            )}
+            <KpiCard
+              icon={PackageSearch}
+              label={t('dashboard.lowStockAlerts')}
+              value={String(kpis.alerts.lowStockCount)}
+              hint={t('dashboard.alertsHint', {
+                low: kpis.alerts.lowStockCount,
+                expiring: kpis.alerts.expiringCount,
+              })}
+            />
+            {kpis.onDuty && (
+              <KpiCard
+                icon={UserCheck}
+                label={t('dashboard.onDuty')}
+                value={
+                  kpis.onDuty.staff.length === 0
+                    ? t('dashboard.onDutyEmpty')
+                    : String(kpis.onDuty.staff.length)
+                }
+                hint={
+                  kpis.onDuty.staff.length === 0
+                    ? '—'
+                    : kpis.onDuty.staff.map((s) => s.staffName).join(', ') ||
+                      t('dashboard.onDutyHint', { count: kpis.onDuty.staff.length })
+                }
+              />
+            )}
           </div>
 
           <Card className="flex flex-col gap-3">

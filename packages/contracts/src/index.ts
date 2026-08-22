@@ -1125,11 +1125,43 @@ export const dashboardPatientsSchema = z.object({
 
 export type DashboardPatients = z.infer<typeof dashboardPatientsSchema>
 
+// Role-gated extras (6.5-style derived-on-read): null when the caller's role
+// cannot see that domain (a DENTIST gets no finance/attendance figures).
+export const dashboardReceivablesSchema = z.object({
+  totalBalanceDZD: z.number().int().min(0),
+  unpaidCount: z.number().int().min(0),
+})
+
+export type DashboardReceivables = z.infer<typeof dashboardReceivablesSchema>
+
+export const dashboardAlertsSchema = z.object({
+  lowStockCount: z.number().int().min(0),
+  expiringCount: z.number().int().min(0), // lots expiring within 30 days
+})
+
+export type DashboardAlerts = z.infer<typeof dashboardAlertsSchema>
+
+export const dashboardOnDutyEntrySchema = z.object({
+  staffName: z.string(),
+  checkInAt: z.string(),
+})
+
+export type DashboardOnDutyEntry = z.infer<typeof dashboardOnDutyEntrySchema>
+
+export const dashboardOnDutySchema = z.object({
+  staff: z.array(dashboardOnDutyEntrySchema).max(20),
+})
+
+export type DashboardOnDuty = z.infer<typeof dashboardOnDutySchema>
+
 export const dashboardKpisSchema = z.object({
   visits: dashboardVisitsSchema,
   noShow: dashboardNoShowSchema,
   waitlist: dashboardWaitlistSchema,
   patients: dashboardPatientsSchema,
+  receivables: dashboardReceivablesSchema.nullable(),
+  alerts: dashboardAlertsSchema,
+  onDuty: dashboardOnDutySchema.nullable(),
 })
 
 export type DashboardKpis = z.infer<typeof dashboardKpisSchema>
