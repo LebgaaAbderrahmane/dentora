@@ -120,24 +120,28 @@ export function DashboardView() {
               label={t('dashboard.todayVisits')}
               value={String(kpis.visits.today.total)}
               hint={`${kpis.visits.today.byStatus.CONFIRMED} ${t('appointments.status.confirmed')} · ${kpis.visits.today.byStatus.PENDING} ${t('appointments.status.pending')} · ${kpis.visits.today.byStatus.COMPLETED} ${t('appointments.status.completed')}`}
+              tone="info"
             />
             <KpiCard
               icon={Ban}
               label={t('dashboard.noShowToday')}
               value={String(kpis.noShow.today)}
               hint={t('dashboard.noShowRate30d', { rate: percent(kpis.noShow.rate30d) })}
+              tone="destructive"
             />
             <KpiCard
               icon={ListTodo}
               label={t('dashboard.activeWaitlist')}
               value={String(kpis.waitlist.active)}
               hint={`${t('waitlist.status.pending')} + ${t('waitlist.status.contacted')}`}
+              tone="warning"
             />
             <KpiCard
               icon={Users}
               label={t('dashboard.patientsTotal')}
               value={String(kpis.patients.total)}
               hint={t('dashboard.newPatients30d', { count: kpis.patients.new30d })}
+              tone="success"
             />
           </div>
 
@@ -150,6 +154,7 @@ export function DashboardView() {
                 label={t('dashboard.receivables')}
                 value={`${kpis.receivables.totalBalanceDZD.toLocaleString('fr-FR')} DA`}
                 hint={t('dashboard.receivablesHint', { count: kpis.receivables.unpaidCount })}
+                tone="info"
               />
             )}
             <KpiCard
@@ -160,6 +165,7 @@ export function DashboardView() {
                 low: kpis.alerts.lowStockCount,
                 expiring: kpis.alerts.expiringCount,
               })}
+              tone="warning"
             />
             {kpis.onDuty && (
               <KpiCard
@@ -176,6 +182,7 @@ export function DashboardView() {
                     : kpis.onDuty.staff.map((s) => s.staffName).join(', ') ||
                       t('dashboard.onDutyHint', { count: kpis.onDuty.staff.length })
                 }
+                tone="success"
               />
             )}
           </div>
@@ -227,22 +234,36 @@ export function DashboardView() {
   )
 }
 
+const CHIP: Record<string, string> = {
+  primary: 'bg-primary/12 text-primary',
+  success: 'bg-success/15 text-success',
+  info: 'bg-info/15 text-info',
+  warning: 'bg-warning/15 text-warning',
+  destructive: 'bg-destructive/15 text-destructive',
+}
+
 function KpiCard({
   icon: Icon,
   label,
   value,
   hint,
+  tone = 'primary',
 }: {
   icon: ComponentType<{ className?: string }>
   label: string
   value: string
   hint: string
+  tone?: keyof typeof CHIP
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span
+          className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${CHIP[tone]}`}
+        >
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
         <div className="text-3xl font-semibold tabular-nums tracking-tight text-neutral-900 dark:text-neutral-100">

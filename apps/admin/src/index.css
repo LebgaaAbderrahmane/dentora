@@ -118,6 +118,20 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Data-surface treatment shared by every list view: muted header row and a
+     faint brand hover so rows read as one system. Scoped to <main> so the
+     login screen stays untouched. */
+  main table thead th {
+    background: color-mix(in oklab, var(--muted) 60%, transparent);
+    color: var(--muted-foreground);
+    font-weight: 500;
+  }
+  main table tbody tr {
+    transition: background-color 120ms ease;
+  }
+  main table tbody tr:hover {
+    background: color-mix(in oklab, var(--primary) 5%, transparent);
+  }
 }
 
 html {
