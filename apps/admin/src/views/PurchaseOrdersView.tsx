@@ -8,6 +8,7 @@ import {
   type Product,
   type Supplier,
 } from '@dentora/contracts'
+import { tint, toneFor } from '../lib/badges'
 import { useToast } from '@dentora/ui'
 import { useI18n } from '@dentora/i18n'
 import type { MessageKey } from '@dentora/i18n'
@@ -41,18 +42,10 @@ const STATUS_KEY: Record<PurchaseOrderStatus, MessageKey> = {
 
 function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
   const { t } = useI18n()
-  const tone =
-    status === 'RECEIVED'
-      ? 'border-green-500/30 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-      : status === 'PARTIALLY_RECEIVED'
-        ? 'border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-        : status === 'CANCELLED'
-          ? 'border-red-500/30 bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
-          : status === 'ORDERED'
-            ? 'border-brand-500/30 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-            : 'border-neutral-300 bg-neutral-50 text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300'
   return (
-    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${tint(toneFor(status))}`}
+    >
       {t(STATUS_KEY[status])}
     </span>
   )

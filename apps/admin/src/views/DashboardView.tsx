@@ -14,6 +14,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react'
+import { tint, toneFor } from '../lib/badges'
 import { api } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,12 +27,12 @@ const STATUS_KEY: Record<AppointmentStatus, MessageKey> = {
   NOSHOW: 'appointments.status.noshow',
 }
 
-const STATUS_BADGE: Record<AppointmentStatus, string> = {
-  PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  CONFIRMED: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
-  COMPLETED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  CANCELLED: 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400',
-  NOSHOW: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: tint(toneFor('PENDING')),
+  CONFIRMED: tint(toneFor('CONFIRMED')),
+  COMPLETED: tint(toneFor('COMPLETED')),
+  CANCELLED: tint(toneFor('CANCELLED')),
+  NOSHOW: tint(toneFor('NOSHOW')),
 }
 
 function dayStart(): Date {

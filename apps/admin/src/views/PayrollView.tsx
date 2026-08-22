@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { MessageKey } from '@dentora/i18n'
 import { useI18n } from '@dentora/i18n'
+import { tint } from '../lib/badges'
 import { useToast } from '@dentora/ui'
 import {
   MAX_PAYROLL_AMOUNT_DZD,
@@ -192,7 +193,9 @@ export function PayrollView({ canEdit }: { canEdit: boolean }) {
                       </span>
                     )}
                     {slip.voidedAt && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tint('destructive')}`}
+                      >
                         {t('payroll.voidedBadge')}
                       </span>
                     )}
