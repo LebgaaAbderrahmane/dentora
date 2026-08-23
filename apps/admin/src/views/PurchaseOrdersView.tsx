@@ -112,15 +112,14 @@ export function PurchaseOrdersView() {
           onChange={setQ}
         />
         <Select
-          value={status ?? ''}
-          onValueChange={(v) => setStatus(v ? (v as PurchaseOrderStatus) : undefined)}
+          value={status ?? '*'}
+          onValueChange={(v) => setStatus(v === '*' ? undefined : (v as PurchaseOrderStatus))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">{t('common.filter.status')}&nbsp;·&nbsp;</span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('purchaseOrders.allStatuses')}</SelectItem>
+            <SelectItem value="*">{t('purchaseOrders.allStatuses')}</SelectItem>
             {Object.keys(STATUS_KEY).map((s) => (
               <SelectItem key={s} value={s}>
                 {t(STATUS_KEY[s as PurchaseOrderStatus])}

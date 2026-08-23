@@ -102,7 +102,7 @@ export function WaitlistView() {
   }
 
   const filters: { value: string; label: string }[] = [
-    { value: '', label: t('waitlist.all') },
+    { value: '*', label: t('waitlist.all') },
     { value: 'PENDING', label: t('waitlist.status.pending') },
     { value: 'CONTACTED', label: t('waitlist.status.contacted') },
     { value: 'BOOKED', label: t('waitlist.status.booked') },
@@ -120,11 +120,10 @@ export function WaitlistView() {
           onChange={setQ}
         />
         <Select
-          value={statusFilter ?? ''}
-          onValueChange={(v) => setStatusFilter(v ? (v as WaitlistStatus) : undefined)}
+          value={statusFilter ?? '*'}
+          onValueChange={(v) => setStatusFilter(v === '*' ? undefined : (v as WaitlistStatus))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">{t('common.filter.status')}&nbsp;·&nbsp;</span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

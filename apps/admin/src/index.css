@@ -137,3 +137,20 @@
 html {
   font-family: var(--font-sans);
 }
+
+/* Appointment calendar (FullCalendar): stretch the month-view week table to
+   the full scroller height so leftover space is distributed evenly — combined
+   with dayMaxEventRows this keeps every week row at the same height instead of
+   busy weeks growing taller. */
+.fc .fc-daygrid-body > table {
+  height: 100% !important;
+}
+.fc .fc-daygrid-day-frame {
+  height: 100%;
+}
+/* Time-grid views: taller hour lanes so appointments get more room.
+   FullCalendar positions events off measured slot heights, so pure CSS
+   is enough. */
+.fc .fc-timegrid-slot {
+  height: 2.5em;
+}

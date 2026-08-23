@@ -81,17 +81,14 @@ export function SuppliersView({ canEdit }: { canEdit: boolean }) {
           onChange={setQ}
         />
         <Select
-          value={archived ?? ''}
-          onValueChange={(v) => setArchived(v ? (v as 'exclude' | 'only') : undefined)}
+          value={archived ?? '*'}
+          onValueChange={(v) => setArchived(v === '*' ? undefined : (v as 'exclude' | 'only'))}
         >
           <SelectTrigger className="w-fit text-xs">
-            <span className="text-muted-foreground">
-              {t('common.filter.archived')}&nbsp;·&nbsp;
-            </span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('suppliers.active')}</SelectItem>
+            <SelectItem value="*">{t('suppliers.active')}</SelectItem>
             <SelectItem value="only">{t('suppliers.archivedOnly')}</SelectItem>
           </SelectContent>
         </Select>
