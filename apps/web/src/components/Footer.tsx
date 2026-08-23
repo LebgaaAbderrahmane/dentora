@@ -2,7 +2,15 @@ import { Phone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Container } from '@/components/shared/Container'
 import { ToothIcon } from '@/components/shared/ToothIcon'
-import { EMAIL, EMAIL_LINK, EMERGENCY_PHONE, EMERGENCY_TEL, PHONE, PHONE_TEL } from '@/data/content'
+import {
+  EMAIL,
+  EMAIL_LINK,
+  EMERGENCY_PHONE,
+  EMERGENCY_TEL,
+  PHONE,
+  PHONE_TEL,
+  PORTAL_URL,
+} from '@/data/content'
 import { useBooking } from '@/providers/booking'
 import {
   FacebookIcon,
@@ -84,6 +92,12 @@ export function Footer({ onOpenLegal }: { onOpenLegal?: (page: 'privacy' | 'term
                 {link}
               </a>
             ))}
+            <a
+              href={PORTAL_URL}
+              className="mb-3 block text-sm font-medium text-white/80 transition-colors hover:text-white"
+            >
+              {t('nav.portal')}
+            </a>
           </div>
 
           <div>

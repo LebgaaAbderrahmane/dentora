@@ -7,6 +7,7 @@ export const en = {
     testimonials: 'Testimonials',
     contact: 'Contact',
     book: 'Book a Call',
+    portal: 'Patient Portal',
   },
   ui: {
     theme: {
@@ -232,7 +233,10 @@ export const en = {
     subtitle: 'We confirm your appointment within the hour.',
     name: 'Full name',
     phone: 'Phone number',
+    email: 'Email (optional)',
+    emailHint: 'To track your request and manage appointments online',
     service: 'Service',
+    servicePlaceholder: 'Choose a service…',
     date: 'Preferred date',
     message: 'Message (optional)',
     submit: 'Confirm Booking',
@@ -244,7 +248,11 @@ export const en = {
     queuedNote:
       'Your device is offline. Your request has been saved and will be sent automatically as soon as your connection returns.',
     success: 'Thank you! Your request has been received.',
-    successNote: 'Our team will call you shortly to confirm.',
+    successNote:
+      'This is a request, not a confirmed appointment — our team will call you shortly to confirm. Track it anytime in the patient portal.',
+    portalCta: 'Open the patient portal',
+    activateCta: 'Create your patient account',
+    activateHint: 'One click — your request will be linked to your account.',
     whatsapp: 'Send via WhatsApp',
     close: 'Close',
   },

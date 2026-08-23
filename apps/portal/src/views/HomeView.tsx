@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { formatDate, formatDateTime, useI18n } from '@dentora/i18n'
-import type { Appointment, SafeUser } from '@dentora/contracts'
+import type { Appointment, PortalWaitlistEntry, SafeUser } from '@dentora/contracts'
 import { Button, Card, useToast } from '@dentora/ui'
-import { BellRing, CalendarDays, CalendarPlus, ReceiptText } from 'lucide-react'
+import { BellRing, CalendarDays, CalendarPlus, Hourglass, ReceiptText } from 'lucide-react'
 import { api, ApiError } from '../lib/api'
 import { useProfile } from '../lib/portal'
-import { AppointmentStatusBadge } from '../components/badges'
+import { AppointmentStatusBadge, WaitlistStatusBadge } from '../components/badges'
 
 export default function HomeView({
   user,
@@ -17,12 +17,17 @@ export default function HomeView({
   const { t, locale } = useI18n()
   const { profile, error } = useProfile()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [request, setRequest] = useState<PortalWaitlistEntry | null>(null)
 
   useEffect(() => {
     api
       .appointments()
       .then((r) => setAppointments(r.items))
       .catch(() => setAppointments([]))
+    api
+      .waitlist()
+      .then(setRequest)
+      .catch(() => setRequest(null))
   }, [])
 
   const now = Date.now()
@@ -42,6 +47,22 @@ export default function HomeView({
       {error === 'portal.notLinked' && (
         <Card className="p-5 text-sm text-amber-700 dark:text-amber-300">
           {t('portal.notLinked')}
+        </Card>
+      )}
+
+      {request && (
+        <Card className="p-5">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+            <Hourglass className="size-4 text-brand-500" aria-hidden="true" />
+            {t('portal.request.title')}
+            <WaitlistStatusBadge status={request.status} />
+          </div>
+          <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
+            {t('portal.request.hint', {
+              date: formatDate(request.createdAt, locale),
+              preferred: request.preferredDate ? formatDate(request.preferredDate, locale) : '—',
+            })}
+          </p>
         </Card>
       )}
 

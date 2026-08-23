@@ -1199,6 +1199,9 @@ export const publicBookingSchema = z.object({
     .min(6)
     .max(20)
     .regex(/^\+?[0-9\s-]+$/, 'phone must contain only digits'),
+  // optional — when present, the response may carry a one-time portal
+  // activation token so the visitor can create their patient account.
+  email: z.string().trim().toLowerCase().email().max(120).optional(),
   service: z.string().trim().max(120).optional(),
   preferredDate: z
     .string()
@@ -1210,11 +1213,40 @@ export const publicBookingSchema = z.object({
 
 export type PublicBooking = z.infer<typeof publicBookingSchema>
 
+// `activationToken` is only present when the submitter left an email and no
+// portal account exists yet for the matched patient (single-use, short expiry).
 export const publicBookingResponseSchema = z.object({
   waitlistEntryId: z.string(),
+  activationToken: z.string().optional(),
 })
 
 export type PublicBookingResponse = z.infer<typeof publicBookingResponseSchema>
+
+// ---- Portal self-activation (web-booking → patient account, one-time token) ----
+
+export const portalActivationInputSchema = z.object({
+  token: z.string().min(16).max(512),
+  password: z.string().min(8).max(72),
+})
+
+export type PortalActivationInput = z.infer<typeof portalActivationInputSchema>
+
+export const portalActivationResponseSchema = z.object({
+  email: z.string(),
+})
+
+export type PortalActivationResponse = z.infer<typeof portalActivationResponseSchema>
+
+// Active waitlist entry as seen by the patient in the portal (no staff-only
+// fields like encrypted notes or audit data).
+export const portalWaitlistEntrySchema = z.object({
+  id: z.string(),
+  status: z.enum(['PENDING', 'CONTACTED']),
+  preferredDate: z.string().nullable(),
+  createdAt: z.string(),
+})
+
+export type PortalWaitlistEntry = z.infer<typeof portalWaitlistEntrySchema>
 
 export const serviceCategorySchema = z.enum([
   'CONSULTATION',

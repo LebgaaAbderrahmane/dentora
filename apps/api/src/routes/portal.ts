@@ -7,6 +7,7 @@ import {
   portalDentistListSchema,
   portalInvoicesSchema,
   portalMeSchema,
+  portalWaitlistEntrySchema,
   type Gender,
 } from '@dentora/contracts'
 import { assertAuth, requireAuth, requireRole } from '../lib/auth'
@@ -56,6 +57,33 @@ router.get('/me', async (req, res) => {
       address: patient.address,
       notifyWhatsapp: patient.notifyWhatsapp,
       notifyEmail: patient.notifyEmail,
+    }),
+  )
+})
+
+// The request the patient created on the public web form (PENDING/CONTACTED
+// waitlist entry), so they can see its status without calling the clinic.
+router.get('/waitlist', async (req, res) => {
+  const patient = await ownPatient(req)
+  if (!patient) {
+    res.status(403).json({ error: 'NO_PORTAL_PATIENT' })
+    return
+  }
+  const entry = await prisma.waitlistEntry.findFirst({
+    where: { patientId: patient.id, status: { in: ['PENDING', 'CONTACTED'] } },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true, preferredDate: true, createdAt: true },
+  })
+  if (!entry) {
+    res.json(null)
+    return
+  }
+  res.json(
+    portalWaitlistEntrySchema.parse({
+      id: entry.id,
+      status: entry.status,
+      preferredDate: entry.preferredDate ? entry.preferredDate.toISOString() : null,
+      createdAt: entry.createdAt.toISOString(),
     }),
   )
 })

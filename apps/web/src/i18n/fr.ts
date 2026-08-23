@@ -9,6 +9,7 @@ export const fr: EnDictionary = {
     testimonials: 'Avis',
     contact: 'Contact',
     book: 'Réserver un appel',
+    portal: 'Espace patient',
   },
   ui: {
     theme: {
@@ -240,7 +241,10 @@ export const fr: EnDictionary = {
     subtitle: 'Nous confirmons votre rendez-vous dans l\u2019heure.',
     name: 'Nom complet',
     phone: 'Numéro de téléphone',
+    email: 'Email (facultatif)',
+    emailHint: 'Pour suivre votre demande et gérer vos rendez-vous en ligne',
     service: 'Service',
+    servicePlaceholder: 'Choisissez un service…',
     date: 'Date souhaitée',
     message: 'Message (facultatif)',
     submit: 'Confirmer la réservation',
@@ -252,7 +256,11 @@ export const fr: EnDictionary = {
     queuedNote:
       'Votre appareil est hors ligne. Votre demande a été enregistrée et sera envoyée automatiquement dès le retour de la connexion.',
     success: 'Merci ! Votre demande a été reçue.',
-    successNote: 'Notre équipe vous appellera prochainement pour confirmer.',
+    successNote:
+      'Ceci est une demande, pas un rendez-vous confirmé — notre équipe vous appellera prochainement pour confirmer. Suivez-la à tout moment dans l\u2019espace patient.',
+    portalCta: 'Ouvrir l\u2019espace patient',
+    activateCta: 'Créer votre compte patient',
+    activateHint: 'Un clic — votre demande sera liée à votre compte.',
     whatsapp: 'Envoyer via WhatsApp',
     close: 'Fermer',
   },

@@ -10,6 +10,7 @@ import HomeView from './views/HomeView'
 import AppointmentsView from './views/AppointmentsView'
 import BookingView from './views/BookingView'
 import InvoicesView from './views/InvoicesView'
+import ActivateView from './views/ActivateView'
 
 type View = 'home' | 'appointments' | 'book' | 'invoices'
 
@@ -25,6 +26,12 @@ const NAV: Array<{
 ]
 
 export default function App() {
+  // One-time portal activation link (web booking success → ?token=…) bypasses
+  // the login wall: the visitor sets a password and lands straight in.
+  const [activationToken] = useState(() => {
+    const token = new URLSearchParams(window.location.search).get('token')
+    return token && token.length >= 16 ? token : null
+  })
   const [user, setUser] = useState<SafeUser | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -34,7 +41,9 @@ export default function App() {
       .then(setUser)
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
-  }, [])
+    // consume the token from the address bar so refreshes can't replay it
+    if (activationToken) window.history.replaceState(null, '', window.location.pathname)
+  }, [activationToken])
 
   if (loading) {
     return (
@@ -44,7 +53,12 @@ export default function App() {
     )
   }
 
-  if (!user) return <Login onLoggedIn={setUser} />
+  if (!user) {
+    if (activationToken) {
+      return <ActivateView token={activationToken} onActivated={setUser} />
+    }
+    return <Login onLoggedIn={setUser} />
+  }
 
   return <Shell user={user} onLoggedOut={() => setUser(null)} />
 }
