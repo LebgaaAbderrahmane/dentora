@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { Check, CloudOff, Info, Send, X } from 'lucide-react'
+import { Check, CloudOff, ExternalLink, Info, Send, X } from 'lucide-react'
 import { publicBookingResponseSchema, type PublicBooking } from '@dentora/contracts'
 import { useBooking } from '@/providers/booking'
 import { useOffline } from '@/providers/offline'
-import { EMERGENCY_PHONE } from '@/data/content'
+import { EMERGENCY_PHONE, PORTAL_URL } from '@/data/content'
 
 type View = 'form' | 'done' | 'already' | 'queued'
 
@@ -16,11 +16,15 @@ export function BookingModal() {
   const [view, setView] = useState<View>('form')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [picked, setPicked] = useState(service)
   const [date, setDate] = useState('')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // present when the submitter left an email and the patient has no portal
+  // account yet — links the success screen to one-time account activation.
+  const [activationToken, setActivationToken] = useState<string | null>(null)
 
   const services = t('services.list', { returnObjects: true }) as { title: string }[]
 
@@ -29,6 +33,7 @@ export function BookingModal() {
       setPicked(service)
       setView('form')
       setError(null)
+      setActivationToken(null)
     }
   }, [open, service])
 
@@ -63,6 +68,7 @@ export function BookingModal() {
       firstName,
       lastName,
       phone: phone.trim(),
+      ...(email.trim() ? { email: email.trim() } : {}),
       ...(picked ? { service: picked } : {}),
       ...(date ? { preferredDate: new Date(date).toISOString() } : {}),
       ...(message.trim() ? { message: message.trim() } : {}),
@@ -75,7 +81,8 @@ export function BookingModal() {
         body: JSON.stringify(body),
       })
       if (res.ok) {
-        publicBookingResponseSchema.parse(await res.json())
+        const parsed = publicBookingResponseSchema.parse(await res.json())
+        setActivationToken(parsed.activationToken ?? null)
         setView('done')
         return
       }
@@ -170,6 +177,22 @@ export function BookingModal() {
 
                     <label className="block">
                       <span className="mb-1.5 block text-[0.72rem] font-semibold text-[hsl(var(--muted-foreground))]">
+                        {t('booking.email')}
+                      </span>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-11 w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--soft))] px-3.5 text-[0.85rem] text-[hsl(var(--heading))] outline-none transition-colors placeholder:text-[hsl(var(--muted-foreground))]/60 focus:border-[hsl(var(--primary))]"
+                        placeholder="amine@example.com"
+                      />
+                      <span className="mt-1 block text-[0.68rem] font-normal text-[hsl(var(--muted-foreground))]/70">
+                        {t('booking.emailHint')}
+                      </span>
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-1.5 block text-[0.72rem] font-semibold text-[hsl(var(--muted-foreground))]">
                         {t('booking.service')}
                       </span>
                       <select
@@ -178,11 +201,7 @@ export function BookingModal() {
                         className="h-11 w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--soft))] px-3.5 text-[0.85rem] text-[hsl(var(--heading))] outline-none transition-colors focus:border-[hsl(var(--primary))]"
                       >
                         <option value="" disabled>
-                          :
-                          {
-                            // placeholder
-                          }
-                          —
+                          {t('booking.servicePlaceholder')}
                         </option>
                         {services.map((s) => (
                           <option key={s.title} value={s.title}>
@@ -271,10 +290,26 @@ export function BookingModal() {
                       )}
                     </p>
                     <a
+                      href={
+                        activationToken
+                          ? `${PORTAL_URL}?token=${encodeURIComponent(activationToken)}`
+                          : PORTAL_URL
+                      }
+                      className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[hsl(var(--primary))] font-semibold text-white transition-colors hover:bg-[hsl(180,91%,34%)]"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {t(activationToken ? 'booking.activateCta' : 'booking.portalCta')}
+                    </a>
+                    {activationToken && (
+                      <p className="mt-2 text-center text-[0.68rem] text-[hsl(var(--muted-foreground))]/70">
+                        {t('booking.activateHint')}
+                      </p>
+                    )}
+                    <a
                       href={whatsappHref()}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] font-semibold text-white transition-colors hover:bg-[#1fb057]"
+                      className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] font-semibold text-white transition-colors hover:bg-[#1fb057]"
                     >
                       <Send className="h-4 w-4" />
                       {t('booking.whatsapp')}

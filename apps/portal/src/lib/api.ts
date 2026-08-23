@@ -1,12 +1,14 @@
 import type {
   InvoiceDetail,
   PatientPrefs,
+  PortalActivationInput,
   PortalAppointments,
-  PortalBooked,
   PortalBooking,
+  PortalBooked,
   PortalDentistList,
   PortalInvoices,
   PortalMe,
+  PortalWaitlistEntry,
   SafeUser,
 } from '@dentora/contracts'
 
@@ -77,4 +79,12 @@ export const api = {
 
   updatePrefs: (prefs: PatientPrefs) =>
     request<PatientPrefs>('/api/portal/prefs', { method: 'PUT', body: JSON.stringify(prefs) }),
+
+  activate: (input: PortalActivationInput) =>
+    request<{ email: string }>('/api/public/activations/accept', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  waitlist: () => request<PortalWaitlistEntry | null>('/api/portal/waitlist'),
 }

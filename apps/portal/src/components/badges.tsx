@@ -3,6 +3,29 @@ import type { MessageKey } from '@dentora/i18n'
 import type { Appointment } from '@dentora/contracts'
 import { STATUS_KEY } from '../lib/portal'
 
+// Web-form requests surface in the portal as PENDING/CONTACTED waitlist
+// entries; tones mirror the admin board's meaning-based language.
+const WAITLIST_TONE: Record<'PENDING' | 'CONTACTED', string> = {
+  PENDING: 'border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  CONTACTED: 'border-brand-500/30 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300',
+}
+
+const WAITLIST_KEY: Record<'PENDING' | 'CONTACTED', MessageKey> = {
+  PENDING: 'waitlist.status.pending',
+  CONTACTED: 'waitlist.status.contacted',
+}
+
+export function WaitlistStatusBadge({ status }: { status: 'PENDING' | 'CONTACTED' }) {
+  const { t } = useI18n()
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${WAITLIST_TONE[status]}`}
+    >
+      {t(WAITLIST_KEY[status])}
+    </span>
+  )
+}
+
 export function AppointmentStatusBadge({ status }: { status: Appointment['status'] }) {
   const { t } = useI18n()
   const tone =

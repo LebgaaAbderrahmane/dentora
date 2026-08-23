@@ -7,6 +7,11 @@ export const EMERGENCY_TEL = 'tel:+213555000000'
 export const EMAIL_LINK = 'mailto:hello@dentora.dz'
 export const EMAIL = 'hello@dentora.dz'
 
+// Patient portal entry point — absolute URL when the portal lives on another
+// origin, same-origin path in dev/single-host deployments.
+export const PORTAL_URL: string =
+  (import.meta.env.VITE_PORTAL_URL as string | undefined) ?? '/portal'
+
 export const heroImage = u('photo-1588776814546-1ffcf47267a5', 1920)
 export const clinicImage = u('photo-1629909613654-28e377c37b09', 800)
 export const doctorImage = u('photo-1612349317150-e413f6a5b16d', 400)

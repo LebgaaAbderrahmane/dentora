@@ -9,7 +9,7 @@ import { ThemeDropdown } from '@/components/shared/ThemeDropdown'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import { useBooking } from '@/providers/booking'
 import { useScrolled, useScrollSpy } from '@/lib/hooks'
-import { PHONE, PHONE_TEL } from '@/data/content'
+import { PHONE, PHONE_TEL, PORTAL_URL } from '@/data/content'
 import { cn } from '@/lib/utils'
 
 const links = [
@@ -73,6 +73,12 @@ export function Navbar() {
               <LanguageSwitcher className="hidden sm:flex" />
               <ThemeDropdown className="hidden lg:flex" />
               <div className="hidden items-center gap-6 lg:flex">
+                <a
+                  href={PORTAL_URL}
+                  className="ltr-isolate text-[0.72rem] font-medium text-white/80 transition-colors hover:text-white"
+                >
+                  {t('nav.portal')}
+                </a>
                 <a
                   href={PHONE_TEL}
                   className="ltr-isolate text-[0.72rem] font-medium text-white/80 transition-colors hover:text-white"
@@ -148,6 +154,12 @@ export function Navbar() {
             </div>
 
             <div className="mt-auto flex flex-col gap-4 px-6 pb-10">
+              <a
+                href={PORTAL_URL}
+                className="ltr-isolate flex items-center gap-2 text-[0.82rem] font-medium text-white/80"
+              >
+                {t('nav.portal')}
+              </a>
               <a
                 href={PHONE_TEL}
                 className="ltr-isolate flex items-center gap-2 text-[0.82rem] text-white/70"
