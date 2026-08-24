@@ -8,6 +8,7 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "test:e2e": "playwright test",
+    "shots": "playwright test --grep @shot",
     "test:e2e:install": "playwright install chromium",
     "lint": "oxlint",
     "format": "prettier --write .",
