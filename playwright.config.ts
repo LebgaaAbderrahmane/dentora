@@ -1,7 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const API_PORT = 4000
-const WEB_PORT = 5173
+// Web dev default is 5173, but the machine's other projects (e.g. dealerShip
+// Apex Motors) bind [::1]:5173, and localhost resolves to ::1 first — which
+// shadows DENTORA under Playwright. Keep the tests on a private port instead
+// so an unrelated dev server can never hijack the suite.
+const WEB_PORT = 5176
 const ADMIN_PORT = 5174
 const PORTAL_PORT = 5175
 

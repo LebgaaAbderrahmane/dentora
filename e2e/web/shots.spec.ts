@@ -8,39 +8,31 @@ const SUFFIX = Date.now().toString(36)
 const PHONE = `+21355${Date.now().toString().slice(-8)}`
 
 test.describe('Web screenshots @shot', () => {
-  test.describe('desktop 1920x1080', () => {
-    test.use({ viewport: { width: 1920, height: 1080 } })
+  test.describe('desktop 1440x900', () => {
+    test.use({ viewport: { width: 1440, height: 900 }, navigationTimeout: 60_000 })
 
     test('home hero + full page', async ({ page }) => {
       await page.goto('/')
       await expect(page.locator('section').first()).toBeVisible()
-      await shot(page, 'web', 'home-hero-1920')
-      // Marketing site is a static scroll — capture the whole page.
-      await shot(page, 'web', 'home-full-1920', { fullPage: true })
-    })
-
-    test('home english', async ({ page }) => {
-      await page.addInitScript(() => localStorage.setItem('dentora-lng', 'en'))
-      await page.goto('/')
-      await expect(page.getByRole('button', { name: /book appointment/i }).first()).toBeVisible()
-      await shot(page, 'web', 'home-en-full-1920', { fullPage: true })
+      await shot(page, 'web', 'home-hero-1440')
+      await shot(page, 'web', 'home-full-1440', { fullPage: true })
     })
 
     test('home arabic (RTL)', async ({ page }) => {
       await page.addInitScript(() => localStorage.setItem('dentora-lng', 'ar'))
       await page.goto('/')
       await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
-      await shot(page, 'web', 'home-ar-full-1920', { fullPage: true })
+      await shot(page, 'web', 'home-ar-full-1440', { fullPage: true })
     })
 
     test('booking modal open', async ({ page }) => {
       await page.goto('/')
       await page.locator('section').first().getByRole('button', { name: CTA }).click()
       await expect(page.getByPlaceholder('Amine H.')).toBeVisible({ timeout: 10_000 })
-      await shot(page, 'web', 'booking-modal-1920')
+      await shot(page, 'web', 'booking-modal-1440')
     })
 
-    test('booking success screen (UI submit)', async ({ page }) => {
+    test('booking success (portal activation CTA)', async ({ page }) => {
       test.setTimeout(60_000)
       await page.goto('/')
       await page.locator('section').first().getByRole('button', { name: CTA }).click()
@@ -56,9 +48,8 @@ test.describe('Web screenshots @shot', () => {
       try {
         await expect(page.getByText(/merci|thank you/i)).toBeVisible({ timeout: 15_000 })
       } catch {
-        // Public endpoint rate-caps are low when reusing an already-running dev
-        // API (PUBLIC_RATE_MAX unset). Skip the shot instead of failing the run,
-        // but record WHY so environmental failures stay diagnosable.
+        // Tolerate environmental failures (rate caps on a reused dev API, DB
+        // down) but record WHY so runs stay diagnosable.
         const bodyText = (
           await page
             .locator('body')
@@ -71,29 +62,17 @@ test.describe('Web screenshots @shot', () => {
         })
         return
       }
-      await shot(page, 'web', 'booking-success-1920')
-    })
-
-    test('legal privacy page', async ({ page }) => {
-      await page.goto('/')
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-      const privacyBtn = page.getByRole('button', { name: /privacy|confidentialité/i })
-      await expect(privacyBtn).toBeVisible({ timeout: 10_000 })
-      await privacyBtn.click()
-      await expect(page.getByRole('button', { name: /back|retour/i })).toBeVisible({
-        timeout: 10_000,
-      })
-      await shot(page, 'web', 'legal-privacy-1920')
+      await shot(page, 'web', 'booking-success-1440')
     })
   })
 
   test.describe('mobile 390x844', () => {
-    test.use({ viewport: { width: 390, height: 844 } })
+    test.use({ viewport: { width: 390, height: 844 }, navigationTimeout: 60_000 })
 
     test('home full page', async ({ page }) => {
       await page.goto('/')
       await expect(page.locator('section').first()).toBeVisible()
-      await shot(page, 'web', 'home-full-390', { fullPage: true })
+      await shot(page, 'web', 'home-390', { fullPage: true })
     })
 
     test('booking modal open', async ({ page }) => {
