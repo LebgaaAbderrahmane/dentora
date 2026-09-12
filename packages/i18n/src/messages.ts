@@ -842,6 +842,8 @@ const fr = {
   'portal.title': 'Espace patient',
   'portal.hello': 'Bonjour',
   'portal.loginHint': 'Connectez-vous avec l’email et le mot de passe reçus à la réception.',
+  'portal.loginHelpTitle': 'Pas encore de compte patient ?',
+  'portal.loginHelpCta': 'Demandez un rendez-vous sur notre site',
   'portal.request.title': 'Votre demande de rendez-vous',
   'portal.request.hint':
     'Reçue le {date}. Notre équipe vous appellera pour confirmer. Date souhaitée : {preferred}',
@@ -1821,6 +1823,8 @@ const en: Record<MessageKey, string> = {
   'portal.title': 'Patient portal',
   'portal.hello': 'Hello',
   'portal.loginHint': 'Sign in with the email and password received at the front desk.',
+  'portal.loginHelpTitle': "Don't have a patient account yet?",
+  'portal.loginHelpCta': 'Request an appointment on our website',
   'portal.request.title': 'Your appointment request',
   'portal.request.hint':
     'Received on {date}. Our team will call you to confirm. Preferred date: {preferred}',
@@ -2794,6 +2798,8 @@ const ar: Record<MessageKey, string> = {
   'portal.title': 'بوابة المرضى',
   'portal.hello': 'مرحبًا',
   'portal.loginHint': 'سجّل الدخول بالبريد الإلكتروني وكلمة المرور المستلَمَين من الاستقبال.',
+  'portal.loginHelpTitle': 'ليس لديك حساب مريض بعد؟',
+  'portal.loginHelpCta': 'اطلب موعداً عبر موقعنا',
   'portal.request.title': 'طلب حجزك',
   'portal.request.hint':
     'تم استلامه في {date}. سيتصل بك فريقنا للتأكيد. التاريخ المفضل: {preferred}',

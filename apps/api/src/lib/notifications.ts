@@ -219,6 +219,54 @@ async function deliverEmail(
   })
 }
 
+// Transactional email for the patient-flow loop-closure: the portal account
+// activation link minted at web booking time (and on resend). Reuses the
+// per-branch SMTP config as the reminder sweep, but never throws — it returns a
+// result so the booking request can audit the outcome without failing when mail
+// is unconfigured. Gated on the email channel toggle only, not the global
+// reminders switch (auto-generated reminder settings shouldn't block an
+// action the visitor explicitly asked for with their own address).
+export async function sendActivationEmail(
+  branchId: string,
+  to: string,
+  activationUrl: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const cfg = await loadStoredConfig(branchId)
+  if (!cfg.email.enabled) return { ok: false, reason: 'EMAIL_CHANNEL_DISABLED' }
+  const datePart = new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date())
+  try {
+    await deliverEmail(
+      cfg,
+      to,
+      `DENTORA — Activez votre espace patient (${datePart})`,
+      [
+        'Bonjour,',
+        '',
+        'Vous avez soumis une demande de rendez-vous auprès de la clinique. Pour suivre',
+        'cette demande et activer votre espace patient, ouvrez le lien ci-dessous :',
+        '',
+        activationUrl,
+        '',
+        'Ce lien est valable 48 heures et ne peut être utilisé qu\u0027une seule fois.',
+        '',
+        'L\u0027équipe DENTORA',
+      ].join('\n'),
+    )
+    return { ok: true }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'UNKNOWN_DELIVERY_ERROR'
+    logger.warn(
+      { err: reason, to: to.replace(/^(.{2}).*(@.*)$/, '$1…$2'), channel: 'email' },
+      'activation email delivery failed',
+    )
+    return { ok: false, reason }
+  }
+}
+
 // Sweeps one branch: everything due in the next `offsetMinutes` gets planned;
 // log rows are bulk-inserted (unique `[appointmentId, channel]` makes it
 // idempotent) and genuinely-new WhatsApp/email sends are attempted and their row
