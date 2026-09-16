@@ -1248,6 +1248,25 @@ export const portalWaitlistEntrySchema = z.object({
 
 export type PortalWaitlistEntry = z.infer<typeof portalWaitlistEntrySchema>
 
+// Visitor asking for their activation email again (lost the confirmation link).
+// Body matches the booking identity; the endpoint always answers `{ok:true}` so
+// responders can't tell which phone+email pairs exist. Delivery is out-of-band.
+export const portalActivationResendInputSchema = z.object({
+  phone: z
+    .string()
+    .trim()
+    .min(6)
+    .max(20)
+    .regex(/^\+?[0-9\s-]+$/, 'phone must contain only digits'),
+  email: z.string().trim().toLowerCase().email().max(120),
+})
+
+export type PortalActivationResendInput = z.infer<typeof portalActivationResendInputSchema>
+
+export const portalActivationResendResponseSchema = z.object({ ok: z.literal(true) })
+
+export type PortalActivationResendResponse = z.infer<typeof portalActivationResendResponseSchema>
+
 export const serviceCategorySchema = z.enum([
   'CONSULTATION',
   'SURGERY',

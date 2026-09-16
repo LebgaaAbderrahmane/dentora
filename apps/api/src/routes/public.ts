@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs'
 import { Router } from 'express'
 import {
   portalActivationInputSchema,
+  portalActivationResendInputSchema,
+  portalActivationResendResponseSchema,
   portalActivationResponseSchema,
   publicBookingResponseSchema,
   publicBookingSchema,
@@ -12,6 +14,7 @@ import { recordAudit } from '../lib/audit'
 import { encrypt } from '../lib/encryption'
 import { allowRequest } from '../lib/rateLimit'
 import { issueActivationToken, verifyActivationToken } from '../lib/activationTokens'
+import { sendActivationEmail } from '../lib/notifications'
 import {
   generateSessionToken,
   hashSessionToken,
@@ -30,6 +33,11 @@ const router = Router()
 function publicIp(req: import('express').Request): string {
   return req.ip ?? 'unknown'
 }
+
+// Absolute portal base URL for emails (a relative link is useless outside the
+// booking tab). When unset the activation email is skipped — the success-screen
+// deep link remains the primary channel.
+const PORTAL_PUBLIC_URL = process.env.PORTAL_PUBLIC_URL?.trim() ?? ''
 
 async function resolveBranch() {
   const configured = process.env.PUBLIC_BRANCH_ID
@@ -111,6 +119,21 @@ router.post('/bookings', async (req, res) => {
   const activationToken =
     email && !patient.user ? issueActivationToken(patient.id, email) : undefined
 
+  // Best-effort email copy of the activation link, so a closed tab never costs
+  // the activation path. Booking succeeds regardless of mail availability.
+  let activationEmailed = false
+  let activationEmailReason: string | undefined
+  if (activationToken && email) {
+    if (!PORTAL_PUBLIC_URL) {
+      activationEmailReason = 'NO_PORTAL_PUBLIC_URL'
+    } else {
+      const activationUrl = `${PORTAL_PUBLIC_URL}?token=${encodeURIComponent(activationToken)}`
+      const result = await sendActivationEmail(branch.id, email, activationUrl)
+      activationEmailed = result.ok
+      activationEmailReason = result.ok ? undefined : result.reason
+    }
+  }
+
   await recordAudit({
     action: 'WAITLIST_CREATE',
     targetType: 'PATIENT',
@@ -120,6 +143,8 @@ router.post('/bookings', async (req, res) => {
       waitlistEntryId: entry.id,
       source: 'web',
       activationIssued: Boolean(activationToken),
+      activationEmailed,
+      ...(activationEmailReason ? { activationEmailReason } : {}),
     },
     ip: publicIp(req),
     userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : null,
@@ -213,6 +238,42 @@ router.post('/activations/accept', async (req, res) => {
   })
 
   res.status(201).json(portalActivationResponseSchema.parse({ email }))
+})
+
+// Re-deliver the activation email for a visitor who lost the confirmation link
+// (or whose first mail never arrived). Anti-enumeration by design: the response
+// is identical whether or not the identity matched — only an exact phone+email
+// match on a patient with no account yet triggers a send. Delivery stays
+// out-of-band, so knowing the pair is never enough to take over a record.
+router.post('/activations/resend', async (req, res) => {
+  if (!allowRequest(`activation-resend:${publicIp(req)}`, 3)) {
+    res.status(429).json({ error: 'TOO_MANY_REQUESTS' })
+    return
+  }
+  const parsed = portalActivationResendInputSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: 'INVALID_BODY', issues: parsed.error.flatten() })
+    return
+  }
+  const branch = await resolveBranch()
+  const { phone, email } = parsed.data
+
+  if (branch && PORTAL_PUBLIC_URL) {
+    const patient = await prisma.patient.findFirst({
+      where: { branchId: branch.id, phone },
+      select: { id: true, branchId: true, email: true, user: { select: { id: true } } },
+    })
+    if (patient && !patient.user && patient.email === email) {
+      const token = issueActivationToken(patient.id, email)
+      await sendActivationEmail(
+        patient.branchId,
+        email,
+        `${PORTAL_PUBLIC_URL}?token=${encodeURIComponent(token)}`,
+      )
+    }
+  }
+
+  res.json(portalActivationResendResponseSchema.parse({ ok: true }))
 })
 
 export default router

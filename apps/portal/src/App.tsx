@@ -25,6 +25,10 @@ const NAV: Array<{
   { id: 'invoices', label: 'portal.invoices', icon: ReceiptText },
 ]
 
+// Public site origin for the "request an appointment" escape hatch on the login
+// screen. Configurable in case portal and web live on different deployments.
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://dentora.dz'
+
 export default function App() {
   // One-time portal activation link (web booking success → ?token=…) bypasses
   // the login wall: the visitor sets a password and lands straight in.
@@ -144,6 +148,18 @@ function Login({ onLoggedIn }: { onLoggedIn: (user: SafeUser) => void }) {
         </Button>
 
         <p className="mt-4 text-center text-xs text-neutral-400">{t('portal.loginHint')}</p>
+
+        <div className="mt-6 border-t border-neutral-100 pt-4 text-center dark:border-neutral-800">
+          <p className="text-xs text-neutral-400">{t('portal.loginHelpTitle')}</p>
+          <a
+            href={WEB_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-block text-xs font-semibold text-brand-600 underline-offset-2 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+          >
+            {t('portal.loginHelpCta')}
+          </a>
+        </div>
       </form>
     </main>
   )
